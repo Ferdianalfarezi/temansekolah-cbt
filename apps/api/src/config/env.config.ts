@@ -10,8 +10,8 @@ export const envConfig = registerAs("app", () => ({
   // Redis
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
 
-  // JWT (shared secret with LMS)
-  jwtSecret: process.env.JWT_SECRET,
+  // JWT (shared secret with LMS — must match JWT_ACCESS_SECRET from LMS)
+  jwtSecret: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "12h",
 
   // CORS
