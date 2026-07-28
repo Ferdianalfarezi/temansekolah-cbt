@@ -32,7 +32,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Store token and user info
       localStorage.setItem("cbt_token", data.token);
       localStorage.setItem("cbt_user", JSON.stringify(data.user));
       navigate("/exams");
@@ -80,15 +79,41 @@ export default function LoginPage() {
     }
   }
 
+  const inputClass =
+    "w-full rounded-lg px-4 py-3 text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--amber)] transition-all";
+
   // Change password form (first login)
   if (mustChangePassword) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-blue-50 to-white px-4">
-        <div className="w-full max-w-sm space-y-6">
+      <div
+        className="flex min-h-screen items-center justify-center px-4"
+        style={{ background: "var(--bg)" }}
+      >
+        {/* Grid pattern background */}
+        <div
+          className="pointer-events-none fixed inset-0"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.03) 39px, rgba(255,255,255,0.03) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.03) 39px, rgba(255,255,255,0.03) 40px)",
+          }}
+        />
+
+        <div
+          className="relative w-full max-w-sm rounded-2xl p-8 space-y-6"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          {/* Icon */}
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+            <div
+              className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ background: "var(--amber-glow)" }}
+            >
               <svg
-                className="h-6 w-6 text-blue-700"
+                className="h-6 w-6"
+                style={{ color: "var(--amber)" }}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -101,21 +126,36 @@ export default function LoginPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Ubah Password</h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <h1
+              className="text-xl font-semibold"
+              style={{ color: "var(--text)" }}
+            >
+              Ubah Password
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
               Buat password baru untuk akun Anda
             </p>
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div
+              className="rounded-lg px-4 py-3 text-sm"
+              style={{
+                background: "rgba(239,68,68,0.1)",
+                border: "1px solid rgba(239,68,68,0.3)",
+                color: "#fca5a5",
+              }}
+            >
               {error}
             </div>
           )}
 
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                className="block text-xs font-medium mb-1.5 uppercase tracking-wide"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Password Baru
               </label>
               <input
@@ -123,13 +163,20 @@ export default function LoginPage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Minimal 6 karakter"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={inputClass}
+                style={{
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--border)",
+                }}
                 required
                 minLength={6}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                className="block text-xs font-medium mb-1.5 uppercase tracking-wide"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Konfirmasi Password
               </label>
               <input
@@ -137,14 +184,19 @@ export default function LoginPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Ketik ulang password"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={inputClass}
+                style={{
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--border)",
+                }}
                 required
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-700 px-4 py-3 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg px-4 py-3 text-sm font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: "var(--amber)", color: "#0f1117" }}
             >
               {loading ? "Menyimpan..." : "Simpan Password"}
             </button>
@@ -156,12 +208,35 @@ export default function LoginPage() {
 
   // Main login form
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-blue-50 to-white px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div
+      className="flex min-h-screen items-center justify-center px-4"
+      style={{ background: "var(--bg)" }}
+    >
+      {/* Subtle grid pattern */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.03) 39px, rgba(255,255,255,0.03) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.03) 39px, rgba(255,255,255,0.03) 40px)",
+        }}
+      />
+
+      <div
+        className="relative w-full max-w-sm rounded-2xl p-8 space-y-6"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        {/* Logo */}
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+          <div
+            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
+            style={{ background: "var(--amber-glow)" }}
+          >
             <svg
-              className="h-6 w-6 text-blue-700"
+              className="h-6 w-6"
+              style={{ color: "var(--amber)" }}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -174,45 +249,65 @@ export default function LoginPage() {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1
+            className="text-2xl"
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              color: "var(--text)",
+            }}
+          >
             CBT Teman Sekolah
           </h1>
-          <p className="mt-1 text-sm text-gray-600">Masuk dengan akun siswa</p>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+            Portal Ujian Siswa
+          </p>
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div
+            className="rounded-lg px-4 py-3 text-sm"
+            style={{
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.3)",
+              color: "#fca5a5",
+            }}
+          >
             {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <input
-              type="text"
-              value={nisn}
-              onChange={(e) => setNisn(e.target.value)}
-              placeholder="NISN"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              required
-              autoComplete="username"
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              required
-              autoComplete="current-password"
-            />
-          </div>
+        <form onSubmit={handleLogin} className="space-y-3">
+          <input
+            type="text"
+            value={nisn}
+            onChange={(e) => setNisn(e.target.value)}
+            placeholder="NISN"
+            className={inputClass}
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+            }}
+            required
+            autoComplete="username"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className={inputClass}
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+            }}
+            required
+            autoComplete="current-password"
+          />
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-blue-700 px-4 py-3 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-lg px-4 py-3 text-sm font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: "var(--amber)", color: "#0f1117" }}
           >
             {loading ? "Masuk..." : "Masuk"}
           </button>
@@ -221,7 +316,8 @@ export default function LoginPage() {
         <div className="text-center">
           <a
             href="/reset-password"
-            className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+            className="text-sm transition-colors hover:underline"
+            style={{ color: "var(--text-muted)" }}
           >
             Lupa password?
           </a>

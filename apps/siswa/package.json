@@ -5,7 +5,7 @@
   "type": "module",
   "description": "CBT Teman Sekolah — React PWA for student exam taking",
   "scripts": {
-    "dev": "vite --port 5174",
+    "dev": "vite --port 5004",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"

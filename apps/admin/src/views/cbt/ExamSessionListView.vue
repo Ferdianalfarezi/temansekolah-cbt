@@ -85,137 +85,244 @@ onMounted(fetchSessions);
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">Sesi Ujian</h1>
-      <select
-        v-model="statusFilter"
-        class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-      >
-        <option
-          v-for="opt in statusOptions"
-          :key="opt.value"
-          :value="opt.value"
+  <div>
+    <!-- Page header -->
+    <div
+      class="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between"
+    >
+      <div>
+        <h1 class="text-lg font-semibold text-gray-900">Sesi Ujian</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Daftar sesi ujian CBT</p>
+      </div>
+      <!-- Filter bar -->
+      <div class="flex items-center gap-2">
+        <select
+          v-model="statusFilter"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
         >
-          {{ opt.label }}
-        </option>
-      </select>
+          <option
+            v-for="opt in statusOptions"
+            :key="opt.value"
+            :value="opt.value"
+          >
+            {{ opt.label }}
+          </option>
+        </select>
+      </div>
     </div>
 
-    <div
-      v-if="error"
-      class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-    >
-      {{ error }}
-    </div>
-
-    <div v-if="loading" class="flex items-center justify-center py-12">
+    <div class="px-6 py-6">
       <div
-        class="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"
-      ></div>
-    </div>
+        v-if="error"
+        class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+      >
+        {{ error }}
+      </div>
 
-    <div
-      v-else
-      class="overflow-hidden rounded-lg border border-gray-200 bg-white"
-    >
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
-            >
-              Mapel
-            </th>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
-            >
-              Kelas
-            </th>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
-            >
-              Jadwal
-            </th>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
-            >
-              Durasi
-            </th>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
-            >
-              Status
-            </th>
-            <th
-              class="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500"
-            >
-              Aksi
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          <tr v-for="s in sessions" :key="s.id" class="hover:bg-gray-50">
-            <td class="px-4 py-3 text-sm text-gray-900">
-              {{ s.mataPelajaranId.slice(0, 8) }}…
-            </td>
-            <td class="px-4 py-3 text-sm text-gray-600">
-              {{ s.kelasId.slice(0, 8) }}…
-            </td>
-            <td class="px-4 py-3 text-sm text-gray-600">
-              {{ new Date(s.scheduledAt).toLocaleString("id-ID") }}
-            </td>
-            <td class="px-4 py-3 text-sm text-gray-600">
-              {{ s.durationMinutes }} menit
-            </td>
-            <td class="px-4 py-3">
-              <span
-                :class="[
-                  'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-                  statusBadgeClass(s.status),
-                ]"
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <div
+          class="h-7 w-7 animate-spin rounded-full border-[3px] border-indigo-600 border-t-transparent"
+        ></div>
+      </div>
+
+      <div
+        v-else
+        class="overflow-hidden rounded-xl border border-gray-200 bg-white"
+      >
+        <table class="min-w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
-                {{ s.status }}
-              </span>
-            </td>
-            <td class="px-4 py-3 text-right space-x-2">
-              <button
-                v-if="s.status === 'draft'"
-                class="text-sm text-blue-600 hover:text-blue-800"
-                @click="handlePackage(s.id)"
+                Mapel
+              </th>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
-                Package
-              </button>
-              <button
-                v-if="s.status === 'packaged'"
-                class="text-sm text-red-600 hover:text-red-800"
-                @click="handleCancel(s.id)"
+                Kelas
+              </th>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
-                Cancel
-              </button>
-              <button
-                v-if="s.status === 'completed' && !s.resultsReleased"
-                class="text-sm text-green-600 hover:text-green-800"
-                @click="handleRelease(s.id)"
+                Jadwal
+              </th>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
-                Rilis Hasil
-              </button>
-              <RouterLink
-                v-if="s.status === 'completed'"
-                :to="`/cbt/report/${s.id}`"
-                class="text-sm text-purple-600 hover:text-purple-800"
+                Durasi
+              </th>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
-                Laporan
-              </RouterLink>
-            </td>
-          </tr>
-          <tr v-if="sessions.length === 0">
-            <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500">
-              Belum ada sesi ujian.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                Status
+              </th>
+              <th
+                class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500"
+              >
+                Aksi
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr
+              v-for="s in sessions"
+              :key="s.id"
+              class="hover:bg-gray-50/60 transition-colors"
+            >
+              <td class="px-4 py-3 text-sm text-gray-900 font-medium">
+                {{ s.mataPelajaranId.slice(0, 8) }}…
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600">
+                {{ s.kelasId.slice(0, 8) }}…
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600">
+                {{ new Date(s.scheduledAt).toLocaleString("id-ID") }}
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600">
+                {{ s.durationMinutes }} menit
+              </td>
+              <td class="px-4 py-3">
+                <!-- draft -->
+                <span
+                  v-if="s.status === 'draft'"
+                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600"
+                >
+                  Draft
+                </span>
+                <!-- packaged -->
+                <span
+                  v-else-if="s.status === 'packaged'"
+                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700"
+                >
+                  Packaged
+                </span>
+                <!-- active -->
+                <span
+                  v-else-if="s.status === 'active'"
+                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700"
+                >
+                  <span
+                    class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"
+                  ></span>
+                  Active
+                </span>
+                <!-- completed -->
+                <span
+                  v-else-if="s.status === 'completed'"
+                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-500"
+                >
+                  Completed
+                </span>
+                <!-- cancelled -->
+                <span
+                  v-else-if="s.status === 'cancelled'"
+                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-600"
+                >
+                  Cancelled
+                </span>
+                <span
+                  v-else
+                  :class="[
+                    'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
+                    statusBadgeClass(s.status),
+                  ]"
+                  >{{ s.status }}</span
+                >
+              </td>
+              <td class="px-4 py-3 text-right">
+                <div class="flex items-center justify-end gap-1">
+                  <button
+                    v-if="s.status === 'draft'"
+                    title="Package sesi"
+                    class="rounded-md p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    @click="handlePackage(s.id)"
+                  >
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    v-if="s.status === 'packaged'"
+                    title="Batalkan sesi"
+                    class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    @click="handleCancel(s.id)"
+                  >
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    v-if="s.status === 'completed' && !s.resultsReleased"
+                    title="Rilis hasil"
+                    class="rounded-md p-1.5 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                    @click="handleRelease(s.id)"
+                  >
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </button>
+                  <RouterLink
+                    v-if="s.status === 'completed'"
+                    :to="`/cbt/report/${s.id}`"
+                    title="Lihat laporan"
+                    class="rounded-md p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                  >
+                    <svg
+                      class="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </RouterLink>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="sessions.length === 0">
+              <td colspan="6" class="py-10 text-center text-sm text-gray-400">
+                Belum ada sesi ujian.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>

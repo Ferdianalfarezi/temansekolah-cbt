@@ -16,18 +16,18 @@ interface ExamSession {
 const STATUS_CONFIG = {
   packaged: {
     label: "Akan Datang",
-    badgeClass: "bg-yellow-100 text-yellow-800",
-    cardBorder: "border-yellow-200",
+    badgeStyle: { background: "rgba(99,102,241,0.15)", color: "#818cf8" },
+    borderStyle: { borderLeft: "3px solid #6366f1" },
   },
   active: {
     label: "Siap Dikerjakan",
-    badgeClass: "bg-green-100 text-green-800",
-    cardBorder: "border-green-200",
+    badgeStyle: { background: "rgba(245,158,11,0.15)", color: "#f59e0b" },
+    borderStyle: { borderLeft: "3px solid var(--amber)" },
   },
   completed: {
     label: "Selesai",
-    badgeClass: "bg-gray-100 text-gray-600",
-    cardBorder: "border-gray-200",
+    badgeStyle: { background: "rgba(16,185,129,0.15)", color: "#10b981" },
+    borderStyle: { borderLeft: "3px solid var(--emerald)" },
   },
 } as const;
 
@@ -51,7 +51,7 @@ export default function ExamListPage() {
       const axiosErr = err as {
         response?: { status?: number; data?: { message?: string } };
       };
-      if (axiosErr.response?.status === 401) return; // handled by interceptor
+      if (axiosErr.response?.status === 401) return;
       setError(
         axiosErr.response?.data?.message || "Gagal memuat daftar ujian.",
       );
@@ -92,18 +92,68 @@ export default function ExamListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-4">
+      <header
+        className="sticky top-0 z-10 px-4 py-3"
+        style={{
+          background: "var(--surface)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
         <div className="mx-auto max-w-lg flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">Daftar Ujian</h1>
-            {user.name && <p className="text-sm text-gray-500">{user.name}</p>}
+          <div className="flex items-center gap-3">
+            {/* Logo mark */}
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ background: "var(--amber-glow)" }}
+            >
+              <svg
+                className="h-4 w-4"
+                style={{ color: "var(--amber)" }}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p
+                className="text-sm font-semibold"
+                style={{ color: "var(--text)" }}
+              >
+                {user.name || "Siswa"}
+              </p>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Daftar Ujian
+              </p>
+            </div>
           </div>
           <button
             onClick={handleLogout}
-            className="rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs transition-colors"
+            style={{ color: "var(--text-muted)" }}
+            title="Keluar"
           >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
             Keluar
           </button>
         </div>
@@ -112,13 +162,26 @@ export default function ExamListPage() {
       {/* Content */}
       <main className="mx-auto max-w-lg px-4 py-6">
         {loading && (
-          <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+          <div className="flex justify-center py-16">
+            <div
+              className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
+              style={{
+                borderColor: "var(--amber)",
+                borderTopColor: "transparent",
+              }}
+            />
           </div>
         )}
 
         {error && (
-          <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 mb-4">
+          <div
+            className="mb-4 rounded-lg px-4 py-3 text-sm"
+            style={{
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.3)",
+              color: "#fca5a5",
+            }}
+          >
             {error}
             <button
               onClick={() => {
@@ -134,22 +197,37 @@ export default function ExamListPage() {
         )}
 
         {!loading && !error && sessions.length === 0 && (
-          <div className="text-center py-12">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-300"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <div className="text-center py-16">
+            <div
+              className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+              style={{ background: "var(--surface)" }}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <p className="mt-3 text-sm text-gray-500">
+              <svg
+                className="h-8 w-8"
+                style={{ color: "var(--text-muted)" }}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <p
+              className="text-sm font-medium"
+              style={{ color: "var(--text-muted)" }}
+            >
               Belum ada ujian yang tersedia.
+            </p>
+            <p
+              className="mt-1 text-xs"
+              style={{ color: "var(--text-muted)", opacity: 0.6 }}
+            >
+              Ujian akan muncul di sini saat sudah dijadwalkan.
             </p>
           </div>
         )}
@@ -161,30 +239,42 @@ export default function ExamListPage() {
             return (
               <div
                 key={session.id}
-                className={`rounded-xl border bg-white p-4 ${config.cardBorder} ${
-                  session.status === "active"
-                    ? "cursor-pointer hover:shadow-md transition-shadow"
-                    : ""
-                }`}
+                className="rounded-xl p-4 transition-all"
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  ...config.borderStyle,
+                  cursor: session.status === "active" ? "pointer" : "default",
+                }}
                 onClick={() => handleStartExam(session)}
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 truncate">
+                    <h3
+                      className="font-semibold truncate text-sm"
+                      style={{ color: "var(--text)" }}
+                    >
                       {session.title}
                     </h3>
-                    <p className="mt-0.5 text-sm text-gray-500">
+                    <p
+                      className="mt-0.5 text-xs"
+                      style={{ color: "var(--text-muted)" }}
+                    >
                       {session.subject}
                     </p>
                   </div>
                   <span
-                    className={`ml-2 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${config.badgeClass}`}
+                    className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    style={config.badgeStyle}
                   >
                     {config.label}
                   </span>
                 </div>
 
-                <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+                <div
+                  className="mt-3 flex items-center gap-4 text-xs"
+                  style={{ color: "var(--text-muted)" }}
+                >
                   <span className="flex items-center gap-1">
                     <svg
                       className="h-3.5 w-3.5"
@@ -238,21 +328,29 @@ export default function ExamListPage() {
                 </div>
 
                 {session.status === "active" && (
-                  <div className="mt-3">
-                    <button className="w-full rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-800">
-                      Mulai Ujian
+                  <div className="mt-4">
+                    <button
+                      className="w-full min-h-[48px] rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+                      style={{ background: "var(--amber)", color: "#0f1117" }}
+                    >
+                      Mulai Ujian →
                     </button>
                   </div>
                 )}
 
                 {session.status === "completed" && (
-                  <div className="mt-3">
+                  <div className="mt-4">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/result/${session.id}`);
                       }}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      className="w-full min-h-[48px] rounded-lg text-sm font-medium transition-colors"
+                      style={{
+                        border: "1px solid var(--emerald)",
+                        color: "var(--emerald)",
+                        background: "transparent",
+                      }}
                     >
                       Lihat Hasil
                     </button>

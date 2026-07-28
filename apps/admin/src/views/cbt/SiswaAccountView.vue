@@ -58,143 +58,206 @@ onMounted(fetchAccounts);
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">Akun Siswa CBT</h1>
-      <button
-        :disabled="syncing"
-        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        @click="handleSync"
-      >
-        <span v-if="syncing">Sinkronisasi...</span>
-        <span v-else>🔄 Sync dari LMS</span>
-      </button>
-    </div>
-
+  <div>
+    <!-- Page header -->
     <div
-      v-if="error"
-      class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+      class="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between"
     >
-      {{ error }}
+      <div>
+        <h1 class="text-lg font-semibold text-gray-900">Akun Siswa CBT</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Manajemen akun ujian siswa</p>
+      </div>
     </div>
 
-    <!-- Search -->
-    <div class="mb-4">
-      <form class="flex gap-2" @submit.prevent="handleSearch">
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Cari NISN atau nama..."
-          class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        />
-        <button
-          type="submit"
-          class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-        >
-          Cari
-        </button>
-      </form>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="loading" class="flex items-center justify-center py-12">
+    <div class="px-6 py-6">
+      <!-- Error banner -->
       <div
-        class="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"
-      ></div>
-    </div>
+        v-if="error"
+        class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+      >
+        {{ error }}
+      </div>
 
-    <!-- Table -->
-    <div
-      v-else
-      class="overflow-hidden rounded-lg border border-gray-200 bg-white"
-    >
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
+      <!-- Stats row -->
+      <div class="mb-5 grid grid-cols-3 gap-3">
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+          <p class="text-2xl font-bold text-gray-900">{{ accounts.length }}</p>
+          <p class="text-xs text-gray-500 mt-1">Total Siswa</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+          <p class="text-2xl font-bold text-gray-900">
+            {{ accounts.filter((a) => a.isActive).length }}
+          </p>
+          <p class="text-xs text-gray-500 mt-1">Aktif</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+          <p class="text-2xl font-bold text-amber-600">
+            {{ accounts.filter((a) => a.needsReview).length }}
+          </p>
+          <p class="text-xs text-gray-500 mt-1">Perlu Review</p>
+        </div>
+      </div>
+
+      <!-- Search bar -->
+      <div class="mb-5">
+        <form class="flex gap-2" @submit.prevent="handleSearch">
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Cari NISN atau nama siswa..."
+            class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+          <button
+            type="button"
+            :disabled="syncing"
+            class="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            @click="handleSync"
+          >
+            <svg
+              v-if="syncing"
+              class="animate-spin h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
             >
-              NISN
-            </th>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              ></path>
+            </svg>
+            <svg
+              v-else
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
             >
-              Nama
-            </th>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
-            >
-              Kelas
-            </th>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
-            >
-              Status
-            </th>
-            <th
-              class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500"
-            >
-              Login Terakhir
-            </th>
-            <th
-              class="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500"
-            >
-              Aksi
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          <tr v-for="acc in accounts" :key="acc.id" class="hover:bg-gray-50">
-            <td class="px-4 py-3 text-sm font-mono text-gray-900">
-              {{ acc.nisn }}
-            </td>
-            <td class="px-4 py-3 text-sm text-gray-900">
-              {{ acc.namaSiswa || "-" }}
-            </td>
-            <td class="px-4 py-3 text-sm text-gray-600">
-              {{ acc.kelasNama || "-" }}
-            </td>
-            <td class="px-4 py-3">
-              <span
-                :class="[
-                  'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-                  acc.isActive
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-600',
-                ]"
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>{{ syncing ? "Sinkronisasi..." : "Sync" }}</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <div
+          class="h-7 w-7 animate-spin rounded-full border-[3px] border-indigo-600 border-t-transparent"
+        ></div>
+      </div>
+
+      <!-- Table -->
+      <div
+        v-else
+        class="overflow-hidden rounded-xl border border-gray-200 bg-white"
+      >
+        <table class="min-w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
-                {{ acc.isActive ? "Aktif" : "Nonaktif" }}
-              </span>
-              <span
-                v-if="acc.needsReview"
-                class="ml-1 inline-flex rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700"
+                NISN
+              </th>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
-                Review
-              </span>
-            </td>
-            <td class="px-4 py-3 text-sm text-gray-600">
-              {{
-                acc.lastLoginAt
-                  ? new Date(acc.lastLoginAt).toLocaleString("id-ID")
-                  : "Belum pernah"
-              }}
-            </td>
-            <td class="px-4 py-3 text-right">
-              <button
-                class="text-sm text-blue-600 hover:text-blue-800"
-                @click="handleResetPassword(acc.id, acc.nisn)"
+                Nama
+              </th>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
-                Reset Password
-              </button>
-            </td>
-          </tr>
-          <tr v-if="accounts.length === 0">
-            <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500">
-              Belum ada akun siswa.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                Kelas
+              </th>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+              >
+                Status
+              </th>
+              <th
+                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+              >
+                Login Terakhir
+              </th>
+              <th
+                class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500"
+              >
+                Aksi
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr
+              v-for="acc in accounts"
+              :key="acc.id"
+              class="hover:bg-gray-50/60 transition-colors"
+            >
+              <td class="px-4 py-3 font-mono text-sm text-gray-900">
+                {{ acc.nisn }}
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-900">
+                {{ acc.namaSiswa || "-" }}
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600">
+                {{ acc.kelasNama || "-" }}
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-1.5">
+                  <span
+                    :class="[
+                      'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
+                      acc.isActive
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-gray-100 text-gray-500',
+                    ]"
+                  >
+                    {{ acc.isActive ? "Aktif" : "Nonaktif" }}
+                  </span>
+                  <span
+                    v-if="acc.needsReview"
+                    class="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+                  >
+                    Review
+                  </span>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600">
+                {{
+                  acc.lastLoginAt
+                    ? new Date(acc.lastLoginAt).toLocaleString("id-ID")
+                    : "Belum pernah"
+                }}
+              </td>
+              <td class="px-4 py-3 text-right">
+                <button
+                  class="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                  @click="handleResetPassword(acc.id, acc.nisn)"
+                >
+                  Reset Password
+                </button>
+              </td>
+            </tr>
+            <tr v-if="accounts.length === 0">
+              <td colspan="6" class="py-10 text-center text-sm text-gray-400">
+                Belum ada akun siswa.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>

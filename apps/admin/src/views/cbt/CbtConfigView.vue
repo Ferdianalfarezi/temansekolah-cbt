@@ -55,120 +55,158 @@ onMounted(fetchConfig);
 </script>
 
 <template>
-  <div class="p-6">
-    <h1 class="mb-6 text-2xl font-bold text-gray-900">Konfigurasi CBT</h1>
-
-    <div
-      v-if="error"
-      class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-    >
-      {{ error }}
+  <div>
+    <!-- Page header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+      <h1 class="text-lg font-semibold text-gray-900">Konfigurasi CBT</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Atur parameter sistem CBT</p>
     </div>
 
-    <div
-      v-if="success"
-      class="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700"
-    >
-      {{ success }}
-    </div>
-
-    <div v-if="loading" class="flex items-center justify-center py-12">
+    <div class="px-6 py-6 max-w-2xl">
       <div
-        class="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"
-      ></div>
+        v-if="error"
+        class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+      >
+        {{ error }}
+      </div>
+
+      <div
+        v-if="success"
+        class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"
+      >
+        {{ success }}
+      </div>
+
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <div
+          class="h-7 w-7 animate-spin rounded-full border-[3px] border-indigo-600 border-t-transparent"
+        ></div>
+      </div>
+
+      <form v-else class="space-y-4" @submit.prevent="handleSave">
+        <!-- Card 1: Zona Waktu -->
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 class="text-sm font-semibold text-gray-700 mb-3">Zona Waktu</h2>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1"
+              >Timezone</label
+            >
+            <select
+              v-model="form.timezone"
+              class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            >
+              <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
+              <option value="Asia/Makassar">Asia/Makassar (WITA)</option>
+              <option value="Asia/Jayapura">Asia/Jayapura (WIT)</option>
+            </select>
+          </div>
+          <div class="mt-4">
+            <button
+              type="button"
+              :disabled="saving"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              @click="handleSave"
+            >
+              {{ saving ? "Menyimpan..." : "Simpan" }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2: Anti-Cheat -->
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 class="text-sm font-semibold text-gray-700 mb-3">Anti-Cheat</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1"
+                >Default Level</label
+              >
+              <select
+                v-model="form.defaultAntiCheatLevel"
+                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              >
+                <option value="standard">Standard</option>
+                <option value="relaxed">Relaxed</option>
+              </select>
+              <p class="mt-1 text-xs text-gray-400">
+                Standard: fullscreen lock, tab switch detection. Relaxed: hanya
+                warning.
+              </p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1"
+                >Violation Threshold (auto-submit)</label
+              >
+              <input
+                v-model.number="form.maxViolationCount"
+                type="number"
+                min="1"
+                max="20"
+                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              />
+              <p class="mt-1 text-xs text-gray-400">
+                Jumlah pelanggaran sebelum auto-submit.
+              </p>
+            </div>
+          </div>
+          <div class="mt-4">
+            <button
+              type="button"
+              :disabled="saving"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              @click="handleSave"
+            >
+              {{ saving ? "Menyimpan..." : "Simpan" }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 3: Hasil Ujian -->
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 class="text-sm font-semibold text-gray-700 mb-3">Hasil Ujian</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1"
+                >Default Detail Hasil</label
+              >
+              <select
+                v-model="form.defaultResultDetailLevel"
+                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              >
+                <option value="score_only">Skor saja</option>
+                <option value="score_with_indicator">
+                  Skor + Indikator benar/salah
+                </option>
+                <option value="full_detail">Detail lengkap</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1"
+                >Threshold Early Submission (%)</label
+              >
+              <input
+                v-model.number="form.earlySubmissionThresholdPct"
+                type="number"
+                min="5"
+                max="50"
+                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              />
+              <p class="mt-1 text-xs text-gray-400">
+                Submission di bawah persentase waktu ini dianggap terlalu cepat.
+              </p>
+            </div>
+          </div>
+          <div class="mt-4">
+            <button
+              type="button"
+              :disabled="saving"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              @click="handleSave"
+            >
+              {{ saving ? "Menyimpan..." : "Simpan" }}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
-
-    <form
-      v-else
-      class="max-w-2xl rounded-lg border border-gray-200 bg-white p-6 space-y-5"
-      @submit.prevent="handleSave"
-    >
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Timezone</label>
-        <select
-          v-model="form.timezone"
-          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        >
-          <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
-          <option value="Asia/Makassar">Asia/Makassar (WITA)</option>
-          <option value="Asia/Jayapura">Asia/Jayapura (WIT)</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700"
-          >Default Anti-Cheat Level</label
-        >
-        <select
-          v-model="form.defaultAntiCheatLevel"
-          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        >
-          <option value="standard">Standard</option>
-          <option value="relaxed">Relaxed</option>
-        </select>
-        <p class="mt-1 text-xs text-gray-500">
-          Standard: fullscreen lock, tab switch detection. Relaxed: hanya
-          warning.
-        </p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700"
-          >Maks Pelanggaran (auto-submit)</label
-        >
-        <input
-          v-model.number="form.maxViolationCount"
-          type="number"
-          min="1"
-          max="20"
-          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        />
-        <p class="mt-1 text-xs text-gray-500">
-          Jumlah pelanggaran sebelum auto-submit.
-        </p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">
-          Threshold Early Submission (%)
-        </label>
-        <input
-          v-model.number="form.earlySubmissionThresholdPct"
-          type="number"
-          min="5"
-          max="50"
-          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        />
-        <p class="mt-1 text-xs text-gray-500">
-          Submission di bawah persentase waktu ini dianggap terlalu cepat.
-        </p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700"
-          >Default Detail Hasil</label
-        >
-        <select
-          v-model="form.defaultResultDetailLevel"
-          class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-        >
-          <option value="score_only">Skor saja</option>
-          <option value="score_with_indicator">
-            Skor + Indikator benar/salah
-          </option>
-          <option value="full_detail">Detail lengkap</option>
-        </select>
-      </div>
-
-      <div class="pt-2">
-        <button
-          type="submit"
-          :disabled="saving"
-          class="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {{ saving ? "Menyimpan..." : "Simpan Konfigurasi" }}
-        </button>
-      </div>
-    </form>
   </div>
 </template>

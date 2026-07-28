@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ViolationType } from "@cbt/shared";
+import { ViolationType } from "@/common/enums";
 
 export interface UseAntiCheatOptions {
   enabled: boolean;

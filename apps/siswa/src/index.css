@@ -1,1 +1,37 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;700&family=Geist:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-2: #22263a;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --amber: #f59e0b;
+  --amber-glow: rgba(245, 158, 11, 0.15);
+  --emerald: #10b981;
+  --red: #ef4444;
+  --indigo: #6366f1;
+}
+
+body {
+  font-family: "Geist", "Inter", system-ui, sans-serif;
+  background: #0f1117;
+  color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes timer-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+}
+
+.timer-urgent {
+  animation: timer-pulse 1.5s ease-in-out infinite;
+}
