@@ -6,7 +6,7 @@
   "description": "CBT Teman Sekolah — React PWA for student exam taking",
   "scripts": {
     "dev": "vite --port 5174",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },

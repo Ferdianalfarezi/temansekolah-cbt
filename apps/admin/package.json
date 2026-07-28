@@ -6,7 +6,7 @@
   "description": "CBT Teman Sekolah — Vue 3 admin panel",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "echo 'lint not yet configured'",
     "type-check": "vue-tsc --noEmit"
