@@ -26,14 +26,13 @@ export default function LoginPage() {
       const data = res.data;
 
       if (data.mustChangePassword) {
-        setTempToken(data.token);
+        setTempToken(data.accessToken);
         setMustChangePassword(true);
         setLoading(false);
         return;
       }
 
-      localStorage.setItem("cbt_token", data.token);
-      localStorage.setItem("cbt_user", JSON.stringify(data.user));
+      localStorage.setItem("cbt_token", data.accessToken);
       navigate("/exams");
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
@@ -61,15 +60,18 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const res = await api.post(
+      await api.post(
         "/auth/siswa/change-password",
-        { newPassword },
+        { currentPassword: password, newPassword },
         { headers: { Authorization: `Bearer ${tempToken}` } },
       );
-      const data = res.data;
 
-      localStorage.setItem("cbt_token", data.token);
-      localStorage.setItem("cbt_user", JSON.stringify(data.user));
+      // Re-login with new password to get a fresh token
+      const loginRes = await api.post("/auth/siswa/login", {
+        nisn,
+        password: newPassword,
+      });
+      localStorage.setItem("cbt_token", loginRes.data.accessToken);
       navigate("/exams");
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
