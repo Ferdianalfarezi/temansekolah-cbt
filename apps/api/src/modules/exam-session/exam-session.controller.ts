@@ -11,7 +11,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
-import { CbtRole } from "@cbt/shared";
+import { CbtRole } from "@/common/enums";
 
 import { JwtAuthGuard, TenantGuard, RolesGuard } from "../../common/guards";
 import { CurrentUser, Roles } from "../../common/decorators";

@@ -9,7 +9,7 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
-import { CbtRole } from "@cbt/shared";
+import { CbtRole } from "@/common/enums";
 
 import { mapLmsRoleToCbt } from "../../../common/helpers/role-mapping";
 import { DRIZZLE } from "../../../drizzle/drizzle.module";

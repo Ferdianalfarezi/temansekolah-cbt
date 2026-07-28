@@ -8,7 +8,7 @@ import {
   Min,
   Max,
 } from "class-validator";
-import { AntiCheatLevel, ResultDetailLevel } from "@cbt/shared";
+import { AntiCheatLevel, ResultDetailLevel } from "@/common/enums";
 
 export class UpdateExamSessionDto {
   @IsOptional()

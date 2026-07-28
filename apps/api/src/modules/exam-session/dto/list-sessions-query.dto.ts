@@ -1,6 +1,6 @@
 import { IsOptional, IsUUID, IsEnum, IsInt, Min, Max } from "class-validator";
 import { Type } from "class-transformer";
-import { ExamSessionStatus } from "@cbt/shared";
+import { ExamSessionStatus } from "@/common/enums";
 
 export class ListSessionsQueryDto {
   @IsOptional()

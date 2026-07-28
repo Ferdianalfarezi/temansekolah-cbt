@@ -1,5 +1,5 @@
 import { IsUUID, IsIn } from "class-validator";
-import { PeriodeRapor } from "@cbt/shared";
+import { PeriodeRapor } from "@/common/enums";
 
 export class CreatePelaksanaanUjianDto {
   @IsUUID()

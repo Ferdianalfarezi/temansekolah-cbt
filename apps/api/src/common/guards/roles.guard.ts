@@ -5,7 +5,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { CbtRole } from "@cbt/shared";
+import { CbtRole } from "@/common/enums";
 
 import { ROLES_KEY } from "../decorators/roles.decorator";
 import { JwtUser } from "../../modules/auth/strategies/jwt.strategy";

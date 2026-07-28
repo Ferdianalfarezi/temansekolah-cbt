@@ -9,7 +9,7 @@ import {
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { and, gte, lte, sql } from "drizzle-orm";
 import { IsString, IsIn } from "class-validator";
-import { CbtRole } from "@cbt/shared";
+import { CbtRole } from "@/common/enums";
 
 import { DRIZZLE } from "../../drizzle/drizzle.module";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";

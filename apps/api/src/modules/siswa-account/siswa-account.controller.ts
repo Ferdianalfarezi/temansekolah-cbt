@@ -10,7 +10,7 @@ import {
   HttpStatus,
   NotFoundException,
 } from "@nestjs/common";
-import { CbtRole } from "@cbt/shared";
+import { CbtRole } from "@/common/enums";
 
 import { JwtAuthGuard, TenantGuard, RolesGuard } from "../../common/guards";
 import { Roles, CurrentUser } from "../../common/decorators";

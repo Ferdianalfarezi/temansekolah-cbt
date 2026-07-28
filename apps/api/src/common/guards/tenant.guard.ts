@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
-import { CbtRole } from "@cbt/shared";
+import { CbtRole } from "@/common/enums";
 
 import { JwtUser } from "../../modules/auth/strategies/jwt.strategy";
 

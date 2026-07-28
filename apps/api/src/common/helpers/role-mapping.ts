@@ -1,4 +1,4 @@
-import { CbtRole } from "@cbt/shared";
+import { CbtRole } from "@/common/enums";
 
 /**
  * Maps LMS staff roles to CBT application roles.
