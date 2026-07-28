@@ -50,6 +50,8 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built output from builder
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+# Copy migrations so the built app can run them at startup
+COPY --from=builder /app/apps/api/src/drizzle/migrations ./apps/api/dist/drizzle/migrations
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

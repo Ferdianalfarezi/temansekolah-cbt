@@ -21,4 +21,3 @@ startCommand = "node apps/api/dist/main.js"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 numReplicas = 1
-preDeployCommand = "node apps/api/migrate.mjs"
