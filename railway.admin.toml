@@ -1,0 +1,15 @@
+# Railway deployment configuration — CBT Admin Panel (Vue 3 SPA)
+#
+# In the Railway dashboard, set this service's config file path to:
+#   railway.admin.toml
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.admin"
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 10
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+numReplicas = 1

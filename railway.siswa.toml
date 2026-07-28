@@ -1,0 +1,15 @@
+# Railway deployment configuration — CBT Siswa PWA (React)
+#
+# In the Railway dashboard, set this service's config file path to:
+#   railway.siswa.toml
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.siswa"
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 10
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+numReplicas = 1

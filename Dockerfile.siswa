@@ -1,0 +1,55 @@
+# CBT Siswa PWA — static React PWA served via nginx
+# Railway service: set VITE_API_URL in service Variables tab
+
+FROM node:18-alpine AS build
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/siswa/package.json ./apps/siswa/
+COPY packages/shared/package.json ./packages/shared/
+RUN pnpm install --frozen-lockfile --prod=false
+
+COPY apps/siswa/ ./apps/siswa/
+COPY packages/shared/ ./packages/shared/
+
+# Build shared types
+RUN pnpm --filter @cbt/shared build || true
+
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+
+RUN pnpm --filter @cbt/siswa build
+
+# Serve with nginx
+FROM nginx:alpine
+
+COPY --from=build /app/apps/siswa/dist /usr/share/nginx/html
+
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY <<'EOF' /etc/nginx/conf.d/spa.conf
+server {
+    listen NGINX_PORT;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Service worker must not be cached
+    location = /sw.js {
+        add_header Cache-Control "no-cache, no-store";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+EOF
+
+ENV PORT=80
+EXPOSE 80
+
+CMD sh -c "sed -i 's/NGINX_PORT/'\"$PORT\"'/' /etc/nginx/conf.d/spa.conf && nginx -g 'daemon off;'"

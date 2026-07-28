@@ -1,0 +1,53 @@
+# CBT Admin Panel — static Vue 3 SPA served via nginx
+# Railway service: set VITE_API_URL in service Variables tab
+
+FROM node:18-alpine AS build
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/admin/package.json ./apps/admin/
+COPY packages/shared/package.json ./packages/shared/
+RUN pnpm install --frozen-lockfile --prod=false
+
+COPY apps/admin/ ./apps/admin/
+COPY packages/shared/ ./packages/shared/
+
+# Build shared types
+RUN pnpm --filter @cbt/shared build || true
+
+# VITE_API_URL must be set as a Railway build variable (not runtime env)
+# Railway passes service variables as build args automatically when using Nixpacks,
+# but with Dockerfile we need to declare the ARG explicitly.
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+
+RUN pnpm --filter @cbt/admin build
+
+# Serve with nginx
+FROM nginx:alpine
+
+COPY --from=build /app/apps/admin/dist /usr/share/nginx/html
+
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY <<'EOF' /etc/nginx/conf.d/spa.conf
+server {
+    listen NGINX_PORT;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+EOF
+
+ENV PORT=80
+EXPOSE 80
+
+CMD sh -c "sed -i 's/NGINX_PORT/'\"$PORT\"'/' /etc/nginx/conf.d/spa.conf && nginx -g 'daemon off;'"
