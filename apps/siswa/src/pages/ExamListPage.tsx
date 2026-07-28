@@ -3,14 +3,21 @@ import { useNavigate } from "react-router-dom";
 import api from "@/services/api";
 
 interface ExamSession {
-  id: string;
-  title: string;
-  subject: string;
-  duration: number; // minutes
-  questionCount: number;
-  status: "packaged" | "active" | "completed";
-  startTime?: string;
-  endTime?: string;
+  // API field names
+  sessionId: string;
+  sessionStatus: "packaged" | "active" | "completed";
+  durationMinutes: number;
+  scheduledAt?: string;
+  submittedAt?: string;
+  mataPelajaranId?: string;
+  kelasId?: string;
+  participantStatus?: string;
+  resultsReleased?: boolean;
+  score?: { correct: number; total: number; percentage: number } | null;
+  // Enriched fields (may be absent)
+  title?: string;
+  subject?: string;
+  questionCount?: number;
 }
 
 const STATUS_CONFIG = {
@@ -46,7 +53,7 @@ export default function ExamListPage() {
   async function fetchSessions() {
     try {
       const res = await api.get("/siswa/exam-sessions");
-      setSessions(res.data.sessions || res.data);
+      setSessions(res.data.sessions ?? res.data ?? []);
     } catch (err: unknown) {
       const axiosErr = err as {
         response?: { status?: number; data?: { message?: string } };
@@ -67,8 +74,8 @@ export default function ExamListPage() {
   }
 
   function handleStartExam(session: ExamSession) {
-    if (session.status === "active") {
-      navigate(`/exam/${session.id}`);
+    if (session.sessionStatus === "active") {
+      navigate(`/exam/${session.sessionId}`);
     }
   }
 
@@ -235,16 +242,18 @@ export default function ExamListPage() {
         {/* Session Cards */}
         <div className="space-y-3">
           {sessions.map((session) => {
-            const config = STATUS_CONFIG[session.status];
+            const config =
+              STATUS_CONFIG[session.sessionStatus] ?? STATUS_CONFIG["packaged"];
             return (
               <div
-                key={session.id}
+                key={session.sessionId}
                 className="rounded-xl p-4 transition-all"
                 style={{
                   background: "var(--surface)",
                   border: "1px solid var(--border)",
                   ...config.borderStyle,
-                  cursor: session.status === "active" ? "pointer" : "default",
+                  cursor:
+                    session.sessionStatus === "active" ? "pointer" : "default",
                 }}
                 onClick={() => handleStartExam(session)}
               >
@@ -254,13 +263,13 @@ export default function ExamListPage() {
                       className="font-semibold truncate text-sm"
                       style={{ color: "var(--text)" }}
                     >
-                      {session.title}
+                      {session.title ?? "Ujian"}
                     </h3>
                     <p
                       className="mt-0.5 text-xs"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      {session.subject}
+                      {session.subject ?? session.mataPelajaranId ?? "-"}
                     </p>
                   </div>
                   <span
@@ -289,25 +298,27 @@ export default function ExamListPage() {
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    {formatDuration(session.duration)}
+                    {formatDuration(session.durationMinutes)}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <svg
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    {session.questionCount} soal
-                  </span>
-                  {session.startTime && (
+                  {session.questionCount != null && (
+                    <span className="flex items-center gap-1">
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      {session.questionCount} soal
+                    </span>
+                  )}
+                  {session.scheduledAt && (
                     <span className="flex items-center gap-1">
                       <svg
                         className="h-3.5 w-3.5"
@@ -322,15 +333,15 @@ export default function ExamListPage() {
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                         />
                       </svg>
-                      {formatTime(session.startTime)}
+                      {formatTime(session.scheduledAt)}
                     </span>
                   )}
                 </div>
 
-                {session.status === "active" && (
+                {session.sessionStatus === "active" && (
                   <div className="mt-4">
                     <button
-                      className="w-full min-h-[48px] rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+                      className="w-full min-h-12 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
                       style={{ background: "var(--amber)", color: "#0f1117" }}
                     >
                       Mulai Ujian →
@@ -338,14 +349,14 @@ export default function ExamListPage() {
                   </div>
                 )}
 
-                {session.status === "completed" && (
+                {session.sessionStatus === "completed" && (
                   <div className="mt-4">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/result/${session.id}`);
+                        navigate(`/result/${session.sessionId}`);
                       }}
-                      className="w-full min-h-[48px] rounded-lg text-sm font-medium transition-colors"
+                      className="w-full min-h-12 rounded-lg text-sm font-medium transition-colors"
                       style={{
                         border: "1px solid var(--emerald)",
                         color: "var(--emerald)",
