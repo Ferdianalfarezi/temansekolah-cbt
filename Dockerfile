@@ -26,10 +26,8 @@ RUN npm install -g pnpm@8.15.9
 
 WORKDIR /app
 
-# Copy dependencies from stage 1
+# Copy dependencies from stage 1 (pnpm hoists to root node_modules)
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy source code
 COPY tsconfig.json ./
