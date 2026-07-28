@@ -22,7 +22,7 @@ COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
 
 # Build shared package first
-RUN pnpm --filter @cbt/shared build || true
+RUN pnpm --filter @cbt/shared build
 
 # Build API (use npx to find nest from hoisted node_modules)
 WORKDIR /app/apps/api
@@ -49,7 +49,7 @@ RUN pnpm install --frozen-lockfile --prod
 
 # Copy built output from builder
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist 2>/dev/null || true
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
