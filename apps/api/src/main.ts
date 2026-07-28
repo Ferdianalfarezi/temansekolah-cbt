@@ -21,7 +21,7 @@ async function runMigrations() {
   try {
     console.log("🔄 Running CBT database migrations...");
     await migrate(db, {
-      migrationsFolder: join(__dirname, "../drizzle/migrations"),
+      migrationsFolder: join(__dirname, "drizzle/migrations"),
     });
     console.log("✅ CBT migrations completed");
   } catch (error) {
