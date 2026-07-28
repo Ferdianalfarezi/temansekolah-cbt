@@ -21,6 +21,7 @@ export const envConfig = registerAs("app", () => ({
   s3Bucket: process.env.S3_BUCKET || "",
   s3Region: process.env.S3_REGION || "ap-southeast-1",
   s3Endpoint: process.env.S3_ENDPOINT || "",
+  s3ForcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
   s3AccessKeyId: process.env.S3_ACCESS_KEY_ID || "",
   s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
 }));

@@ -33,10 +33,8 @@ async function runMigrations() {
 }
 
 async function bootstrap() {
-  // Run migrations before starting the app (only in production)
-  if (process.env.NODE_ENV === "production") {
-    await runMigrations();
-  }
+  // Run migrations on every startup (Railway handles idempotency via migration journal)
+  await runMigrations();
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
