@@ -1,0 +1,24 @@
+# Railway deployment configuration — CBT API service
+#
+# Deploy this as a new service inside the SAME Railway project as the LMS (edu).
+# It shares the same PostgreSQL database — just point DATABASE_URL to the same
+# Railway PostgreSQL plugin connection string.
+#
+# Services needed in the Railway project:
+#   - cbt-api    → this file (Dockerfile)
+#   - Redis       → reuse the existing Railway Redis plugin from the LMS project
+#   - Admin SPA  → deploy via Vercel/Cloudflare Pages (static build)
+#   - Siswa PWA  → deploy via Vercel/Cloudflare Pages (static build)
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+startCommand = "node apps/api/dist/main.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+numReplicas = 1
+preDeployCommand = "node apps/api/migrate.mjs"

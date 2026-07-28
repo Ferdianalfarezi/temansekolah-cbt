@@ -1,0 +1,42 @@
+{
+  "name": "cbt-teman-sekolah",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CBT (Computer-Based Testing) platform for Teman Sekolah — multi-tenant exam management system",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @cbt/api dev",
+    "dev:admin": "pnpm --filter @cbt/admin dev",
+    "dev:siswa": "pnpm --filter @cbt/siswa dev",
+    "build:api": "pnpm --filter @cbt/api build",
+    "build:admin": "pnpm --filter @cbt/admin build",
+    "build:siswa": "pnpm --filter @cbt/siswa build",
+    "lint": "eslint . --ext .ts,.tsx,.vue --fix",
+    "lint:check": "eslint . --ext .ts,.tsx,.vue",
+    "format": "prettier --write \"**/*.{ts,tsx,vue,js,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,vue,js,json,md,css}\"",
+    "test": "pnpm -r test",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "clean": "pnpm -r exec rm -rf dist node_modules"
+  },
+  "keywords": [
+    "cbt",
+    "exam",
+    "testing",
+    "education",
+    "multi-tenant"
+  ],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8",
+    "@typescript-eslint/parser": "^8",
+    "eslint": "^8",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "prettier": "^3.9.6",
+    "typescript": "^5.4"
+  }
+}

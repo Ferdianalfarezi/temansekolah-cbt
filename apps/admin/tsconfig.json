@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "baseUrl": ".",
+    "types": ["vite/client"],
+    "lib": ["ES2021", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "env.d.ts",
+    "vite.config.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

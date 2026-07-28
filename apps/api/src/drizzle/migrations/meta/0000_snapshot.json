@@ -1,0 +1,1767 @@
+{
+  "id": "c6e8c145-c401-4a76-8a96-f6c2d591004d",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.cbt_tenant_config": {
+      "name": "cbt_tenant_config",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Asia/Jakarta'"
+        },
+        "default_anti_cheat_level": {
+          "name": "default_anti_cheat_level",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'standard'"
+        },
+        "max_violation_count": {
+          "name": "max_violation_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "early_submission_threshold_pct": {
+          "name": "early_submission_threshold_pct",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 20
+        },
+        "default_result_detail_level": {
+          "name": "default_result_detail_level",
+          "type": "varchar(25)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'score_only'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "cbt_tenant_config_tenant_id_unique": {
+          "name": "cbt_tenant_config_tenant_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cbt_pelaksanaan_ujian": {
+      "name": "cbt_pelaksanaan_ujian",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tahun_ajaran_id": {
+          "name": "tahun_ajaran_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "periode_rapor": {
+          "name": "periode_rapor",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "komponen_penilaian_id": {
+          "name": "komponen_penilaian_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {
+        "idx_cbt_pu_active_tenant": {
+          "name": "idx_cbt_pu_active_tenant",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"cbt_pelaksanaan_ujian\".\"is_active\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_cbt_pu_tenant_periode_komponen": {
+          "name": "uq_cbt_pu_tenant_periode_komponen",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "tahun_ajaran_id",
+            "periode_rapor",
+            "komponen_penilaian_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cbt_question": {
+      "name": "cbt_question",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pelaksanaan_ujian_id": {
+          "name": "pelaksanaan_ujian_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mata_pelajaran_id": {
+          "name": "mata_pelajaran_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tingkat": {
+          "name": "tingkat",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kelas_id": {
+          "name": "kelas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "teks_soal": {
+          "name": "teks_soal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gambar_soal_url": {
+          "name": "gambar_soal_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opsi_a": {
+          "name": "opsi_a",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gambar_a_url": {
+          "name": "gambar_a_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opsi_b": {
+          "name": "opsi_b",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gambar_b_url": {
+          "name": "gambar_b_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opsi_c": {
+          "name": "opsi_c",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gambar_c_url": {
+          "name": "gambar_c_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opsi_d": {
+          "name": "opsi_d",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gambar_d_url": {
+          "name": "gambar_d_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opsi_e": {
+          "name": "opsi_e",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gambar_e_url": {
+          "name": "gambar_e_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jawaban_benar": {
+          "name": "jawaban_benar",
+          "type": "char(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nomor_urut": {
+          "name": "nomor_urut",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {
+        "idx_cbt_question_bank": {
+          "name": "idx_cbt_question_bank",
+          "columns": [
+            {
+              "expression": "pelaksanaan_ujian_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mata_pelajaran_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tingkat",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cbt_question_kelas": {
+          "name": "idx_cbt_question_kelas",
+          "columns": [
+            {
+              "expression": "pelaksanaan_ujian_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mata_pelajaran_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kelas_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cbt_question_pelaksanaan_ujian_id_cbt_pelaksanaan_ujian_id_fk": {
+          "name": "cbt_question_pelaksanaan_ujian_id_cbt_pelaksanaan_ujian_id_fk",
+          "tableFrom": "cbt_question",
+          "tableTo": "cbt_pelaksanaan_ujian",
+          "columnsFrom": [
+            "pelaksanaan_ujian_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_question_scope": {
+          "name": "chk_question_scope",
+          "value": "\"cbt_question\".\"tingkat\" IS NOT NULL OR \"cbt_question\".\"kelas_id\" IS NOT NULL"
+        },
+        "chk_question_option_e": {
+          "name": "chk_question_option_e",
+          "value": "NOT (\"cbt_question\".\"opsi_e\" IS NULL AND \"cbt_question\".\"jawaban_benar\" = 'E')"
+        },
+        "chk_jawaban_benar": {
+          "name": "chk_jawaban_benar",
+          "value": "\"cbt_question\".\"jawaban_benar\" IN ('A','B','C','D','E')"
+        },
+        "chk_teks_soal_length": {
+          "name": "chk_teks_soal_length",
+          "value": "char_length(\"cbt_question\".\"teks_soal\") BETWEEN 1 AND 2000"
+        },
+        "chk_opsi_a_length": {
+          "name": "chk_opsi_a_length",
+          "value": "char_length(\"cbt_question\".\"opsi_a\") BETWEEN 1 AND 500"
+        },
+        "chk_opsi_b_length": {
+          "name": "chk_opsi_b_length",
+          "value": "char_length(\"cbt_question\".\"opsi_b\") BETWEEN 1 AND 500"
+        },
+        "chk_opsi_c_length": {
+          "name": "chk_opsi_c_length",
+          "value": "char_length(\"cbt_question\".\"opsi_c\") BETWEEN 1 AND 500"
+        },
+        "chk_opsi_d_length": {
+          "name": "chk_opsi_d_length",
+          "value": "char_length(\"cbt_question\".\"opsi_d\") BETWEEN 1 AND 500"
+        },
+        "chk_opsi_e_length": {
+          "name": "chk_opsi_e_length",
+          "value": "\"cbt_question\".\"opsi_e\" IS NULL OR char_length(\"cbt_question\".\"opsi_e\") BETWEEN 1 AND 500"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cbt_exam_session": {
+      "name": "cbt_exam_session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pelaksanaan_ujian_id": {
+          "name": "pelaksanaan_ujian_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mata_pelajaran_id": {
+          "name": "mata_pelajaran_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kelas_id": {
+          "name": "kelas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proctor_id": {
+          "name": "proctor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "cbt_exam_session_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "scheduled_at": {
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_minutes": {
+          "name": "duration_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "randomize_questions": {
+          "name": "randomize_questions",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "randomize_options": {
+          "name": "randomize_options",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "anti_cheat_level": {
+          "name": "anti_cheat_level",
+          "type": "cbt_anti_cheat_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'standard'"
+        },
+        "result_detail_level": {
+          "name": "result_detail_level",
+          "type": "cbt_result_detail_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'score_only'"
+        },
+        "results_released": {
+          "name": "results_released",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cancellation_reason": {
+          "name": "cancellation_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {
+        "idx_cbt_session_tenant_status": {
+          "name": "idx_cbt_session_tenant_status",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cbt_session_proctor": {
+          "name": "idx_cbt_session_proctor",
+          "columns": [
+            {
+              "expression": "proctor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cbt_exam_session_pelaksanaan_ujian_id_cbt_pelaksanaan_ujian_id_fk": {
+          "name": "cbt_exam_session_pelaksanaan_ujian_id_cbt_pelaksanaan_ujian_id_fk",
+          "tableFrom": "cbt_exam_session",
+          "tableTo": "cbt_pelaksanaan_ujian",
+          "columnsFrom": [
+            "pelaksanaan_ujian_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_duration_minutes": {
+          "name": "chk_duration_minutes",
+          "value": "\"cbt_exam_session\".\"duration_minutes\" BETWEEN 5 AND 360"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cbt_exam_session_question": {
+      "name": "cbt_exam_session_question",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "exam_session_id": {
+          "name": "exam_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nomor_urut": {
+          "name": "nomor_urut",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_cbt_esq_session": {
+          "name": "idx_cbt_esq_session",
+          "columns": [
+            {
+              "expression": "exam_session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "nomor_urut",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cbt_exam_session_question_exam_session_id_cbt_exam_session_id_fk": {
+          "name": "cbt_exam_session_question_exam_session_id_cbt_exam_session_id_fk",
+          "tableFrom": "cbt_exam_session_question",
+          "tableTo": "cbt_exam_session",
+          "columnsFrom": [
+            "exam_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cbt_exam_session_question_question_id_cbt_question_id_fk": {
+          "name": "cbt_exam_session_question_question_id_cbt_question_id_fk",
+          "tableFrom": "cbt_exam_session_question",
+          "tableTo": "cbt_question",
+          "columnsFrom": [
+            "question_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_cbt_esq_session_question": {
+          "name": "uq_cbt_esq_session_question",
+          "nullsNotDistinct": false,
+          "columns": [
+            "exam_session_id",
+            "question_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cbt_siswa_account": {
+      "name": "cbt_siswa_account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "siswa_id": {
+          "name": "siswa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nisn": {
+          "name": "nisn",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "must_change_password": {
+          "name": "must_change_password",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "failed_login_attempts": {
+          "name": "failed_login_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "locked_until": {
+          "name": "locked_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "needs_review": {
+          "name": "needs_review",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "last_login_at": {
+          "name": "last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {
+        "idx_cbt_siswa_account_siswa": {
+          "name": "idx_cbt_siswa_account_siswa",
+          "columns": [
+            {
+              "expression": "siswa_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_cbt_siswa_account_tenant_nisn": {
+          "name": "uq_cbt_siswa_account_tenant_nisn",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "nisn"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cbt_exam_participant": {
+      "name": "cbt_exam_participant",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "exam_session_id": {
+          "name": "exam_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "siswa_account_id": {
+          "name": "siswa_account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "cbt_participant_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'assigned'"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "submitted_at": {
+          "name": "submitted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remaining_seconds": {
+          "name": "remaining_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "extension_seconds": {
+          "name": "extension_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "violation_count": {
+          "name": "violation_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_flagged_cheating": {
+          "name": "is_flagged_cheating",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_early_submission": {
+          "name": "is_early_submission",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "score_correct": {
+          "name": "score_correct",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "score_total": {
+          "name": "score_total",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "score_percentage": {
+          "name": "score_percentage",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "randomization_mapping": {
+          "name": "randomization_mapping",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "submission_type": {
+          "name": "submission_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_cbt_participant_session": {
+          "name": "idx_cbt_participant_session",
+          "columns": [
+            {
+              "expression": "exam_session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cbt_participant_siswa": {
+          "name": "idx_cbt_participant_siswa",
+          "columns": [
+            {
+              "expression": "siswa_account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cbt_exam_participant_exam_session_id_cbt_exam_session_id_fk": {
+          "name": "cbt_exam_participant_exam_session_id_cbt_exam_session_id_fk",
+          "tableFrom": "cbt_exam_participant",
+          "tableTo": "cbt_exam_session",
+          "columnsFrom": [
+            "exam_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cbt_exam_participant_siswa_account_id_cbt_siswa_account_id_fk": {
+          "name": "cbt_exam_participant_siswa_account_id_cbt_siswa_account_id_fk",
+          "tableFrom": "cbt_exam_participant",
+          "tableTo": "cbt_siswa_account",
+          "columnsFrom": [
+            "siswa_account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_cbt_participant_session_siswa": {
+          "name": "uq_cbt_participant_session_siswa",
+          "nullsNotDistinct": false,
+          "columns": [
+            "exam_session_id",
+            "siswa_account_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cbt_answer": {
+      "name": "cbt_answer",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "participant_id": {
+          "name": "participant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "selected_option": {
+          "name": "selected_option",
+          "type": "char(1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_correct": {
+          "name": "is_correct",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answered_at": {
+          "name": "answered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_cbt_answer_participant": {
+          "name": "idx_cbt_answer_participant",
+          "columns": [
+            {
+              "expression": "participant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cbt_answer_participant_id_cbt_exam_participant_id_fk": {
+          "name": "cbt_answer_participant_id_cbt_exam_participant_id_fk",
+          "tableFrom": "cbt_answer",
+          "tableTo": "cbt_exam_participant",
+          "columnsFrom": [
+            "participant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cbt_answer_question_id_cbt_question_id_fk": {
+          "name": "cbt_answer_question_id_cbt_question_id_fk",
+          "tableFrom": "cbt_answer",
+          "tableTo": "cbt_question",
+          "columnsFrom": [
+            "question_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_cbt_answer_participant_question": {
+          "name": "uq_cbt_answer_participant_question",
+          "nullsNotDistinct": false,
+          "columns": [
+            "participant_id",
+            "question_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "chk_selected_option": {
+          "name": "chk_selected_option",
+          "value": "\"cbt_answer\".\"selected_option\" IN ('A','B','C','D','E')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cbt_answer_snapshot": {
+      "name": "cbt_answer_snapshot",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "participant_id": {
+          "name": "participant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answers": {
+          "name": "answers",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "current_question_index": {
+          "name": "current_question_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remaining_seconds": {
+          "name": "remaining_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {
+        "idx_cbt_snapshot_participant": {
+          "name": "idx_cbt_snapshot_participant",
+          "columns": [
+            {
+              "expression": "participant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cbt_answer_snapshot_participant_id_cbt_exam_participant_id_fk": {
+          "name": "cbt_answer_snapshot_participant_id_cbt_exam_participant_id_fk",
+          "tableFrom": "cbt_answer_snapshot",
+          "tableTo": "cbt_exam_participant",
+          "columnsFrom": [
+            "participant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cbt_violation_event": {
+      "name": "cbt_violation_event",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "participant_id": {
+          "name": "participant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "violation_type": {
+          "name": "violation_type",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detected_at": {
+          "name": "detected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {
+        "idx_cbt_violation_participant": {
+          "name": "idx_cbt_violation_participant",
+          "columns": [
+            {
+              "expression": "participant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "detected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cbt_violation_event_participant_id_cbt_exam_participant_id_fk": {
+          "name": "cbt_violation_event_participant_id_cbt_exam_participant_id_fk",
+          "tableFrom": "cbt_violation_event",
+          "tableTo": "cbt_exam_participant",
+          "columnsFrom": [
+            "participant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_violation_type": {
+          "name": "chk_violation_type",
+          "value": "\"cbt_violation_event\".\"violation_type\" IN ('tab_switch', 'focus_loss', 'fullscreen_exit', 'multiple_login')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cbt_proctor_action": {
+      "name": "cbt_proctor_action",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "exam_session_id": {
+          "name": "exam_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "participant_id": {
+          "name": "participant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proctor_id": {
+          "name": "proctor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action_type": {
+          "name": "action_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "extension_minutes": {
+          "name": "extension_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cbt_proctor_action_exam_session_id_cbt_exam_session_id_fk": {
+          "name": "cbt_proctor_action_exam_session_id_cbt_exam_session_id_fk",
+          "tableFrom": "cbt_proctor_action",
+          "tableTo": "cbt_exam_session",
+          "columnsFrom": [
+            "exam_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cbt_proctor_action_participant_id_cbt_exam_participant_id_fk": {
+          "name": "cbt_proctor_action_participant_id_cbt_exam_participant_id_fk",
+          "tableFrom": "cbt_proctor_action",
+          "tableTo": "cbt_exam_participant",
+          "columnsFrom": [
+            "participant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_action_type": {
+          "name": "chk_action_type",
+          "value": "\"cbt_proctor_action\".\"action_type\" IN ('pause', 'resume', 'extend')"
+        },
+        "chk_reason_length": {
+          "name": "chk_reason_length",
+          "value": "char_length(\"cbt_proctor_action\".\"reason\") BETWEEN 1 AND 500"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cbt_audit_log": {
+      "name": "cbt_audit_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_type": {
+          "name": "actor_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_role": {
+          "name": "actor_role",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_type": {
+          "name": "resource_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resource_ids": {
+          "name": "resource_ids",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "before_value": {
+          "name": "before_value",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "after_value": {
+          "name": "after_value",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {
+        "idx_cbt_audit_tenant_time": {
+          "name": "idx_cbt_audit_tenant_time",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cbt_audit_actor": {
+          "name": "idx_cbt_audit_actor",
+          "columns": [
+            {
+              "expression": "actor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cbt_audit_resource": {
+          "name": "idx_cbt_audit_resource",
+          "columns": [
+            {
+              "expression": "resource_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "resource_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_actor_type": {
+          "name": "chk_actor_type",
+          "value": "\"cbt_audit_log\".\"actor_type\" IN ('staff', 'siswa', 'system')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cbt_notification": {
+      "name": "cbt_notification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_role": {
+          "name": "recipient_role",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'admin'"
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_high_priority": {
+          "name": "is_high_priority",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_read": {
+          "name": "is_read",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "acknowledged_at": {
+          "name": "acknowledged_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "related_audit_log_id": {
+          "name": "related_audit_log_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "NOW()"
+        }
+      },
+      "indexes": {
+        "idx_cbt_notification_tenant": {
+          "name": "idx_cbt_notification_tenant",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "is_read",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cbt_notification_related_audit_log_id_cbt_audit_log_id_fk": {
+          "name": "cbt_notification_related_audit_log_id_cbt_audit_log_id_fk",
+          "tableFrom": "cbt_notification",
+          "tableTo": "cbt_audit_log",
+          "columnsFrom": [
+            "related_audit_log_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.cbt_anti_cheat_level": {
+      "name": "cbt_anti_cheat_level",
+      "schema": "public",
+      "values": [
+        "standard",
+        "relaxed"
+      ]
+    },
+    "public.cbt_exam_session_status": {
+      "name": "cbt_exam_session_status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "packaged",
+        "active",
+        "completed",
+        "cancelled"
+      ]
+    },
+    "public.cbt_participant_status": {
+      "name": "cbt_participant_status",
+      "schema": "public",
+      "values": [
+        "assigned",
+        "in_progress",
+        "paused",
+        "disconnected",
+        "submitted",
+        "auto_submitted"
+      ]
+    },
+    "public.cbt_result_detail_level": {
+      "name": "cbt_result_detail_level",
+      "schema": "public",
+      "values": [
+        "score_only",
+        "score_with_indicator",
+        "full_detail"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,0 +1,320 @@
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "/api",
+  headers: { "Content-Type": "application/json" },
+});
+
+// Inject JWT token from localStorage on each request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ─── Pelaksanaan Ujian ───────────────────────────────────────────────────────
+
+export interface PelaksanaanUjian {
+  id: string;
+  tenantId: string;
+  tahunAjaranId: string;
+  periodeRapor: string;
+  komponenPenilaianId: string;
+  nama: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export function getPelaksanaanUjianList() {
+  return api.get<PelaksanaanUjian[]>("/pelaksanaan-ujian");
+}
+
+export function createPelaksanaanUjian(data: {
+  tahunAjaranId: string;
+  periodeRapor: string;
+  komponenPenilaianId: string;
+}) {
+  return api.post<PelaksanaanUjian>("/pelaksanaan-ujian", data);
+}
+
+export function deactivatePelaksanaanUjian(id: string) {
+  return api.patch(`/pelaksanaan-ujian/${id}/deactivate`);
+}
+
+export function getActivePelaksanaanUjian() {
+  return api.get<PelaksanaanUjian | null>("/pelaksanaan-ujian/active");
+}
+
+// ─── Exam Sessions ───────────────────────────────────────────────────────────
+
+export type ExamSessionStatus =
+  "draft" | "packaged" | "active" | "completed" | "cancelled";
+
+export interface ExamSession {
+  id: string;
+  pelaksanaanUjianId: string;
+  mataPelajaranId: string;
+  kelasId: string;
+  proctorId: string;
+  status: ExamSessionStatus;
+  scheduledAt: string;
+  durationMinutes: number;
+  randomizeQuestions: boolean;
+  randomizeOptions: boolean;
+  antiCheatLevel: string;
+  resultDetailLevel: string;
+  resultsReleased: boolean;
+  createdAt: string;
+}
+
+export function getExamSessions(params?: {
+  status?: ExamSessionStatus;
+  pelaksanaanUjianId?: string;
+}) {
+  return api.get<ExamSession[]>("/exam-sessions", { params });
+}
+
+export function createExamSession(data: Partial<ExamSession>) {
+  return api.post<ExamSession>("/exam-sessions", data);
+}
+
+export function batchCreateExamSessions(data: {
+  pelaksanaanUjianId: string;
+  mataPelajaranId: string;
+  kelasIds: string[];
+  proctorId: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  randomizeQuestions?: boolean;
+  randomizeOptions?: boolean;
+}) {
+  return api.post<ExamSession[]>("/exam-sessions/batch", data);
+}
+
+export function packageSession(id: string) {
+  return api.post(`/exam-sessions/${id}/package`);
+}
+
+export function unpackageSession(id: string) {
+  return api.post(`/exam-sessions/${id}/unpackage`);
+}
+
+export function cancelSession(id: string, reason: string) {
+  return api.post(`/exam-sessions/${id}/cancel`, { reason });
+}
+
+export function releaseResults(id: string) {
+  return api.post(`/exam-sessions/${id}/release-results`);
+}
+
+export function getExamSessionReport(id: string) {
+  return api.get(`/exam-sessions/${id}/report`);
+}
+
+// ─── Questions (Bank Soal) ───────────────────────────────────────────────────
+
+export interface Question {
+  id: string;
+  pelaksanaanUjianId: string;
+  mataPelajaranId: string;
+  tingkat: number | null;
+  kelasId: string | null;
+  teksSoal: string;
+  gambarSoalUrl: string | null;
+  opsiA: string;
+  opsiB: string;
+  opsiC: string;
+  opsiD: string;
+  opsiE: string | null;
+  jawabanBenar: string;
+  nomorUrut: number;
+  createdAt: string;
+}
+
+export function getQuestions(params?: {
+  pelaksanaanUjianId?: string;
+  mataPelajaranId?: string;
+  tingkat?: number;
+  kelasId?: string;
+}) {
+  return api.get<Question[]>("/questions", { params });
+}
+
+export function createQuestion(data: Partial<Question>) {
+  return api.post<Question>("/questions", data);
+}
+
+export function updateQuestion(id: string, data: Partial<Question>) {
+  return api.put<Question>(`/questions/${id}`, data);
+}
+
+export function deleteQuestion(id: string) {
+  return api.delete(`/questions/${id}`);
+}
+
+export function importQuestionsPreview(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post<{ questions: Partial<Question>[]; errors: string[] }>(
+    "/questions/import",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+}
+
+export function confirmImportQuestions(questions: Partial<Question>[]) {
+  return api.post("/questions/import/confirm", { questions });
+}
+
+export function downloadQuestionTemplate() {
+  return api.get("/questions/template", { responseType: "blob" });
+}
+
+// ─── Siswa Account ───────────────────────────────────────────────────────────
+
+export interface SiswaAccount {
+  id: string;
+  tenantId: string;
+  siswaId: string;
+  nisn: string;
+  mustChangePassword: boolean;
+  isActive: boolean;
+  needsReview: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  // Joined fields
+  namaSiswa?: string;
+  kelasNama?: string;
+}
+
+export function getSiswaAccounts(params?: {
+  search?: string;
+  isActive?: boolean;
+  needsReview?: boolean;
+}) {
+  return api.get<SiswaAccount[]>("/siswa-accounts", { params });
+}
+
+export function syncSiswaAccounts() {
+  return api.post("/siswa-accounts/sync");
+}
+
+export function resetSiswaPassword(id: string) {
+  return api.post(`/siswa-accounts/${id}/reset-password`);
+}
+
+// ─── Configuration ───────────────────────────────────────────────────────────
+
+export interface CbtConfig {
+  id: string;
+  tenantId: string;
+  timezone: string;
+  defaultAntiCheatLevel: string;
+  maxViolationCount: number;
+  earlySubmissionThresholdPct: number;
+  defaultResultDetailLevel: string;
+}
+
+export function getCbtConfig() {
+  return api.get<CbtConfig>("/config");
+}
+
+export function updateCbtConfig(data: Partial<CbtConfig>) {
+  return api.patch<CbtConfig>("/config", data);
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export interface CbtNotification {
+  id: string;
+  tenantId: string;
+  title: string;
+  body: string;
+  isHighPriority: boolean;
+  isRead: boolean;
+  acknowledgedAt: string | null;
+  createdAt: string;
+}
+
+export function getNotifications() {
+  return api.get<CbtNotification[]>("/notifications");
+}
+
+export function acknowledgeNotification(id: string) {
+  return api.patch(`/notifications/${id}/acknowledge`);
+}
+
+export function getUnreadNotificationCount() {
+  return api.get<{ count: number }>("/notifications/unread-count");
+}
+
+// ─── Proctor Dashboard ───────────────────────────────────────────────────────
+
+export interface ParticipantDashboardData {
+  id: string;
+  siswaAccountId: string;
+  namaSiswa: string;
+  nisn: string;
+  status: string;
+  startedAt: string | null;
+  remainingSeconds: number | null;
+  violationCount: number;
+  isFlaggedCheating: boolean;
+  isEarlySubmission: boolean;
+  scorePercentage: number | null;
+}
+
+export interface ProctorDashboardData {
+  session: ExamSession;
+  participants: ParticipantDashboardData[];
+  stats: {
+    total: number;
+    inProgress: number;
+    submitted: number;
+    disconnected: number;
+    flagged: number;
+  };
+}
+
+export function getProctorDashboard(sessionId: string) {
+  return api.get<ProctorDashboardData>(
+    `/proctor/sessions/${sessionId}/dashboard`,
+  );
+}
+
+export function pauseParticipant(
+  sessionId: string,
+  participantId: string,
+  reason: string,
+) {
+  return api.post(
+    `/proctor/sessions/${sessionId}/participants/${participantId}/pause`,
+    { reason },
+  );
+}
+
+export function resumeParticipant(
+  sessionId: string,
+  participantId: string,
+  reason: string,
+) {
+  return api.post(
+    `/proctor/sessions/${sessionId}/participants/${participantId}/resume`,
+    { reason },
+  );
+}
+
+export function extendParticipant(
+  sessionId: string,
+  participantId: string,
+  data: { minutes: number; reason: string },
+) {
+  return api.post(
+    `/proctor/sessions/${sessionId}/participants/${participantId}/extend`,
+    data,
+  );
+}
+
+export default api;
