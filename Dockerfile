@@ -5,9 +5,9 @@
 # Run:   docker run -p 5003:5003 --env-file .env cbt-api
 
 # ─── Stage 1: Install dependencies ───────────────────────────────
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@8.15.9
 
 WORKDIR /app
 
@@ -20,9 +20,9 @@ COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile
 
 # ─── Stage 2: Build ──────────────────────────────────────────────
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@8.15.9
 
 WORKDIR /app
 
@@ -45,9 +45,9 @@ WORKDIR /app/apps/api
 RUN pnpm build
 
 # ─── Stage 3: Production image ───────────────────────────────────
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@8.15.9
 
 # Security: run as non-root user
 RUN addgroup --system --gid 1001 nodejs && \

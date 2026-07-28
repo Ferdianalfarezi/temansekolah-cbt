@@ -1,8 +1,8 @@
 # CBT Admin Panel — static Vue 3 SPA served via nginx
 # Railway service: set VITE_API_URL in service Variables tab
 
-FROM node:18-alpine AS build
-RUN corepack enable && corepack prepare pnpm@latest --activate
+FROM node:20-alpine AS build
+RUN npm install -g pnpm@8.15.9
 WORKDIR /app
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
