@@ -9,7 +9,7 @@ RUN npm install -g pnpm@8.15.9
 
 WORKDIR /app
 
-# Copy workspace manifests and lockfile first (for layer caching)
+# Copy workspace manifests first (layer cache)
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
@@ -17,14 +17,12 @@ COPY packages/shared/package.json ./packages/shared/
 # Install ALL dependencies (dev included — needed for nest CLI + tsc)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Copy source
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
 
-# Build shared package first
+# Build shared package first, then API
 RUN pnpm --filter @cbt/shared build
-
-# Build API (use npx to find nest from hoisted node_modules)
 WORKDIR /app/apps/api
 RUN npx nest build
 
@@ -33,28 +31,35 @@ FROM node:20-alpine AS runner
 
 RUN npm install -g pnpm@8.15.9
 
-# Security: run as non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
 WORKDIR /app
 
-# Copy workspace config for production install
+# Copy workspace manifests (without packages/shared — we'll handle it manually)
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
+
+# Temporarily add shared package.json so pnpm workspace resolves
 COPY packages/shared/package.json ./packages/shared/
 
-# Install production-only dependencies
+# Install prod dependencies
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built output from builder
+# Copy built API output
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-# Copy migrations so the built app can run them at startup
+
+# Copy migrations for startup migration runner
 COPY --from=builder /app/apps/api/src/drizzle/migrations ./apps/api/dist/drizzle/migrations
 
+# Place the built shared dist directly into node_modules so require('@cbt/shared') works
+# This bypasses the workspace symlink resolution issue with CJS require + exports map
+RUN mkdir -p ./node_modules/@cbt/shared
+COPY --from=builder /app/packages/shared/package.json ./node_modules/@cbt/shared/package.json
+COPY --from=builder /app/packages/shared/dist ./node_modules/@cbt/shared/dist
+
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:5003/health || exit 1
 
 USER nestjs
