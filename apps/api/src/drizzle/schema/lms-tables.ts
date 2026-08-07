@@ -16,12 +16,6 @@ import {
   integer,
   boolean,
   date,
-  timestamp,
-  jsonb,
-  text,
-  decimal,
-  unique,
-  index,
 } from "drizzle-orm/pg-core";
 
 // ─── LMS Enums ──────────────────────────────────────────────────────────────
@@ -47,17 +41,6 @@ export const tahunAjaranStatusEnum = pgEnum("tahun_ajaran_status", [
   "aktif",
   "nonaktif",
 ]);
-
-export const periodeRaporEnum = pgEnum("periode_rapor", [
-  "uts_semester_1",
-  "semester_1",
-  "uts_semester_2",
-  "semester_2",
-]);
-
-export const statusRaporEnum = pgEnum("status_rapor", ["draft", "final"]);
-
-export const statusNilaiEnum = pgEnum("status_nilai", ["draft", "submitted"]);
 
 export const tipeKomponenEnum = pgEnum("tipe_komponen", [
   "angka",
@@ -137,34 +120,3 @@ export const komponenPenilaian = pgTable("komponen_penilaian", {
   isWajib: boolean("is_wajib").default(true),
   urutan: integer("urutan").default(0),
 });
-
-export const rapor = pgTable("rapor", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenantId: uuid("tenant_id").notNull(),
-  kelasId: uuid("kelas_id").notNull(),
-  tahunAjaranId: uuid("tahun_ajaran_id").notNull(),
-  periode: periodeRaporEnum("periode").notNull(),
-  status: statusRaporEnum("status").notNull().default("draft"),
-});
-
-export const raporNilai = pgTable(
-  "rapor_nilai",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    tenantId: uuid("tenant_id").notNull(),
-    raporId: uuid("rapor_id").notNull(),
-    siswaId: uuid("siswa_id").notNull(),
-    mataPelajaranId: uuid("mata_pelajaran_id").notNull(),
-    guruId: uuid("guru_id").notNull(),
-    komponenNilai: jsonb("komponen_nilai").notNull(),
-    status: statusNilaiEnum("status").notNull().default("draft"),
-  },
-  (table) => ({
-    uniqueRaporSiswaMapelTenant: unique("rapor_nilai_upsert_unique").on(
-      table.raporId,
-      table.siswaId,
-      table.mataPelajaranId,
-      table.tenantId,
-    ),
-  }),
-);

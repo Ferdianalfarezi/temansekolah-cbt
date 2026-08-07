@@ -15,7 +15,7 @@ import { ExamSessionModule } from "./modules/exam-session/exam-session.module";
 import { SchedulerModule } from "./modules/scheduler/scheduler.module";
 import { ExamTakingModule } from "./modules/exam-taking/exam-taking.module";
 import { GradingModule } from "./modules/grading/grading.module";
-import { ScorePushModule } from "./modules/score-push/score-push.module";
+import { ResultExportModule } from "./modules/result-export/result-export.module";
 import { ProctorGatewayModule } from "./modules/proctor-gateway/proctor-gateway.module";
 import { ProctorModule } from "./modules/proctor/proctor.module";
 import { NotificationModule } from "./modules/notification/notification.module";
@@ -107,8 +107,8 @@ import { DataRetentionModule } from "./modules/data-retention/data-retention.mod
     // Auto-Grading (global — used by ExamTaking and Scheduler)
     GradingModule,
 
-    // Score Push (global — writes CBT scores to LMS rapor_nilai)
-    ScorePushModule,
+    // Result Export (Excel export for exam results)
+    ResultExportModule,
 
     // WebSocket Gateway (real-time exam monitoring & proctor communication)
     ProctorGatewayModule,

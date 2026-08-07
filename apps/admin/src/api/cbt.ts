@@ -317,4 +317,60 @@ export function extendParticipant(
   );
 }
 
+// ─── Result Export ───────────────────────────────────────────────────────────
+
+/**
+ * Triggers download of exam session results as Excel file.
+ * Validates: Requirements 6.4 - Export with blob response and Content-Disposition header
+ */
+export async function exportSessionResults(
+  sessionId: string,
+  detail: boolean = false,
+): Promise<void> {
+  const url = `/exam-sessions/${sessionId}/export${detail ? "?detail=true" : ""}`;
+  const response = await api.get(url, { responseType: "blob" });
+
+  // Extract filename from Content-Disposition header
+  const disposition = response.headers["content-disposition"];
+  const filename =
+    disposition?.match(/filename="(.+)"/)?.[1] || "hasil-ujian.xlsx";
+
+  // Trigger download
+  const blob = new Blob([response.data], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+/**
+ * Triggers download of all exam session results in a Pelaksanaan Ujian as Excel file.
+ * Validates: Requirements 6.4 - Export with blob response and Content-Disposition header
+ */
+export async function exportPelaksanaanUjianResults(
+  pelaksanaanUjianId: string,
+  detail: boolean = false,
+): Promise<void> {
+  const url = `/pelaksanaan-ujian/${pelaksanaanUjianId}/export${detail ? "?detail=true" : ""}`;
+  const response = await api.get(url, { responseType: "blob" });
+
+  // Extract filename from Content-Disposition header
+  const disposition = response.headers["content-disposition"];
+  const filename =
+    disposition?.match(/filename="(.+)"/)?.[1] || "hasil-ujian.xlsx";
+
+  // Trigger download
+  const blob = new Blob([response.data], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 export default api;

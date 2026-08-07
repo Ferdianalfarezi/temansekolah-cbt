@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import {
   getPelaksanaanUjianList,
   createPelaksanaanUjian,
   deactivatePelaksanaanUjian,
+  getExamSessions,
+  exportPelaksanaanUjianResults,
   type PelaksanaanUjian,
 } from "@/api/cbt";
 
@@ -11,6 +13,14 @@ const items = ref<PelaksanaanUjian[]>([]);
 const loading = ref(false);
 const error = ref("");
 const showCreateForm = ref(false);
+
+// Track completed session counts per Pelaksanaan Ujian
+const completedSessionCounts = ref<Record<string, number>>({});
+
+// Export state
+const exportMenuOpenId = ref<string | null>(null);
+const exportingId = ref<string | null>(null);
+const exportError = ref("");
 
 // Create form state
 const form = ref({
@@ -32,10 +42,65 @@ async function fetchData() {
   try {
     const res = await getPelaksanaanUjianList();
     items.value = res.data;
+
+    // Fetch completed session counts for each Pelaksanaan Ujian
+    await fetchCompletedSessionCounts();
   } catch (e: any) {
     error.value = e.response?.data?.message || "Gagal memuat data";
   } finally {
     loading.value = false;
+  }
+}
+
+async function fetchCompletedSessionCounts() {
+  const counts: Record<string, number> = {};
+
+  // Fetch completed sessions for each Pelaksanaan Ujian
+  await Promise.all(
+    items.value.map(async (item) => {
+      try {
+        const res = await getExamSessions({
+          pelaksanaanUjianId: item.id,
+          status: "completed",
+        });
+        counts[item.id] = res.data.length;
+      } catch {
+        counts[item.id] = 0;
+      }
+    }),
+  );
+
+  completedSessionCounts.value = counts;
+}
+
+function hasCompletedSessions(puId: string): boolean {
+  return (completedSessionCounts.value[puId] || 0) > 0;
+}
+
+// Export menu handlers
+function toggleExportMenu(puId: string) {
+  if (exportMenuOpenId.value === puId) {
+    exportMenuOpenId.value = null;
+  } else {
+    exportMenuOpenId.value = puId;
+  }
+}
+
+function closeExportMenu() {
+  exportMenuOpenId.value = null;
+}
+
+async function handleExport(puId: string, detail: boolean) {
+  exportMenuOpenId.value = null;
+  exportingId.value = puId;
+  exportError.value = "";
+  try {
+    await exportPelaksanaanUjianResults(puId, detail);
+  } catch (e: any) {
+    exportError.value =
+      e.response?.data?.message || "Gagal mengekspor hasil ujian";
+  } finally {
+    exportingId.value = null;
   }
 }
 
@@ -66,6 +131,23 @@ async function handleDeactivate(id: string) {
 }
 
 onMounted(fetchData);
+
+// Close export menu when clicking outside
+function handleClickOutside(event: MouseEvent) {
+  const target = event.target as HTMLElement;
+  // Check if click is outside any export menu container
+  if (exportMenuOpenId.value && !target.closest("[data-export-menu]")) {
+    exportMenuOpenId.value = null;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside, true);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside, true);
+});
 </script>
 
 <template>
@@ -95,6 +177,32 @@ onMounted(fetchData);
         class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
       >
         {{ error }}
+      </div>
+
+      <!-- Export error banner -->
+      <div
+        v-if="exportError"
+        class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 flex items-center justify-between"
+      >
+        <span>{{ exportError }}</span>
+        <button
+          class="text-red-500 hover:text-red-700"
+          @click="exportError = ''"
+        >
+          <svg
+            class="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
       </div>
 
       <!-- Create Form -->
@@ -240,13 +348,117 @@ onMounted(fetchData);
                 {{ new Date(item.createdAt).toLocaleDateString("id-ID") }}
               </td>
               <td class="px-4 py-3 text-right">
-                <button
-                  v-if="item.isActive"
-                  class="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
-                  @click="handleDeactivate(item.id)"
-                >
-                  Nonaktifkan
-                </button>
+                <div class="flex items-center justify-end gap-2">
+                  <!-- Export button - only show when completed sessions exist -->
+                  <div
+                    v-if="hasCompletedSessions(item.id)"
+                    class="relative"
+                    data-export-menu
+                  >
+                    <!-- Export loading indicator -->
+                    <div
+                      v-if="exportingId === item.id"
+                      class="flex items-center gap-2 text-sm text-gray-500"
+                    >
+                      <div
+                        class="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent"
+                      ></div>
+                      <span>Mengekspor...</span>
+                    </div>
+
+                    <!-- Export dropdown button -->
+                    <button
+                      v-else
+                      class="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
+                      title="Export semua hasil"
+                      @click="toggleExportMenu(item.id)"
+                    >
+                      <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Export Semua Hasil
+                      <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    <!-- Export dropdown menu -->
+                    <div
+                      v-if="exportMenuOpenId === item.id"
+                      class="absolute right-0 z-10 mt-1 w-56 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg"
+                    >
+                      <div class="py-1">
+                        <button
+                          class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                          @click="handleExport(item.id, false)"
+                        >
+                          <svg
+                            class="h-4 w-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Export Ringkasan
+                        </button>
+                        <button
+                          class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                          @click="handleExport(item.id, true)"
+                        >
+                          <svg
+                            class="h-4 w-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                            />
+                          </svg>
+                          Export dengan Detail Jawaban
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Deactivate button -->
+                  <button
+                    v-if="item.isActive"
+                    class="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
+                    @click="handleDeactivate(item.id)"
+                  >
+                    Nonaktifkan
+                  </button>
+                </div>
               </td>
             </tr>
             <tr v-if="items.length === 0">
