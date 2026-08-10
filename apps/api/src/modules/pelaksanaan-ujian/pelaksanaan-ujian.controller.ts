@@ -18,17 +18,16 @@ import { PelaksanaanUjianService } from "./pelaksanaan-ujian.service";
 import { CreatePelaksanaanUjianDto } from "./dto/create-pelaksanaan-ujian.dto";
 
 @Controller("pelaksanaan-ujian")
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
+@Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
 export class PelaksanaanUjianController {
   constructor(private readonly puService: PelaksanaanUjianService) {}
 
   /**
    * POST /api/pelaksanaan-ujian
-   * Create a new Pelaksanaan Ujian. Admin only.
+   * Create a new Pelaksanaan Ujian.
    */
   @Post()
-  @UseGuards(RolesGuard)
-  @Roles(CbtRole.ADMIN_SEKOLAH)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async create(
     @CurrentUser("tenantId") tenantId: string,
@@ -39,11 +38,9 @@ export class PelaksanaanUjianController {
 
   /**
    * PATCH /api/pelaksanaan-ujian/:id/deactivate
-   * Deactivate a Pelaksanaan Ujian. Admin only.
+   * Deactivate a Pelaksanaan Ujian.
    */
   @Patch(":id/deactivate")
-  @UseGuards(RolesGuard)
-  @Roles(CbtRole.ADMIN_SEKOLAH)
   async deactivate(
     @CurrentUser("tenantId") tenantId: string,
     @Param("id", ParseUUIDPipe) id: string,
@@ -53,33 +50,27 @@ export class PelaksanaanUjianController {
 
   /**
    * GET /api/pelaksanaan-ujian
-   * List all Pelaksanaan Ujian (active + historical). Admin only.
+   * List all Pelaksanaan Ujian (active + historical).
    */
   @Get()
-  @UseGuards(RolesGuard)
-  @Roles(CbtRole.ADMIN_SEKOLAH)
   async list(@CurrentUser("tenantId") tenantId: string) {
     return this.puService.list(tenantId);
   }
 
   /**
    * GET /api/pelaksanaan-ujian/active
-   * Get the current active Pelaksanaan Ujian. Admin + Guru.
+   * Get the current active Pelaksanaan Ujian.
    */
   @Get("active")
-  @UseGuards(RolesGuard)
-  @Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
   async getActive(@CurrentUser("tenantId") tenantId: string) {
     return this.puService.getActive(tenantId);
   }
 
   /**
    * GET /api/pelaksanaan-ujian/komponen-penilaian
-   * Get komponen_penilaian options from LMS for dropdown. Admin only.
+   * Get komponen_penilaian options from LMS for dropdown.
    */
   @Get("komponen-penilaian")
-  @UseGuards(RolesGuard)
-  @Roles(CbtRole.ADMIN_SEKOLAH)
   async getKomponenPenilaian(@CurrentUser("tenantId") tenantId: string) {
     return this.puService.getKomponenPenilaian(tenantId);
   }

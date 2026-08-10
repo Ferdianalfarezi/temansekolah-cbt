@@ -27,7 +27,7 @@ import {
 
 @Controller("exam-sessions")
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
-@Roles(CbtRole.ADMIN_SEKOLAH)
+@Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
 export class ExamSessionController {
   constructor(
     private readonly examSessionService: ExamSessionService,

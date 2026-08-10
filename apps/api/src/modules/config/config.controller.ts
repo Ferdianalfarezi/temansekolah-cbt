@@ -15,14 +15,14 @@ import { CbtConfigService } from "./config.service";
 import { UpdateConfigDto } from "./dto/update-config.dto";
 
 @Controller("config")
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
+@Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
 export class CbtConfigController {
   constructor(private readonly configService: CbtConfigService) {}
 
   /**
    * GET /api/config
    * Returns the tenant's CBT configuration. Auto-creates with defaults if not exists.
-   * Accessible by any authenticated staff with a valid tenant context.
    */
   @Get()
   async getConfig(@CurrentUser("tenantId") tenantId: string) {
@@ -32,11 +32,8 @@ export class CbtConfigController {
   /**
    * PATCH /api/config
    * Updates the tenant's CBT configuration (timezone, anti-cheat defaults, thresholds).
-   * Admin only.
    */
   @Patch()
-  @UseGuards(RolesGuard)
-  @Roles(CbtRole.ADMIN_SEKOLAH)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async updateConfig(
     @CurrentUser("tenantId") tenantId: string,

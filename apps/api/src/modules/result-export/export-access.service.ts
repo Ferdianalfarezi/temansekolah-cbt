@@ -40,29 +40,14 @@ export class ExportAccessService {
   /**
    * Check if a user has access to export results for a specific exam session.
    *
-   * The check follows a priority sequence:
-   * 1. Admin_Sekolah — grants access to any session in their tenant
-   * 2. Proctor — grants access only if user is the assigned proctor
-   * 3. Guru — grants access if user teaches the session's mapel+kelas (via jadwal_pelajaran)
-   *
-   * Access is granted at the first matching path. If no path matches, access is denied.
+   * Both Admin_Sekolah and Guru have full access to any session in their tenant.
+   * Simplified role model - no distinction between admin and guru for access control.
    *
    * @param userId - The ID of the user requesting access
    * @param userRole - The role of the user (admin, guru, etc.)
    * @param tenantId - The tenant ID the user belongs to
    * @param sessionId - The exam session ID to check access for
    * @returns ExportAccessCheck with canAccess, accessPath, and reason
-   *
-   * @example
-   * const result = await service.checkSessionExportAccess(
-   *   'user-123',
-   *   'admin',
-   *   'tenant-456',
-   *   'session-789'
-   * );
-   * // { canAccess: true, accessPath: 'admin', reason: 'Admin_Sekolah has access to all sessions in tenant' }
-   *
-   * _Requirements: 3.1, 3.2, 3.3, 3.4_
    */
   async checkSessionExportAccess(
     userId: string,
@@ -70,7 +55,7 @@ export class ExportAccessService {
     tenantId: string,
     sessionId: string,
   ): Promise<ExportAccessCheck> {
-    // First, load the session with pelaksanaan ujian to get tahunAjaranId
+    // First, load the session to verify it exists in this tenant
     const sessionData = await this.getSessionWithPelaksanaanUjian(
       tenantId,
       sessionId,
@@ -85,57 +70,19 @@ export class ExportAccessService {
       };
     }
 
-    // Check 1: Admin_Sekolah access (any session in their tenant)
-    // _Requirement: 3.2_
-    if (userRole === "admin") {
+    // Both admin and guru have full access to any session in their tenant
+    if (userRole === "admin" || userRole === "guru") {
       this.logger.debug(
-        `Admin user ${userId} granted access to session ${sessionId}`,
+        `User ${userId} (role: ${userRole}) granted access to session ${sessionId}`,
       );
       return {
         canAccess: true,
         accessPath: "admin",
-        reason: "Admin_Sekolah has access to all sessions in tenant",
+        reason: "Staff has access to all sessions in tenant",
       };
-    }
-
-    // Check 2: Proctor access (assigned sessions only)
-    // _Requirement: 3.1_
-    if (sessionData.proctorId === userId) {
-      this.logger.debug(
-        `Proctor user ${userId} granted access to their assigned session ${sessionId}`,
-      );
-      return {
-        canAccess: true,
-        accessPath: "proctor",
-        reason: "Proctor is assigned to this session",
-      };
-    }
-
-    // Check 3: Guru access (via jadwal_pelajaran matching)
-    // _Requirement: 3.3_
-    if (userRole === "guru") {
-      const hasJadwalAccess = await this.checkGuruJadwalAccess(
-        userId,
-        tenantId,
-        sessionData.mataPelajaranId,
-        sessionData.kelasId,
-        sessionData.tahunAjaranId,
-      );
-
-      if (hasJadwalAccess) {
-        this.logger.debug(
-          `Guru user ${userId} granted access via jadwal_pelajaran match`,
-        );
-        return {
-          canAccess: true,
-          accessPath: "guru",
-          reason: "Guru has jadwal_pelajaran matching session mapel and kelas",
-        };
-      }
     }
 
     // No valid access path found
-    // _Requirement: 3.4_
     this.logger.debug(
       `Access denied for user ${userId} (role: ${userRole}) to session ${sessionId}`,
     );
@@ -149,37 +96,34 @@ export class ExportAccessService {
   /**
    * Check if a user has access to export results for a Pelaksanaan Ujian.
    *
-   * Only Admin_Sekolah can access bulk exports for Pelaksanaan Ujian.
+   * Both Admin_Sekolah and Guru can access bulk exports.
    *
    * @param userId - The ID of the user requesting access
    * @param userRole - The role of the user
    * @param tenantId - The tenant ID the user belongs to
    * @returns ExportAccessCheck with canAccess, accessPath, and reason
-   *
-   * _Requirement: 5.1_
    */
   async checkPelaksanaanUjianExportAccess(
     userId: string,
     userRole: string,
     tenantId: string,
   ): Promise<ExportAccessCheck> {
-    // Only Admin_Sekolah can access bulk exports
-    if (userRole === "admin") {
+    // Both admin and guru can access bulk exports
+    if (userRole === "admin" || userRole === "guru") {
       this.logger.debug(
-        `Admin user ${userId} granted bulk export access in tenant ${tenantId}`,
+        `User ${userId} (role: ${userRole}) granted bulk export access in tenant ${tenantId}`,
       );
       return {
         canAccess: true,
         accessPath: "admin",
-        reason:
-          "Admin_Sekolah can access bulk exports for any Pelaksanaan Ujian",
+        reason: "Staff can access bulk exports for any Pelaksanaan Ujian",
       };
     }
 
     return {
       canAccess: false,
       accessPath: null,
-      reason: "Hanya Admin Sekolah yang dapat mengekspor hasil secara bulk",
+      reason: "Anda tidak memiliki akses untuk mengekspor hasil ini",
     };
   }
 

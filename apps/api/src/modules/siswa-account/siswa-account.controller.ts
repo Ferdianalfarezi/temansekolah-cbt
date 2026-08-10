@@ -20,7 +20,7 @@ import { ListAccountsQueryDto } from "./dto";
 
 @Controller("siswa-accounts")
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
-@Roles(CbtRole.ADMIN_SEKOLAH)
+@Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
 export class SiswaAccountController {
   constructor(
     private readonly siswaAccountService: SiswaAccountService,

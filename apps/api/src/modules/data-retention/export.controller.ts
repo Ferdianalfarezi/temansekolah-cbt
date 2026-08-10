@@ -61,7 +61,7 @@ export class ExportController {
    * Admin only. Accepts resourceType and dateRange.
    */
   @Post()
-  @Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.SUPERADMIN)
+  @Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU, CbtRole.SUPERADMIN)
   async exportData(
     @Body() dto: ExportRequestDto,
     @CurrentUser() user: { id: string; tenantId: string; role: string },

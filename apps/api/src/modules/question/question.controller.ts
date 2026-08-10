@@ -31,7 +31,7 @@ import {
 
 @Controller("questions")
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
-@Roles(CbtRole.GURU)
+@Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
 export class QuestionController {
   constructor(private readonly questionService: QuestionService) {}
 
