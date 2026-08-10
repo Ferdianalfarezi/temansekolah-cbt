@@ -47,28 +47,53 @@ async function handleLogin() {
 <template>
   <div
     class="min-h-screen flex items-center justify-center"
-    style="background: #fafaf8"
+    style="background: var(--color-surface-warm)"
   >
     <div class="w-full max-w-md px-6">
       <!-- Logo & Title -->
       <div class="text-center mb-8">
-        <div class="flex items-center justify-center gap-2 mb-4">
-          <span class="text-2xl font-bold text-indigo-600">CBT</span>
-          <span class="text-xl text-slate-600">Teman Sekolah</span>
+        <div class="flex items-center justify-center gap-3 mb-4">
+          <div
+            class="w-14 h-14 rounded-xl flex items-center justify-center"
+            style="background: var(--color-teal-dark)"
+          >
+            <img
+              src="/logo.png"
+              alt="CBT Teman Sekolah"
+              class="w-8 h-8 object-contain"
+            />
+          </div>
         </div>
-        <h1 class="text-xl font-semibold text-slate-800">Login Admin</h1>
-        <p class="text-sm text-slate-500 mt-1">
+        <h1
+          class="text-xl font-semibold"
+          style="color: var(--color-text-primary)"
+        >
+          CBT Admin Login
+        </h1>
+        <p class="text-sm mt-1" style="color: var(--color-text-secondary)">
           Masuk untuk mengelola ujian berbasis komputer
         </p>
       </div>
 
       <!-- Login Form -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div
+        class="rounded-xl p-6"
+        style="
+          background: var(--color-surface-0);
+          box-shadow: var(--shadow-md);
+          border: 1px solid var(--color-border);
+        "
+      >
         <form @submit.prevent="handleLogin" class="space-y-4">
           <!-- Error Alert -->
           <div
             v-if="error"
-            class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"
+            class="px-4 py-3 rounded-lg text-sm"
+            style="
+              background: var(--color-danger-50);
+              border: 1px solid var(--color-danger-500);
+              color: var(--color-danger-700);
+            "
           >
             {{ error }}
           </div>
@@ -77,7 +102,8 @@ async function handleLogin() {
           <div>
             <label
               for="email"
-              class="block text-sm font-medium text-slate-700 mb-1"
+              class="block text-sm font-medium mb-1"
+              style="color: var(--color-text-secondary)"
             >
               Email
             </label>
@@ -87,7 +113,11 @@ async function handleLogin() {
               type="email"
               autocomplete="email"
               required
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
+              style="
+                border: 1px solid var(--color-border);
+                color: var(--color-text-primary);
+              "
               placeholder="admin@sekolah.sch.id"
             />
           </div>
@@ -96,7 +126,8 @@ async function handleLogin() {
           <div>
             <label
               for="password"
-              class="block text-sm font-medium text-slate-700 mb-1"
+              class="block text-sm font-medium mb-1"
+              style="color: var(--color-text-secondary)"
             >
               Password
             </label>
@@ -106,7 +137,11 @@ async function handleLogin() {
               type="password"
               autocomplete="current-password"
               required
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
+              style="
+                border: 1px solid var(--color-border);
+                color: var(--color-text-primary);
+              "
               placeholder="••••••••"
             />
           </div>
@@ -115,7 +150,8 @@ async function handleLogin() {
           <button
             type="submit"
             :disabled="isLoading"
-            class="w-full py-2.5 px-4 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="w-full py-2.5 px-4 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style="background: var(--color-primary-600)"
           >
             <span
               v-if="isLoading"
@@ -146,19 +182,32 @@ async function handleLogin() {
         <!-- Divider -->
         <div class="relative my-6">
           <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-slate-200"></div>
+            <div
+              class="w-full border-t"
+              style="border-color: var(--color-border)"
+            ></div>
           </div>
           <div class="relative flex justify-center text-xs">
-            <span class="px-2 bg-white text-slate-400">atau</span>
+            <span
+              class="px-2"
+              style="
+                background: var(--color-surface-0);
+                color: var(--color-text-tertiary);
+              "
+              >atau</span
+            >
           </div>
         </div>
 
         <!-- LMS Login Link -->
         <div class="text-center">
-          <p class="text-sm text-slate-500">Sudah login di LMS Admin?</p>
+          <p class="text-sm" style="color: var(--color-text-secondary)">
+            Sudah login di LMS Admin?
+          </p>
           <a
             href="https://admin.teman-sekolah.com"
-            class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 mt-1"
+            class="inline-flex items-center gap-1 text-sm mt-1"
+            style="color: var(--color-primary-600)"
           >
             Buka LMS Admin
             <svg
@@ -179,7 +228,10 @@ async function handleLogin() {
       </div>
 
       <!-- Footer -->
-      <p class="text-center text-xs text-slate-400 mt-6">
+      <p
+        class="text-center text-xs mt-6"
+        style="color: var(--color-text-tertiary)"
+      >
         &copy; {{ new Date().getFullYear() }} Teman Sekolah. All rights
         reserved.
       </p>
