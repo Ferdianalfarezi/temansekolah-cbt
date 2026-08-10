@@ -27,12 +27,20 @@ export function useExamSocket(sessionId: string, token: string) {
   const answersRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
-    // Determine base URL from env or fallback
-    const baseUrl =
-      (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env
-        ?.VITE_API_URL ?? "";
+    // Determine WebSocket URL - use VITE_WS_URL or strip /api/v1 from API URL
+    const env = (
+      import.meta as unknown as {
+        env?: { VITE_WS_URL?: string; VITE_API_URL?: string };
+      }
+    ).env;
+    let wsUrl = env?.VITE_WS_URL ?? "";
 
-    const socket = io(`${baseUrl}/exam`, {
+    // Fallback: derive from API URL if WS URL not set
+    if (!wsUrl && env?.VITE_API_URL) {
+      wsUrl = env.VITE_API_URL.replace(/\/api\/v1$/, "").replace(/^http/, "ws");
+    }
+
+    const socket = io(`${wsUrl}/exam`, {
       auth: { token },
       transports: ["websocket", "polling"],
       reconnection: true,

@@ -1,11 +1,19 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: "/login",
+      name: "login",
+      component: () => import("@/views/LoginView.vue"),
+      meta: { requiresAuth: false },
+    },
+    {
       path: "/",
       component: () => import("@/components/layout/AppLayout.vue"),
+      meta: { requiresAuth: true },
       children: [
         {
           path: "",
@@ -56,6 +64,33 @@ const router = createRouter({
       ],
     },
   ],
+});
+
+// Navigation guard for authentication
+router.beforeEach((to, _from, next) => {
+  const authStore = useAuthStore();
+
+  // Initialize auth on first navigation (handles token from URL)
+  if (!authStore.isAuthenticated) {
+    authStore.initializeAuth();
+  }
+
+  const requiresAuth = to.matched.some(
+    (record) => record.meta.requiresAuth !== false,
+  );
+
+  if (requiresAuth && !authStore.isAuthenticated) {
+    // Redirect to login with return URL
+    next({
+      path: "/login",
+      query: { redirect: to.fullPath },
+    });
+  } else if (to.path === "/login" && authStore.isAuthenticated) {
+    // Already logged in, redirect to dashboard
+    next("/");
+  } else {
+    next();
+  }
 });
 
 export default router;

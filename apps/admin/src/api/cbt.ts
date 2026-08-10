@@ -1,18 +1,37 @@
 import axios from "axios";
+import { useAuthStore } from "@/stores/auth";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
   headers: { "Content-Type": "application/json" },
 });
 
-// Inject JWT token from localStorage on each request
+// Inject JWT token from auth store on each request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const authStore = useAuthStore();
+  if (authStore.token) {
+    config.headers.Authorization = `Bearer ${authStore.token}`;
   }
   return config;
 });
+
+// Handle 401 responses - redirect to login
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const authStore = useAuthStore();
+      authStore.clearAuth();
+
+      // Redirect to login with current path as redirect param
+      const currentPath = window.location.pathname;
+      if (currentPath !== "/login") {
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+      }
+    }
+    return Promise.reject(error);
+  },
+);
 
 // ─── Pelaksanaan Ujian ───────────────────────────────────────────────────────
 
