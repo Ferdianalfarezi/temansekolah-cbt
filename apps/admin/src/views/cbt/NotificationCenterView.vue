@@ -19,7 +19,10 @@ async function fetchNotifications() {
   error.value = "";
   try {
     const res = await getNotifications();
-    notifications.value = res.data;
+    // Handle both array response and { data: [], meta: {} } response
+    notifications.value = Array.isArray(res.data)
+      ? res.data
+      : (res.data.data ?? []);
   } catch (e: any) {
     error.value = e.response?.data?.message || "Gagal memuat notifikasi";
   } finally {

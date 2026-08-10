@@ -41,7 +41,8 @@ async function fetchData() {
   error.value = "";
   try {
     const res = await getPelaksanaanUjianList();
-    items.value = res.data;
+    // Handle both array response and { data: [], meta: {} } response
+    items.value = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
 
     // Fetch completed session counts for each Pelaksanaan Ujian
     await fetchCompletedSessionCounts();
@@ -63,7 +64,11 @@ async function fetchCompletedSessionCounts() {
           pelaksanaanUjianId: item.id,
           status: "completed",
         });
-        counts[item.id] = res.data.length;
+        // Handle both array response and { data: [], meta: {} } response
+        const sessions = Array.isArray(res.data)
+          ? res.data
+          : (res.data.data ?? []);
+        counts[item.id] = sessions.length;
       } catch {
         counts[item.id] = 0;
       }

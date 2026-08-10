@@ -19,7 +19,8 @@ async function fetchAccounts() {
   try {
     const params = search.value ? { search: search.value } : undefined;
     const res = await getSiswaAccounts(params);
-    accounts.value = res.data;
+    // Handle both array response and { data: [], meta: {} } response
+    accounts.value = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
   } catch (e: any) {
     error.value = e.response?.data?.message || "Gagal memuat akun siswa";
   } finally {

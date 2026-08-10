@@ -52,7 +52,8 @@ async function fetchSessions() {
       ? { status: statusFilter.value }
       : undefined;
     const res = await getExamSessions(params);
-    sessions.value = res.data;
+    // Handle both array response and { data: [], meta: {} } response
+    sessions.value = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
   } catch (e: any) {
     error.value = e.response?.data?.message || "Gagal memuat sesi ujian";
   } finally {
@@ -214,10 +215,10 @@ onMounted(fetchSessions);
               class="hover:bg-gray-50/60 transition-colors"
             >
               <td class="px-4 py-3 text-sm text-gray-900 font-medium">
-                {{ s.mataPelajaranId.slice(0, 8) }}…
+                {{ s.mataPelajaranId?.slice(0, 8) ?? "-" }}…
               </td>
               <td class="px-4 py-3 text-sm text-gray-600">
-                {{ s.kelasId.slice(0, 8) }}…
+                {{ s.kelasId?.slice(0, 8) ?? "-" }}…
               </td>
               <td class="px-4 py-3 text-sm text-gray-600">
                 {{ new Date(s.scheduledAt).toLocaleString("id-ID") }}
