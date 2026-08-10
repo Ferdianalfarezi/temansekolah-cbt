@@ -152,13 +152,23 @@ export interface Question {
   createdAt: string;
 }
 
+export interface QuestionsResponse {
+  data: Question[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export function getQuestions(params?: {
   pelaksanaanUjianId?: string;
   mataPelajaranId?: string;
   tingkat?: number;
   kelasId?: string;
 }) {
-  return api.get<Question[]>("/questions", { params });
+  return api.get<QuestionsResponse>("/questions", { params });
 }
 
 export function createQuestion(data: Partial<Question>) {

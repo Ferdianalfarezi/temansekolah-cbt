@@ -36,7 +36,8 @@ async function fetchQuestions() {
   error.value = "";
   try {
     const res = await getQuestions();
-    questions.value = res.data;
+    // API returns { data: Question[], meta: {...} }
+    questions.value = res.data.data;
   } catch (e: any) {
     error.value = e.response?.data?.message || "Gagal memuat soal";
   } finally {
