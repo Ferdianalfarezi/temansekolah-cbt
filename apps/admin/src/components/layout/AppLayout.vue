@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, RouterView } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import AppSidebar from "@/components/layout/AppSidebar.vue";
 import AppTopBar from "@/components/layout/AppTopBar.vue";
@@ -82,7 +82,7 @@ const schoolName = computed(() => {
 
       <!-- Page content with scrollable area and custom scrollbar -->
       <main class="flex-1 overflow-y-auto scrollbar-custom">
-        <slot />
+        <RouterView />
       </main>
     </div>
   </div>
