@@ -17,10 +17,12 @@ import { user } from "../../../drizzle/schema/lms-tables";
 
 /**
  * JWT payload structure issued by the LMS.
+ * Note: LMS uses snake_case (tenant_id), we accept both formats for compatibility.
  */
 export interface StaffJwtPayload {
   sub: string; // user.id
-  tenantId: string | null; // null for super_admin
+  tenant_id?: string | null; // LMS uses snake_case
+  tenantId?: string | null; // CBT internal uses camelCase
   role:
     | "super_admin"
     | "admin"
@@ -90,9 +92,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException("Account has been deactivated");
     }
 
+    // Handle both snake_case (tenant_id) from LMS and camelCase (tenantId)
+    const tenantId = payload.tenant_id ?? payload.tenantId ?? null;
+
     return {
       userId: payload.sub,
-      tenantId: payload.tenantId ?? null,
+      tenantId,
       role: payload.role,
       cbtRole,
     };
