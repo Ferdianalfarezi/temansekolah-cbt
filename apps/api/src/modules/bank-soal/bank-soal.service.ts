@@ -1275,16 +1275,36 @@ export class BankSoalService {
     }
 
     // 4. Get all target kelas from bank soal
+    // If bank soal has specific target kelas (cbt_bank_soal_kelas), use those
+    // If bank soal has tingkat instead, find all kelas with that tingkat
+    let targetKelasIds: string[] = [];
+
     const targetKelas = await this.db
       .select({ kelasId: cbtBankSoalKelas.kelasId })
       .from(cbtBankSoalKelas)
       .where(eq(cbtBankSoalKelas.bankSoalId, id));
 
-    const targetKelasIds = targetKelas.map((tk) => tk.kelasId);
+    if (targetKelas.length > 0) {
+      // Use specific target kelas
+      targetKelasIds = targetKelas.map((tk) => tk.kelasId);
+    } else if (bankSoal.tingkat !== null) {
+      // Find all kelas with the specified tingkat in this tenant
+      const kelasByTingkat = await this.db
+        .select({ id: kelas.id })
+        .from(kelas)
+        .where(
+          and(
+            eq(kelas.tenantId, tenantId),
+            eq(kelas.tingkat, bankSoal.tingkat),
+          ),
+        );
+
+      targetKelasIds = kelasByTingkat.map((k) => k.id);
+    }
 
     if (targetKelasIds.length === 0) {
       throw new BadRequestException(
-        "Bank soal tidak memiliki target kelas. Tambahkan target kelas terlebih dahulu.",
+        "Bank soal tidak memiliki target kelas. Edit bank soal dan tambahkan target kelas terlebih dahulu.",
       );
     }
 

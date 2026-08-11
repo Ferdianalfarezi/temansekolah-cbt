@@ -69,9 +69,22 @@ const hasNoSoal = computed(() => {
   return props.bankSoal?.soalCount === 0;
 });
 
-// Computed: check if bank soal has no target kelas
+// Computed: check if bank soal has no target kelas AND no tingkat
 const hasNoTargetKelas = computed(() => {
-  return !props.bankSoal || props.bankSoal.targetKelas.length === 0;
+  if (!props.bankSoal) return true;
+  // Has target kelas if: has specific kelas OR has tingkat defined
+  return (
+    props.bankSoal.targetKelas.length === 0 && props.bankSoal.tingkat === null
+  );
+});
+
+// Computed: check if bank soal uses tingkat instead of specific kelas
+const usesTingkat = computed(() => {
+  return (
+    props.bankSoal &&
+    props.bankSoal.targetKelas.length === 0 &&
+    props.bankSoal.tingkat !== null
+  );
 });
 
 // Computed: form is valid (no longer needs kelasId)
@@ -405,7 +418,10 @@ onUnmounted(() => {
                 <p class="text-xs font-semibold mb-2 text-gray-600">
                   Target Kelas
                 </p>
-                <div class="flex flex-wrap gap-1.5">
+                <div
+                  v-if="bankSoal.targetKelas.length > 0"
+                  class="flex flex-wrap gap-1.5"
+                >
                   <span
                     v-for="kelas in bankSoal.targetKelas"
                     :key="kelas.value"
@@ -414,11 +430,27 @@ onUnmounted(() => {
                     {{ kelas.label }}
                   </span>
                 </div>
-                <p class="mt-2 text-xs text-gray-500">
-                  <span class="font-medium text-indigo-600"
-                    >{{ bankSoal.targetKelas.length }} sesi ujian</span
+                <div v-else-if="usesTingkat" class="flex flex-wrap gap-1.5">
+                  <span
+                    class="inline-flex rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700"
                   >
-                  akan dibuat secara otomatis (satu per kelas)
+                    Semua kelas Tingkat {{ bankSoal.tingkat }}
+                  </span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500">
+                  <template v-if="bankSoal.targetKelas.length > 0">
+                    <span class="font-medium text-indigo-600"
+                      >{{ bankSoal.targetKelas.length }} sesi ujian</span
+                    >
+                    akan dibuat secara otomatis (satu per kelas)
+                  </template>
+                  <template v-else-if="usesTingkat">
+                    Sesi ujian akan dibuat untuk
+                    <span class="font-medium text-amber-600"
+                      >semua kelas tingkat {{ bankSoal.tingkat }}</span
+                    >
+                    di sekolah ini
+                  </template>
                 </p>
               </div>
 
@@ -610,7 +642,11 @@ onUnmounted(() => {
               {{
                 submitting
                   ? "Menjadwalkan..."
-                  : `Jadwalkan ${bankSoal?.targetKelas.length || 0} Sesi`
+                  : bankSoal?.targetKelas.length
+                    ? `Jadwalkan ${bankSoal.targetKelas.length} Sesi`
+                    : usesTingkat
+                      ? `Jadwalkan Sesi Tingkat ${bankSoal?.tingkat}`
+                      : "Jadwalkan"
               }}
             </button>
           </div>
