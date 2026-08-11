@@ -1,10 +1,7 @@
-import { IsUUID, IsIn } from "class-validator";
+import { IsIn } from "class-validator";
 import { PeriodeRapor } from "@/common/enums";
 
 export class CreatePelaksanaanUjianDto {
-  @IsUUID()
-  tahunAjaranId!: string;
-
   @IsIn([
     PeriodeRapor.UTS_SEMESTER_1,
     PeriodeRapor.SEMESTER_1,
@@ -12,7 +9,4 @@ export class CreatePelaksanaanUjianDto {
     PeriodeRapor.SEMESTER_2,
   ])
   periodeRapor!: string;
-
-  @IsUUID()
-  komponenPenilaianId!: string;
 }

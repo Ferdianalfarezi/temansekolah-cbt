@@ -40,21 +40,27 @@ export interface PelaksanaanUjian {
   tenantId: string;
   tahunAjaranId: string;
   periodeRapor: string;
-  komponenPenilaianId: string;
+  komponenPenilaianId: string | null;
   nama: string;
   isActive: boolean;
   createdAt: string;
 }
 
-export function getPelaksanaanUjianList() {
-  return api.get<PelaksanaanUjian[]>("/pelaksanaan-ujian");
+export interface TahunAjaran {
+  id: string;
+  nama: string;
+  tanggalMulai: string;
+  tanggalSelesai: string;
 }
 
-export function createPelaksanaanUjian(data: {
-  tahunAjaranId: string;
-  periodeRapor: string;
-  komponenPenilaianId: string;
+export function getPelaksanaanUjianList(params?: {
+  periodeRapor?: string;
+  isActive?: string;
 }) {
+  return api.get<PelaksanaanUjian[]>("/pelaksanaan-ujian", { params });
+}
+
+export function createPelaksanaanUjian(data: { periodeRapor: string }) {
   return api.post<PelaksanaanUjian>("/pelaksanaan-ujian", data);
 }
 
@@ -64,6 +70,10 @@ export function deactivatePelaksanaanUjian(id: string) {
 
 export function getActivePelaksanaanUjian() {
   return api.get<PelaksanaanUjian | null>("/pelaksanaan-ujian/active");
+}
+
+export function getTahunAjaranAktif() {
+  return api.get<TahunAjaran | null>("/pelaksanaan-ujian/tahun-ajaran-aktif");
 }
 
 // ─── Exam Sessions ───────────────────────────────────────────────────────────

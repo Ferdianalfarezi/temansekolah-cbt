@@ -15,6 +15,13 @@
       "when": 1786374352147,
       "tag": "0001_shocking_lady_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786464195298,
+      "tag": "0002_slow_vanisher",
+      "breakpoints": true
     }
   ]
 }

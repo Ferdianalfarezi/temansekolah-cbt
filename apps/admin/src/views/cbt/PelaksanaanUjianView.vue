@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import ActionButton from "@/components/ui/ActionButton.vue";
 import {
   getPelaksanaanUjianList,
@@ -7,13 +7,19 @@ import {
   deactivatePelaksanaanUjian,
   getExamSessions,
   exportPelaksanaanUjianResults,
+  getTahunAjaranAktif,
   type PelaksanaanUjian,
+  type TahunAjaran,
 } from "@/api/cbt";
 
 const items = ref<PelaksanaanUjian[]>([]);
 const loading = ref(false);
 const error = ref("");
 const showCreateForm = ref(false);
+
+// Active tahun ajaran from LMS
+const tahunAjaranAktif = ref<TahunAjaran | null>(null);
+const loadingTahunAjaran = ref(false);
 
 // Track completed session counts per Pelaksanaan Ujian
 const completedSessionCounts = ref<Record<string, number>>({});
@@ -23,11 +29,13 @@ const exportMenuOpenId = ref<string | null>(null);
 const exportingId = ref<string | null>(null);
 const exportError = ref("");
 
-// Create form state
+// Filter state
+const filterPeriode = ref<string>("");
+const filterStatus = ref<string>("");
+
+// Create form state - simplified
 const form = ref({
-  tahunAjaranId: "",
   periodeRapor: "",
-  komponenPenilaianId: "",
 });
 
 const periodeOptions = [
@@ -37,11 +45,36 @@ const periodeOptions = [
   { value: "semester_2", label: "Semester 2" },
 ];
 
+const statusOptions = [
+  { value: "", label: "Semua Status" },
+  { value: "true", label: "Aktif" },
+  { value: "false", label: "Nonaktif" },
+];
+
+async function fetchTahunAjaranAktif() {
+  loadingTahunAjaran.value = true;
+  try {
+    const res = await getTahunAjaranAktif();
+    tahunAjaranAktif.value = res.data;
+  } catch (e: any) {
+    console.error("Gagal memuat tahun ajaran aktif:", e);
+    tahunAjaranAktif.value = null;
+  } finally {
+    loadingTahunAjaran.value = false;
+  }
+}
+
 async function fetchData() {
   loading.value = true;
   error.value = "";
   try {
-    const res = await getPelaksanaanUjianList();
+    const params: Record<string, string> = {};
+    if (filterPeriode.value) params.periodeRapor = filterPeriode.value;
+    if (filterStatus.value) params.isActive = filterStatus.value;
+
+    const res = await getPelaksanaanUjianList(
+      Object.keys(params).length > 0 ? params : undefined,
+    );
     // Handle both array response and { data: [], meta: {} } response
     items.value = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
 
@@ -110,15 +143,22 @@ async function handleExport(puId: string, detail: boolean) {
   }
 }
 
+function openCreateForm() {
+  form.value.periodeRapor = "";
+  showCreateForm.value = true;
+}
+
 async function handleCreate() {
+  if (!form.value.periodeRapor) {
+    error.value = "Pilih periode rapor";
+    return;
+  }
   try {
-    await createPelaksanaanUjian(form.value);
+    await createPelaksanaanUjian({
+      periodeRapor: form.value.periodeRapor,
+    });
     showCreateForm.value = false;
-    form.value = {
-      tahunAjaranId: "",
-      periodeRapor: "",
-      komponenPenilaianId: "",
-    };
+    form.value.periodeRapor = "";
     await fetchData();
   } catch (e: any) {
     error.value =
@@ -136,7 +176,15 @@ async function handleDeactivate(id: string) {
   }
 }
 
-onMounted(fetchData);
+onMounted(() => {
+  fetchTahunAjaranAktif();
+  fetchData();
+});
+
+// Watch filters
+watch([filterPeriode, filterStatus], () => {
+  fetchData();
+});
 
 // Close export menu when clicking outside
 function handleClickOutside(event: MouseEvent) {
@@ -154,6 +202,12 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside, true);
 });
+
+// Helper to get periode label
+function getPeriodeLabel(value: string): string {
+  const option = periodeOptions.find((o) => o.value === value);
+  return option?.label || value;
+}
 </script>
 
 <template>
@@ -168,21 +222,33 @@ onUnmounted(() => {
           Kelola periode pelaksanaan ujian CBT
         </p>
       </div>
-      <button
-        class="bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition-colors"
-        @click="showCreateForm = !showCreateForm"
-      >
+      <ActionButton variant="primary" @click="openCreateForm">
         + Buat Baru
-      </button>
+      </ActionButton>
     </div>
 
     <div class="px-6 py-6">
       <!-- Error banner -->
       <div
         v-if="error"
-        class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+        class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 flex items-center justify-between"
       >
-        {{ error }}
+        <span>{{ error }}</span>
+        <button class="text-red-500 hover:text-red-700" @click="error = ''">
+          <svg
+            class="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
       </div>
 
       <!-- Export error banner -->
@@ -211,77 +277,113 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <!-- Create Form -->
-      <div
-        v-if="showCreateForm"
-        class="mb-6 rounded-xl border border-gray-200 bg-white p-5"
-      >
-        <h2 class="mb-4 text-sm font-semibold text-gray-700">
-          Buat Pelaksanaan Ujian Baru
-        </h2>
-        <form
-          class="grid grid-cols-1 gap-4 md:grid-cols-3"
-          @submit.prevent="handleCreate"
+      <!-- Create Form Modal -->
+      <Teleport to="body">
+        <div
+          v-if="showCreateForm"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          @click.self="showCreateForm = false"
         >
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1"
-              >Tahun Ajaran ID</label
+          <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+              Buat Pelaksanaan Ujian Baru
+            </h2>
+
+            <!-- Tahun Ajaran Info -->
+            <div
+              class="mb-4 rounded-lg border border-indigo-200 bg-indigo-50 p-3"
             >
-            <input
-              v-model="form.tahunAjaranId"
-              type="text"
-              class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-              placeholder="UUID tahun ajaran"
-              required
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1"
-              >Periode Rapor</label
-            >
-            <select
-              v-model="form.periodeRapor"
-              class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-              required
-            >
-              <option value="" disabled>Pilih Periode</option>
-              <option
-                v-for="opt in periodeOptions"
-                :key="opt.value"
-                :value="opt.value"
+              <p class="text-xs font-medium text-indigo-600 uppercase mb-1">
+                Tahun Ajaran Aktif
+              </p>
+              <p
+                v-if="loadingTahunAjaran"
+                class="text-sm text-indigo-700 animate-pulse"
               >
-                {{ opt.label }}
-              </option>
-            </select>
+                Memuat...
+              </p>
+              <p
+                v-else-if="tahunAjaranAktif"
+                class="text-base font-semibold text-indigo-900"
+              >
+                {{ tahunAjaranAktif.nama }}
+              </p>
+              <p v-else class="text-sm text-red-600">
+                Tidak ada tahun ajaran aktif. Aktifkan tahun ajaran di LMS
+                terlebih dahulu.
+              </p>
+            </div>
+
+            <form @submit.prevent="handleCreate">
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Periode Rapor</label
+                >
+                <select
+                  v-model="form.periodeRapor"
+                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  required
+                >
+                  <option value="" disabled>Pilih Periode</option>
+                  <option
+                    v-for="opt in periodeOptions"
+                    :key="opt.value"
+                    :value="opt.value"
+                  >
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="flex gap-2 justify-end pt-2">
+                <ActionButton
+                  variant="neutral"
+                  type="button"
+                  @click="showCreateForm = false"
+                >
+                  Batal
+                </ActionButton>
+                <ActionButton
+                  variant="primary"
+                  type="submit"
+                  :disabled="!tahunAjaranAktif || !form.periodeRapor"
+                >
+                  Simpan
+                </ActionButton>
+              </div>
+            </form>
           </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1"
-              >Komponen Penilaian ID</label
-            >
-            <input
-              v-model="form.komponenPenilaianId"
-              type="text"
-              class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-              placeholder="UUID komponen"
-              required
-            />
-          </div>
-          <div class="md:col-span-3 flex gap-2 pt-1">
-            <button
-              type="submit"
-              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
-            >
-              Simpan
-            </button>
-            <button
-              type="button"
-              class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              @click="showCreateForm = false"
-            >
-              Batal
-            </button>
-          </div>
-        </form>
+        </div>
+      </Teleport>
+
+      <!-- Filters -->
+      <div class="mb-5 flex flex-wrap items-center gap-3">
+        <select
+          v-model="filterPeriode"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+        >
+          <option value="">Semua Periode</option>
+          <option
+            v-for="opt in periodeOptions"
+            :key="opt.value"
+            :value="opt.value"
+          >
+            {{ opt.label }}
+          </option>
+        </select>
+
+        <select
+          v-model="filterStatus"
+          class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+        >
+          <option
+            v-for="opt in statusOptions"
+            :key="opt.value"
+            :value="opt.value"
+          >
+            {{ opt.label }}
+          </option>
+        </select>
       </div>
 
       <!-- Loading -->
@@ -336,7 +438,7 @@ onUnmounted(() => {
                 {{ item.nama }}
               </td>
               <td class="px-4 py-3 text-sm text-gray-600">
-                {{ item.periodeRapor }}
+                {{ getPeriodeLabel(item.periodeRapor) }}
               </td>
               <td class="px-4 py-3">
                 <span

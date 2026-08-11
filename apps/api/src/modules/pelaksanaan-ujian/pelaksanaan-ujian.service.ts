@@ -5,12 +5,12 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, desc } from "drizzle-orm";
 
 import { DRIZZLE } from "../../drizzle/drizzle.module";
 import { cbtPelaksanaanUjian } from "../../drizzle/schema/cbt-pelaksanaan-ujian";
 import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
-import { komponenPenilaian } from "../../drizzle/schema/lms-tables";
+import { tahunAjaran } from "../../drizzle/schema/lms-tables";
 import { CreatePelaksanaanUjianDto } from "./dto/create-pelaksanaan-ujian.dto";
 
 /** Maps periode_rapor enum to display label */
@@ -26,32 +26,48 @@ export class PelaksanaanUjianService {
   constructor(@Inject(DRIZZLE) private readonly db: NodePgDatabase) {}
 
   /**
-   * Create a new Pelaksanaan Ujian.
-   * - Queries komponen_penilaian from LMS to auto-generate the nama
-   * - Checks that no other PU is currently active for this tenant
-   * - Inserts with is_active=true
-   * - DB unique constraint (tenant_id, tahun_ajaran_id, periode_rapor, komponen_penilaian_id) is enforced
+   * Get active tahun ajaran from LMS for this tenant.
    */
-  async create(tenantId: string, dto: CreatePelaksanaanUjianDto) {
-    // 1. Fetch komponen_penilaian from LMS table
-    const [komponen] = await this.db
-      .select({ id: komponenPenilaian.id, nama: komponenPenilaian.nama })
-      .from(komponenPenilaian)
+  async getActiveTahunAjaran(tenantId: string) {
+    const [active] = await this.db
+      .select({
+        id: tahunAjaran.id,
+        nama: tahunAjaran.nama,
+        tanggalMulai: tahunAjaran.tanggalMulai,
+        tanggalSelesai: tahunAjaran.tanggalSelesai,
+      })
+      .from(tahunAjaran)
       .where(
         and(
-          eq(komponenPenilaian.id, dto.komponenPenilaianId),
-          eq(komponenPenilaian.tenantId, tenantId),
+          eq(tahunAjaran.tenantId, tenantId),
+          eq(tahunAjaran.status, "aktif"),
         ),
       )
       .limit(1);
 
-    if (!komponen) {
-      throw new NotFoundException("Komponen penilaian tidak ditemukan");
+    return active || null;
+  }
+
+  /**
+   * Create a new Pelaksanaan Ujian.
+   * - Auto-fetches active tahun_ajaran from LMS
+   * - Auto-generates the nama from periode
+   * - Checks that no other PU is currently active for this tenant
+   * - Inserts with is_active=true
+   */
+  async create(tenantId: string, dto: CreatePelaksanaanUjianDto) {
+    // 1. Fetch active tahun_ajaran from LMS
+    const activeTahunAjaran = await this.getActiveTahunAjaran(tenantId);
+
+    if (!activeTahunAjaran) {
+      throw new NotFoundException(
+        "Tidak ada tahun ajaran aktif. Silakan aktifkan tahun ajaran di LMS terlebih dahulu.",
+      );
     }
 
-    // 2. Auto-generate nama
+    // 2. Auto-generate nama from periode and tahun ajaran
     const periodeLabel = PERIODE_DISPLAY[dto.periodeRapor] || dto.periodeRapor;
-    const nama = `${periodeLabel} - ${komponen.nama}`;
+    const nama = `${periodeLabel} - ${activeTahunAjaran.nama}`;
 
     // 3. Check if another PU is active for this tenant
     const [activePu] = await this.db
@@ -71,15 +87,15 @@ export class PelaksanaanUjianService {
       );
     }
 
-    // 4. Insert
+    // 4. Insert (komponenPenilaianId is nullable, set to null)
     try {
       const [created] = await this.db
         .insert(cbtPelaksanaanUjian)
         .values({
           tenantId,
-          tahunAjaranId: dto.tahunAjaranId,
+          tahunAjaranId: activeTahunAjaran.id,
           periodeRapor: dto.periodeRapor,
-          komponenPenilaianId: dto.komponenPenilaianId,
+          komponenPenilaianId: null, // No longer required
           nama,
           isActive: true,
         })
@@ -90,7 +106,7 @@ export class PelaksanaanUjianService {
       // Handle unique constraint violation gracefully
       if (error.code === "23505") {
         throw new ConflictException(
-          "Pelaksanaan ujian dengan kombinasi tahun ajaran, periode, dan komponen penilaian yang sama sudah ada.",
+          "Pelaksanaan ujian dengan kombinasi tahun ajaran dan periode yang sama sudah ada.",
         );
       }
       throw error;
@@ -170,14 +186,32 @@ export class PelaksanaanUjianService {
   }
 
   /**
-   * List all Pelaksanaan Ujian for a tenant (active + historical).
+   * List all Pelaksanaan Ujian for a tenant with optional filters.
    */
-  async list(tenantId: string) {
+  async list(
+    tenantId: string,
+    filters?: {
+      periodeRapor?: string;
+      isActive?: boolean;
+    },
+  ) {
+    const conditions = [eq(cbtPelaksanaanUjian.tenantId, tenantId)];
+
+    if (filters?.periodeRapor) {
+      conditions.push(
+        eq(cbtPelaksanaanUjian.periodeRapor, filters.periodeRapor),
+      );
+    }
+
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(cbtPelaksanaanUjian.isActive, filters.isActive));
+    }
+
     return this.db
       .select()
       .from(cbtPelaksanaanUjian)
-      .where(eq(cbtPelaksanaanUjian.tenantId, tenantId))
-      .orderBy(sql`${cbtPelaksanaanUjian.createdAt} DESC`);
+      .where(and(...conditions))
+      .orderBy(desc(cbtPelaksanaanUjian.createdAt));
   }
 
   /**
@@ -196,20 +230,5 @@ export class PelaksanaanUjianService {
       .limit(1);
 
     return active || null;
-  }
-
-  /**
-   * Get komponen_penilaian options from LMS for admin dropdown.
-   */
-  async getKomponenPenilaian(tenantId: string) {
-    return this.db
-      .select({
-        id: komponenPenilaian.id,
-        nama: komponenPenilaian.nama,
-        tipe: komponenPenilaian.tipe,
-      })
-      .from(komponenPenilaian)
-      .where(eq(komponenPenilaian.tenantId, tenantId))
-      .orderBy(komponenPenilaian.urutan);
   }
 }

@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -26,6 +27,7 @@ export class PelaksanaanUjianController {
   /**
    * POST /api/pelaksanaan-ujian
    * Create a new Pelaksanaan Ujian.
+   * Tahun ajaran is automatically set to the active one from LMS.
    */
   @Post()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -50,11 +52,28 @@ export class PelaksanaanUjianController {
 
   /**
    * GET /api/pelaksanaan-ujian
-   * List all Pelaksanaan Ujian (active + historical).
+   * List all Pelaksanaan Ujian with optional filters.
    */
   @Get()
-  async list(@CurrentUser("tenantId") tenantId: string) {
-    return this.puService.list(tenantId);
+  async list(
+    @CurrentUser("tenantId") tenantId: string,
+    @Query("periodeRapor") periodeRapor?: string,
+    @Query("isActive") isActiveStr?: string,
+  ) {
+    const filters: { periodeRapor?: string; isActive?: boolean } = {};
+
+    if (periodeRapor) {
+      filters.periodeRapor = periodeRapor;
+    }
+
+    if (isActiveStr !== undefined && isActiveStr !== "") {
+      filters.isActive = isActiveStr === "true";
+    }
+
+    return this.puService.list(
+      tenantId,
+      Object.keys(filters).length > 0 ? filters : undefined,
+    );
   }
 
   /**
@@ -67,11 +86,11 @@ export class PelaksanaanUjianController {
   }
 
   /**
-   * GET /api/pelaksanaan-ujian/komponen-penilaian
-   * Get komponen_penilaian options from LMS for dropdown.
+   * GET /api/pelaksanaan-ujian/tahun-ajaran-aktif
+   * Get the current active tahun ajaran from LMS.
    */
-  @Get("komponen-penilaian")
-  async getKomponenPenilaian(@CurrentUser("tenantId") tenantId: string) {
-    return this.puService.getKomponenPenilaian(tenantId);
+  @Get("tahun-ajaran-aktif")
+  async getTahunAjaranAktif(@CurrentUser("tenantId") tenantId: string) {
+    return this.puService.getActiveTahunAjaran(tenantId);
   }
 }
