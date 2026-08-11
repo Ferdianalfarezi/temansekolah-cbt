@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import ScheduleExamModal from "./components/ScheduleExamModal.vue";
 import BankSoalFormModal from "./components/BankSoalFormModal.vue";
+import ActionButton from "@/components/ui/ActionButton.vue";
 import type { BankSoalFormData } from "./components/BankSoalFormModal.vue";
 import type {
   BankSoalForSchedule,
@@ -584,87 +585,35 @@ onMounted(() => {
                 {{ formatDate(bankSoal.createdAt) }}
               </td>
               <td class="px-4 py-3 text-right" @click.stop>
-                <div class="flex items-center justify-end gap-1">
-                  <!-- Edit -->
-                  <button
-                    title="Edit"
-                    class="rounded-md p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                <div class="flex items-center justify-end gap-2">
+                  <ActionButton
+                    variant="warning"
+                    icon="edit"
                     @click="handleEdit(bankSoal)"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </button>
-                  <!-- Duplicate -->
-                  <button
-                    title="Duplikasi"
-                    class="rounded-md p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    Edit
+                  </ActionButton>
+                  <ActionButton
+                    variant="neutral"
+                    icon="copy"
                     @click="handleDuplicate(bankSoal)"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </button>
-                  <!-- Schedule Exam -->
-                  <button
-                    title="Jadwalkan Ujian"
-                    class="rounded-md p-1.5 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                    Duplikasi
+                  </ActionButton>
+                  <ActionButton
+                    variant="success"
+                    icon="calendar"
                     @click="handleScheduleExam(bankSoal)"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </button>
-                  <!-- Delete -->
-                  <button
-                    title="Hapus"
-                    class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    Jadwalkan
+                  </ActionButton>
+                  <ActionButton
+                    variant="danger"
+                    icon="delete"
                     @click="confirmDelete(bankSoal)"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
+                    Hapus
+                  </ActionButton>
                 </div>
               </td>
             </tr>
