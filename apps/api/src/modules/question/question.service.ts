@@ -705,11 +705,13 @@ export class QuestionService {
 
   private validateScope(
     scope: GuruScope,
-    mataPelajaranId: string,
+    mataPelajaranId: string | null,
     tingkat?: number | null,
     kelasId?: string | null,
   ) {
-    if (!scope.mataPelajaranIds.includes(mataPelajaranId)) {
+    // If mataPelajaranId is null, the question belongs to a Bank Soal
+    // and scope validation is handled through Bank Soal module
+    if (mataPelajaranId && !scope.mataPelajaranIds.includes(mataPelajaranId)) {
       throw new ForbiddenException(
         "Anda tidak memiliki akses ke mata pelajaran ini",
       );
