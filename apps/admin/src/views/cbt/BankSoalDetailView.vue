@@ -6,6 +6,12 @@ import SoalFormModal, {
   type Soal as SoalFormSoal,
   type SoalFormData,
 } from "./components/SoalFormModal.vue";
+import {
+  getBankSoalDetail,
+  getErrorMessage,
+  type BankSoalDetail as ApiBankSoalDetail,
+  type Soal as ApiSoal,
+} from "@/api/bank-soal";
 
 // Types
 export type BankSoalStatus = "draft" | "ready" | "archived";
@@ -112,18 +118,48 @@ async function fetchBankSoalDetail() {
   loading.value = true;
   error.value = "";
   try {
-    // TODO: Replace with actual API call when bank-soal API client is ready
-    // const res = await getBankSoalDetail(bankSoalId.value);
-    // bankSoal.value = res.data.bankSoal;
-    // soalList.value = res.data.soalList;
+    const res = await getBankSoalDetail(bankSoalId.value);
+    const data = res.data;
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    bankSoal.value = null;
-    soalList.value = [];
+    // Map API response to local interface
+    bankSoal.value = {
+      id: data.id,
+      nama: data.nama,
+      mataPelajaranId: data.mataPelajaranId,
+      mataPelajaranNama: data.mataPelajaranNama,
+      targetKelas: data.targetKelas || [],
+      tingkat: data.tingkat,
+      durasiMenit: data.durasiMenit,
+      kkm: data.kkm,
+      shuffleQuestions: data.shuffleQuestions,
+      shuffleOptions: data.shuffleOptions,
+      status: data.status,
+      isLocked: data.isLocked,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt || data.createdAt,
+      createdBy: data.createdBy,
+    };
+
+    // Map soal list from API response (soal is in data.soal, not data.soalList)
+    soalList.value = (data.soal || []).map((s: ApiSoal) => ({
+      id: s.id,
+      nomorUrut: s.nomorUrut,
+      teksSoal: s.teksSoal,
+      jawabanBenar: s.jawabanBenar as "A" | "B" | "C" | "D" | "E",
+      opsiA: s.opsiA,
+      opsiB: s.opsiB,
+      opsiC: s.opsiC,
+      opsiD: s.opsiD,
+      opsiE: s.opsiE,
+      gambarSoalUrl: s.gambarSoalUrl,
+      gambarAUrl: s.gambarAUrl,
+      gambarBUrl: s.gambarBUrl,
+      gambarCUrl: s.gambarCUrl,
+      gambarDUrl: s.gambarDUrl,
+      gambarEUrl: s.gambarEUrl,
+    }));
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { message?: string } } };
-    error.value =
-      err.response?.data?.message || "Gagal memuat detail bank soal";
+    error.value = getErrorMessage(e);
   } finally {
     loading.value = false;
   }

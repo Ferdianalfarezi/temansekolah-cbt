@@ -83,7 +83,7 @@ export interface Soal {
 }
 
 export interface BankSoalDetail extends BankSoal {
-  soalList: Soal[];
+  soal: Soal[];
 }
 
 export interface PaginationMeta {
