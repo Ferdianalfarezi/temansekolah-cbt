@@ -94,8 +94,11 @@ const showScheduleModal = ref(false);
 const schedulingBankSoal = ref<BankSoalForSchedule | null>(null);
 const userOptions = ref<UserOption[]>([]);
 
-// Tingkat options (1-12)
-const tingkatOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+// Tingkat options derived from kelas data (unique tingkat values from school's classes)
+const tingkatOptions = computed(() => {
+  const uniqueTingkat = [...new Set(kelasOptions.value.map((k) => k.tingkat))];
+  return uniqueTingkat.sort((a, b) => a - b);
+});
 
 // Computed: filtered page info
 const paginationInfo = computed(() => {

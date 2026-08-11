@@ -75,11 +75,16 @@ const showMataPelajaranDropdown = ref(false);
 const showTingkatDropdown = ref(false);
 const showKelasDropdown = ref(false);
 
-// Tingkat options (1-12)
-const tingkatOptions = Array.from({ length: 12 }, (_, i) => ({
-  value: i + 1,
-  label: `Tingkat ${i + 1}`,
-}));
+// Tingkat options derived from kelasOptions (unique tingkat values from school's classes)
+const tingkatOptions = computed(() => {
+  const uniqueTingkat = [...new Set(props.kelasOptions.map((k) => k.tingkat))];
+  return uniqueTingkat
+    .sort((a, b) => a - b)
+    .map((t) => ({
+      value: t,
+      label: `Tingkat ${t}`,
+    }));
+});
 
 // Computed: selected mata pelajaran label
 const selectedMataPelajaranLabel = computed(() => {
