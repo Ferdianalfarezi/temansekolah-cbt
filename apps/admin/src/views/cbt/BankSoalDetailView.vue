@@ -6,13 +6,21 @@ import SoalFormModal, {
   type Soal as SoalFormSoal,
   type SoalFormData,
 } from "./components/SoalFormModal.vue";
+import BankSoalFormModal, {
+  type BankSoalFormData,
+  type MataPelajaranOption,
+  type KelasOption,
+  type BankSoal as BankSoalForForm,
+} from "./components/BankSoalFormModal.vue";
 import ActionButton from "@/components/ui/ActionButton.vue";
 import {
   getBankSoalDetail,
+  updateBankSoal,
   getErrorMessage,
   type BankSoalDetail as ApiBankSoalDetail,
   type Soal as ApiSoal,
 } from "@/api/bank-soal";
+import cbtApi from "@/api/cbt";
 
 // Types
 export type BankSoalStatus = "draft" | "ready" | "archived";
@@ -23,6 +31,7 @@ export interface BankSoalDetail {
   mataPelajaranId: string;
   mataPelajaranNama: string;
   targetKelas: string[];
+  targetKelasIds: string[];
   tingkat: number | null;
   durasiMenit: number;
   kkm: number;
@@ -66,7 +75,13 @@ const actionLoading = ref(false);
 // Modal states
 const showSoalFormModal = ref(false);
 const showImportModal = ref(false);
+const showEditBankSoalModal = ref(false);
 const editingSoal = ref<Soal | null>(null);
+
+// Options for edit bank soal modal
+const mataPelajaranOptions = ref<MataPelajaranOption[]>([]);
+const kelasOptions = ref<KelasOption[]>([]);
+const hasActivePelaksanaan = ref(true);
 
 // Confirmation dialog states
 const showDeleteSoalConfirm = ref(false);
@@ -129,6 +144,7 @@ async function fetchBankSoalDetail() {
       mataPelajaranId: data.mataPelajaranId,
       mataPelajaranNama: data.mataPelajaranNama,
       targetKelas: data.targetKelas || [],
+      targetKelasIds: data.targetKelasIds || [],
       tingkat: data.tingkat,
       durasiMenit: data.durasiMenit,
       kkm: data.kkm,
@@ -169,6 +185,79 @@ async function fetchBankSoalDetail() {
 // Navigation
 function handleBack() {
   router.push("/cbt/bank-soal");
+}
+
+// API: Fetch options for edit bank soal modal
+async function fetchOptions() {
+  try {
+    const res = await cbtApi.get("/bank-soal/scope");
+    mataPelajaranOptions.value = (res.data.mataPelajaran || []).map(
+      (m: { id: string; nama: string }) => ({
+        value: m.id,
+        label: m.nama,
+      }),
+    );
+    kelasOptions.value = (res.data.kelas || []).map(
+      (k: { id: string; nama: string; tingkat: number }) => ({
+        value: k.id,
+        label: k.nama,
+        tingkat: k.tingkat,
+      }),
+    );
+  } catch (e: unknown) {
+    console.error("Gagal memuat opsi:", e);
+  }
+}
+
+// Bank Soal Edit handlers
+function handleEditBankSoal() {
+  if (bankSoal.value?.isLocked) return;
+  showEditBankSoalModal.value = true;
+}
+
+function closeEditBankSoalModal() {
+  showEditBankSoalModal.value = false;
+}
+
+// Computed: convert bankSoal to the format expected by BankSoalFormModal
+const bankSoalForForm = computed((): BankSoalForForm | null => {
+  if (!bankSoal.value) return null;
+  return {
+    id: bankSoal.value.id,
+    nama: bankSoal.value.nama,
+    mataPelajaranId: bankSoal.value.mataPelajaranId,
+    tingkat: bankSoal.value.tingkat,
+    targetKelasIds: bankSoal.value.targetKelasIds || [],
+    durasiMenit: bankSoal.value.durasiMenit,
+    kkm: bankSoal.value.kkm,
+    shuffleQuestions: bankSoal.value.shuffleQuestions,
+    shuffleOptions: bankSoal.value.shuffleOptions,
+  };
+});
+
+async function handleEditBankSoalSubmit(data: BankSoalFormData) {
+  if (!bankSoal.value) return;
+
+  actionLoading.value = true;
+  try {
+    await updateBankSoal(bankSoal.value.id, {
+      nama: data.nama,
+      tingkat: data.tingkat || undefined,
+      targetKelasIds:
+        data.targetKelasIds.length > 0 ? data.targetKelasIds : undefined,
+      durasiMenit: data.durasiMenit,
+      kkm: data.kkm,
+      shuffleQuestions: data.shuffleQuestions,
+      shuffleOptions: data.shuffleOptions,
+    });
+
+    closeEditBankSoalModal();
+    await fetchBankSoalDetail();
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e);
+  } finally {
+    actionLoading.value = false;
+  }
 }
 
 // Soal actions
@@ -307,6 +396,7 @@ watch(
 // Lifecycle
 onMounted(() => {
   fetchBankSoalDetail();
+  fetchOptions();
 });
 </script>
 
@@ -385,6 +475,26 @@ onMounted(() => {
 
         <!-- Action buttons -->
         <div class="flex items-center gap-2">
+          <button
+            class="inline-flex items-center gap-2 border border-amber-300 text-amber-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="bankSoal.isLocked"
+            @click="handleEditBankSoal"
+          >
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+            Edit Bank Soal
+          </button>
           <button
             class="inline-flex items-center gap-2 border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
             @click="handleImportSoal"
@@ -851,6 +961,18 @@ onMounted(() => {
       :bank-soal-id="bankSoalId"
       @close="closeImportModal"
       @imported="handleImportSuccess"
+    />
+
+    <!-- Edit Bank Soal Modal -->
+    <BankSoalFormModal
+      :show="showEditBankSoalModal"
+      :is-edit="true"
+      :bank-soal="bankSoalForForm"
+      :mata-pelajaran-options="mataPelajaranOptions"
+      :kelas-options="kelasOptions"
+      :has-active-pelaksanaan="hasActivePelaksanaan"
+      @close="closeEditBankSoalModal"
+      @submit="handleEditBankSoalSubmit"
     />
   </div>
 </template>
