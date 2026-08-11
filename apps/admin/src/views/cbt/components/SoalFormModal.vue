@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import ImageUpload from "./ImageUpload.vue";
 
 export interface Soal {
   id: string;
@@ -777,127 +778,52 @@ onUnmounted(() => {
                 <Transition
                   enter-active-class="transition-all duration-200 ease-out"
                   enter-from-class="max-h-0 opacity-0"
-                  enter-to-class="max-h-[500px] opacity-100"
+                  enter-to-class="max-h-[800px] opacity-100"
                   leave-active-class="transition-all duration-150 ease-in"
-                  leave-from-class="max-h-[500px] opacity-100"
+                  leave-from-class="max-h-[800px] opacity-100"
                   leave-to-class="max-h-0 opacity-0"
                 >
                   <div
                     v-if="showGambarOptions"
-                    class="px-4 pb-4 space-y-3 overflow-hidden"
+                    class="px-4 pb-4 space-y-4 overflow-hidden"
                     style="border-top: 1px solid var(--color-border)"
                   >
                     <p
                       class="text-[13px] pt-3"
                       style="color: var(--color-text-tertiary)"
                     >
-                      Masukkan URL gambar untuk soal atau opsi jawaban
+                      Upload gambar untuk soal atau opsi jawaban (max 5MB per
+                      gambar)
                     </p>
 
                     <!-- Gambar Soal -->
-                    <div>
-                      <label
-                        class="block text-[13px] font-medium mb-1"
-                        style="color: var(--color-text-secondary)"
-                        >Gambar Soal</label
-                      >
-                      <input
-                        v-model="form.gambarSoalUrl"
-                        type="url"
-                        placeholder="https://..."
-                        class="block w-full px-3 py-2 text-[13px] rounded-[8px] outline-none transition-colors"
-                        style="
-                          border: 2px solid var(--color-border);
-                          color: var(--color-text-primary);
-                        "
-                      />
-                    </div>
+                    <ImageUpload
+                      v-model="form.gambarSoalUrl"
+                      label="Gambar Soal"
+                    />
 
                     <!-- Gambar Opsi -->
-                    <div class="grid grid-cols-2 gap-3">
-                      <div>
-                        <label
-                          class="block text-[13px] font-medium mb-1"
-                          style="color: var(--color-text-secondary)"
-                          >Gambar Opsi A</label
-                        >
-                        <input
-                          v-model="form.gambarAUrl"
-                          type="url"
-                          placeholder="https://..."
-                          class="block w-full px-3 py-2 text-[13px] rounded-[8px] outline-none transition-colors"
-                          style="
-                            border: 2px solid var(--color-border);
-                            color: var(--color-text-primary);
-                          "
-                        />
-                      </div>
-                      <div>
-                        <label
-                          class="block text-[13px] font-medium mb-1"
-                          style="color: var(--color-text-secondary)"
-                          >Gambar Opsi B</label
-                        >
-                        <input
-                          v-model="form.gambarBUrl"
-                          type="url"
-                          placeholder="https://..."
-                          class="block w-full px-3 py-2 text-[13px] rounded-[8px] outline-none transition-colors"
-                          style="
-                            border: 2px solid var(--color-border);
-                            color: var(--color-text-primary);
-                          "
-                        />
-                      </div>
-                      <div>
-                        <label
-                          class="block text-[13px] font-medium mb-1"
-                          style="color: var(--color-text-secondary)"
-                          >Gambar Opsi C</label
-                        >
-                        <input
-                          v-model="form.gambarCUrl"
-                          type="url"
-                          placeholder="https://..."
-                          class="block w-full px-3 py-2 text-[13px] rounded-[8px] outline-none transition-colors"
-                          style="
-                            border: 2px solid var(--color-border);
-                            color: var(--color-text-primary);
-                          "
-                        />
-                      </div>
-                      <div>
-                        <label
-                          class="block text-[13px] font-medium mb-1"
-                          style="color: var(--color-text-secondary)"
-                          >Gambar Opsi D</label
-                        >
-                        <input
-                          v-model="form.gambarDUrl"
-                          type="url"
-                          placeholder="https://..."
-                          class="block w-full px-3 py-2 text-[13px] rounded-[8px] outline-none transition-colors"
-                          style="
-                            border: 2px solid var(--color-border);
-                            color: var(--color-text-primary);
-                          "
-                        />
-                      </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <ImageUpload
+                        v-model="form.gambarAUrl"
+                        label="Gambar Opsi A"
+                      />
+                      <ImageUpload
+                        v-model="form.gambarBUrl"
+                        label="Gambar Opsi B"
+                      />
+                      <ImageUpload
+                        v-model="form.gambarCUrl"
+                        label="Gambar Opsi C"
+                      />
+                      <ImageUpload
+                        v-model="form.gambarDUrl"
+                        label="Gambar Opsi D"
+                      />
                       <div class="col-span-2">
-                        <label
-                          class="block text-[13px] font-medium mb-1"
-                          style="color: var(--color-text-secondary)"
-                          >Gambar Opsi E</label
-                        >
-                        <input
+                        <ImageUpload
                           v-model="form.gambarEUrl"
-                          type="url"
-                          placeholder="https://..."
-                          class="block w-full px-3 py-2 text-[13px] rounded-[8px] outline-none transition-colors"
-                          style="
-                            border: 2px solid var(--color-border);
-                            color: var(--color-text-primary);
-                          "
+                          label="Gambar Opsi E"
                         />
                       </div>
                     </div>

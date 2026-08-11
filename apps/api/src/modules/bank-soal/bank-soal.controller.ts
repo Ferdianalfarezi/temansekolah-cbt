@@ -23,6 +23,7 @@ import { CbtRole } from "@/common/enums";
 import { JwtAuthGuard, TenantGuard, RolesGuard } from "../../common/guards";
 import { CurrentUser, Roles } from "../../common/decorators";
 import { BankSoalService } from "./bank-soal.service";
+import { StorageService } from "../storage/storage.service";
 import {
   CreateBankSoalDto,
   UpdateBankSoalDto,
@@ -46,7 +47,10 @@ import {
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
 @Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
 export class BankSoalController {
-  constructor(private readonly bankSoalService: BankSoalService) {}
+  constructor(
+    private readonly bankSoalService: BankSoalService,
+    private readonly storageService: StorageService,
+  ) {}
 
   // ==================== Scope/Options ====================
 
@@ -73,6 +77,44 @@ export class BankSoalController {
   @Get("proctor-options")
   async getProctorOptions(@CurrentUser("tenantId") tenantId: string) {
     return this.bankSoalService.getProctorOptions(tenantId);
+  }
+
+  /**
+   * POST /api/bank-soal/upload-image
+   * Upload and compress an image for soal (question or option).
+   * - Max 5MB input
+   * - Accepts JPEG, PNG, WebP
+   * - Compresses to WebP and resizes to max 1024px
+   * - Returns the public URL
+   */
+  @Post("upload-image")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+      fileFilter: (_req, file, cb) => {
+        const allowedMimes = ["image/jpeg", "image/png", "image/webp"];
+        if (allowedMimes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(
+            new BadRequestException(
+              "Format file tidak valid. Gunakan JPEG, PNG, atau WebP.",
+            ),
+            false,
+          );
+        }
+      },
+    }),
+  )
+  async uploadImage(
+    @CurrentUser("tenantId") tenantId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<{ url: string }> {
+    if (!file) {
+      throw new BadRequestException("File tidak ditemukan");
+    }
+    const url = await this.storageService.uploadSoalImage(tenantId, file);
+    return { url };
   }
 
   // ==================== Bank Soal CRUD ====================

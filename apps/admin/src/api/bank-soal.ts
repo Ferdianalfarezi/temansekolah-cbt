@@ -408,6 +408,24 @@ export async function downloadTemplate(): Promise<void> {
   URL.revokeObjectURL(link.href);
 }
 
+// ─── Image Upload ────────────────────────────────────────────────────────────
+
+/**
+ * Upload an image for soal (question or option)
+ * Image is compressed and converted to WebP on the server
+ * @param file Image file (max 5MB, JPEG/PNG/WebP)
+ * @returns Promise<AxiosResponse<{ url: string }>>
+ */
+export function uploadSoalImage(
+  file: File,
+): Promise<AxiosResponse<{ url: string }>> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post<{ url: string }>("/bank-soal/upload-image", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
+
 // ─── Error Messages ──────────────────────────────────────────────────────────
 
 /**

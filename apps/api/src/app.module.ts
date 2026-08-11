@@ -22,6 +22,7 @@ import { NotificationModule } from "./modules/notification/notification.module";
 import { SuperadminModule } from "./modules/superadmin/superadmin.module";
 import { DataRetentionModule } from "./modules/data-retention/data-retention.module";
 import { BankSoalModule } from "./modules/bank-soal/bank-soal.module";
+import { StorageModule } from "./modules/storage/storage.module";
 
 @Module({
   imports: [
@@ -128,6 +129,9 @@ import { BankSoalModule } from "./modules/bank-soal/bank-soal.module";
 
     // Bank Soal (question bank management for exams)
     BankSoalModule,
+
+    // Storage (S3 file upload for images)
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [],
