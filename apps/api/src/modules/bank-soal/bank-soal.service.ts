@@ -57,7 +57,8 @@ export interface BankSoalListItem {
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   soalCount: number;
-  targetKelas: { id: string; nama: string }[];
+  targetKelas: string[];
+  targetKelasIds: string[];
   createdAt: Date;
   createdBy: string;
 }
@@ -67,9 +68,12 @@ export interface BankSoalListItem {
  */
 export interface BankSoalListResponse {
   data: BankSoalListItem[];
-  total: number;
-  page: number;
-  limit: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 /**
@@ -566,11 +570,16 @@ export class BankSoalService {
 
     if (!activePu) {
       // Return empty result if no active pelaksanaan ujian
+      const page = query.page ?? 1;
+      const limit = query.limit ?? 20;
       return {
         data: [],
-        total: 0,
-        page: query.page ?? 1,
-        limit: query.limit ?? 20,
+        meta: {
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        },
       };
     }
 
@@ -716,16 +725,21 @@ export class BankSoalService {
       shuffleQuestions: bs.shuffleQuestions,
       shuffleOptions: bs.shuffleOptions,
       soalCount: soalCounts[bs.id] ?? 0,
-      targetKelas: targetKelasMap[bs.id] ?? [],
+      // Return both formats for frontend compatibility
+      targetKelas: (targetKelasMap[bs.id] ?? []).map((k) => k.nama),
+      targetKelasIds: (targetKelasMap[bs.id] ?? []).map((k) => k.id),
       createdAt: bs.createdAt,
       createdBy: bs.createdBy,
     }));
 
     return {
       data,
-      total,
-      page,
-      limit,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -826,10 +840,9 @@ export class BankSoalService {
       .leftJoin(kelas, eq(cbtBankSoalKelas.kelasId, kelas.id))
       .where(eq(cbtBankSoalKelas.bankSoalId, id));
 
-    const targetKelas = targetKelasResults.map((tk) => ({
-      id: tk.kelasId,
-      nama: tk.kelasNama ?? "",
-    }));
+    // Extract both kelas names (for display) and IDs (for form binding)
+    const targetKelas = targetKelasResults.map((tk) => tk.kelasNama ?? "");
+    const targetKelasIds = targetKelasResults.map((tk) => tk.kelasId);
 
     // 5. Check lock status
     const isLocked = await this.checkBankSoalLocked(id);
@@ -848,6 +861,7 @@ export class BankSoalService {
       shuffleOptions: bankSoalResult.shuffleOptions,
       soalCount: soalList.length,
       targetKelas,
+      targetKelasIds,
       createdAt: bankSoalResult.createdAt,
       createdBy: bankSoalResult.createdBy,
       isLocked,
