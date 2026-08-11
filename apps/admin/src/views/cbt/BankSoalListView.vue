@@ -2,11 +2,22 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import ScheduleExamModal from "./components/ScheduleExamModal.vue";
+import BankSoalFormModal from "./components/BankSoalFormModal.vue";
+import type { BankSoalFormData } from "./components/BankSoalFormModal.vue";
 import type {
   BankSoalForSchedule,
   KelasOption,
   UserOption,
 } from "./components/ScheduleExamModal.vue";
+import {
+  getBankSoalList,
+  createBankSoal,
+  deleteBankSoal,
+  duplicateBankSoal,
+  getErrorMessage,
+  type BankSoal as ApiBankSoal,
+} from "@/api/bank-soal";
+import cbtApi from "@/api/cbt";
 
 // Types for Bank Soal
 export type BankSoalStatus = "draft" | "ready" | "archived";
@@ -18,6 +29,7 @@ export interface BankSoal {
   mataPelajaranNama: string;
   soalCount: number;
   targetKelas: string[];
+  targetKelasIds: string[];
   tingkat: number | null;
   durasiMenit: number;
   kkm: number;
@@ -33,6 +45,12 @@ interface MataPelajaran {
   nama: string;
 }
 
+interface Kelas {
+  id: string;
+  nama: string;
+  tingkat: number;
+}
+
 interface PaginationMeta {
   page: number;
   limit: number;
@@ -45,6 +63,8 @@ const router = useRouter();
 // State
 const bankSoalList = ref<BankSoal[]>([]);
 const mataPelajaranOptions = ref<MataPelajaran[]>([]);
+const kelasOptions = ref<Kelas[]>([]);
+const hasActivePelaksanaan = ref(true);
 const loading = ref(false);
 const error = ref("");
 
@@ -66,6 +86,9 @@ const showDeleteConfirm = ref(false);
 const deletingBankSoal = ref<BankSoal | null>(null);
 const actionLoading = ref(false);
 
+// Create/Edit Modal
+const showFormModal = ref(false);
+
 // Schedule Exam Modal
 const showScheduleModal = ref(false);
 const schedulingBankSoal = ref<BankSoalForSchedule | null>(null);
@@ -84,53 +107,104 @@ const paginationInfo = computed(() => {
   return { start, end, total: pagination.value.total };
 });
 
-// API: Fetch bank soal list (placeholder - to be replaced with actual API)
+// API: Fetch bank soal list
 async function fetchBankSoalList() {
   loading.value = true;
   error.value = "";
   try {
-    // TODO: Replace with actual API call when bank-soal API client is ready
-    // const params = {
-    //   page: pagination.value.page,
-    //   limit: pagination.value.limit,
-    //   search: searchQuery.value || undefined,
-    //   mataPelajaranId: mataPelajaranFilter.value || undefined,
-    //   tingkat: tingkatFilter.value || undefined,
-    // };
-    // const res = await getBankSoalList(params);
-    // bankSoalList.value = res.data.data;
-    // pagination.value = res.data.meta;
+    const params = {
+      page: pagination.value.page,
+      limit: pagination.value.limit,
+      search: searchQuery.value || undefined,
+      mataPelajaranId: mataPelajaranFilter.value || undefined,
+      tingkat: tingkatFilter.value || undefined,
+    };
+    const res = await getBankSoalList(params);
 
-    // Mock data for now
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    bankSoalList.value = [];
-    pagination.value = { page: 1, limit: 10, total: 0, totalPages: 0 };
+    // Map API response to local type
+    bankSoalList.value = res.data.data.map((item: ApiBankSoal) => ({
+      ...item,
+      targetKelas: item.targetKelas || [],
+      targetKelasIds: item.targetKelasIds || [],
+    }));
+
+    pagination.value = {
+      page: res.data.meta.page,
+      limit: res.data.meta.limit,
+      total: res.data.meta.total,
+      totalPages:
+        res.data.meta.totalPages ||
+        Math.ceil(res.data.meta.total / res.data.meta.limit),
+    };
+
+    // If list is empty on first load, it might mean no active pelaksanaan
+    hasActivePelaksanaan.value = true;
   } catch (e: any) {
-    error.value = e.response?.data?.message || "Gagal memuat daftar bank soal";
+    const message = getErrorMessage(e);
+    error.value = message;
+
+    // Check if the error is about no active pelaksanaan
+    if (message.includes("pelaksanaan ujian aktif")) {
+      hasActivePelaksanaan.value = false;
+    }
   } finally {
     loading.value = false;
   }
 }
 
-// API: Fetch mata pelajaran options
+// API: Fetch mata pelajaran options (from Guru's scope)
 async function fetchMataPelajaranOptions() {
   try {
-    // TODO: Replace with actual API call
-    // const res = await getMataPelajaranForGuru();
-    // mataPelajaranOptions.value = res.data;
-    mataPelajaranOptions.value = [];
+    // Use the CBT API to get mata pelajaran for the logged-in guru
+    const res = await cbtApi.get("/question/scope");
+    mataPelajaranOptions.value = res.data.mataPelajaran || [];
+    kelasOptions.value = res.data.kelas || [];
   } catch (e: any) {
     console.error("Gagal memuat mata pelajaran:", e);
+    // Fallback: fetch from generic endpoint if scope endpoint doesn't exist
+    try {
+      const res = await cbtApi.get("/mata-pelajaran");
+      mataPelajaranOptions.value = res.data || [];
+    } catch {
+      mataPelajaranOptions.value = [];
+    }
   }
 }
 
 // Navigation
 function handleCreate() {
-  router.push("/cbt/bank-soal/create");
+  showFormModal.value = true;
+}
+
+function closeFormModal() {
+  showFormModal.value = false;
+}
+
+async function handleFormSubmit(data: BankSoalFormData) {
+  actionLoading.value = true;
+  try {
+    await createBankSoal({
+      nama: data.nama,
+      mataPelajaranId: data.mataPelajaranId,
+      tingkat: data.tingkat || undefined,
+      targetKelasIds:
+        data.targetKelasIds.length > 0 ? data.targetKelasIds : undefined,
+      durasiMenit: data.durasiMenit,
+      kkm: data.kkm,
+      shuffleQuestions: data.shuffleQuestions,
+      shuffleOptions: data.shuffleOptions,
+    });
+    showFormModal.value = false;
+    await fetchBankSoalList();
+  } catch (e: any) {
+    error.value = getErrorMessage(e);
+  } finally {
+    actionLoading.value = false;
+  }
 }
 
 function handleEdit(bankSoal: BankSoal) {
-  router.push(`/cbt/bank-soal/${bankSoal.id}/edit`);
+  router.push(`/cbt/bank-soal/${bankSoal.id}`);
 }
 
 function handleViewDetail(bankSoal: BankSoal) {
@@ -142,12 +216,10 @@ async function handleDuplicate(bankSoal: BankSoal) {
   if (!confirm(`Duplikasi bank soal "${bankSoal.nama}"?`)) return;
   actionLoading.value = true;
   try {
-    // TODO: Replace with actual API call
-    // await duplicateBankSoal(bankSoal.id);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await duplicateBankSoal(bankSoal.id);
     await fetchBankSoalList();
   } catch (e: any) {
-    error.value = e.response?.data?.message || "Gagal menduplikasi bank soal";
+    error.value = getErrorMessage(e);
   } finally {
     actionLoading.value = false;
   }
@@ -191,12 +263,14 @@ function handleScheduled(sessionId: string) {
 // API: Fetch user options for proktor dropdown
 async function fetchUserOptions() {
   try {
-    // TODO: Replace with actual API call
-    // const res = await getUsersForProktor();
-    // userOptions.value = res.data.map(u => ({ value: u.id, label: u.name }));
-    userOptions.value = [];
+    const res = await cbtApi.get("/proctor/users");
+    userOptions.value = res.data.map((u: { id: string; nama: string }) => ({
+      value: u.id,
+      label: u.nama,
+    }));
   } catch (e: unknown) {
     console.error("Gagal memuat daftar proktor:", e);
+    userOptions.value = [];
   }
 }
 
@@ -209,14 +283,12 @@ async function handleDelete() {
   if (!deletingBankSoal.value) return;
   actionLoading.value = true;
   try {
-    // TODO: Replace with actual API call
-    // await deleteBankSoal(deletingBankSoal.value.id);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await deleteBankSoal(deletingBankSoal.value.id);
     showDeleteConfirm.value = false;
     deletingBankSoal.value = null;
     await fetchBankSoalList();
   } catch (e: any) {
-    error.value = e.response?.data?.message || "Gagal menghapus bank soal";
+    error.value = getErrorMessage(e);
   } finally {
     actionLoading.value = false;
   }
@@ -771,6 +843,25 @@ onMounted(() => {
       :user-options="userOptions"
       @close="closeScheduleModal"
       @scheduled="handleScheduled"
+    />
+
+    <!-- Create Bank Soal Modal -->
+    <BankSoalFormModal
+      :show="showFormModal"
+      :is-edit="false"
+      :mata-pelajaran-options="
+        mataPelajaranOptions.map((m) => ({ value: m.id, label: m.nama }))
+      "
+      :kelas-options="
+        kelasOptions.map((k) => ({
+          value: k.id,
+          label: k.nama,
+          tingkat: k.tingkat,
+        }))
+      "
+      :has-active-pelaksanaan="hasActivePelaksanaan"
+      @close="closeFormModal"
+      @submit="handleFormSubmit"
     />
   </div>
 </template>
