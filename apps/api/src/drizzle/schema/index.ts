@@ -7,6 +7,8 @@ export * from "./lms-tables";
 // Tables
 export * from "./cbt-tenant-config";
 export * from "./cbt-pelaksanaan-ujian";
+export * from "./cbt-bank-soal";
+export * from "./cbt-bank-soal-kelas";
 export * from "./cbt-question";
 export * from "./cbt-exam-session";
 export * from "./cbt-exam-session-question";

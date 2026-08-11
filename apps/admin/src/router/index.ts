@@ -34,7 +34,12 @@ const router = createRouter({
         {
           path: "cbt/bank-soal",
           name: "cbt-bank-soal",
-          component: () => import("@/views/cbt/BankSoalView.vue"),
+          component: () => import("@/views/cbt/BankSoalListView.vue"),
+        },
+        {
+          path: "cbt/bank-soal/:id",
+          name: "cbt-bank-soal-detail",
+          component: () => import("@/views/cbt/BankSoalDetailView.vue"),
         },
         {
           path: "cbt/siswa-accounts",

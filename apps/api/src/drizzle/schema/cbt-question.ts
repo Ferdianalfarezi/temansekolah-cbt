@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { cbtPelaksanaanUjian } from "./cbt-pelaksanaan-ujian";
+import { cbtBankSoal } from "./cbt-bank-soal";
 
 export const cbtQuestion = pgTable(
   "cbt_question",
@@ -22,7 +23,10 @@ export const cbtQuestion = pgTable(
     pelaksanaanUjianId: uuid("pelaksanaan_ujian_id")
       .notNull()
       .references(() => cbtPelaksanaanUjian.id),
-    mataPelajaranId: uuid("mata_pelajaran_id").notNull(), // FK: mata_pelajaran(id)
+    bankSoalId: uuid("bank_soal_id").references(() => cbtBankSoal.id, {
+      onDelete: "cascade",
+    }),
+    mataPelajaranId: uuid("mata_pelajaran_id"), // Made nullable for deprecation
     tingkat: integer("tingkat"), // NULL if kelas-specific
     kelasId: uuid("kelas_id"), // FK: kelas(id) — NULL if tingkat-level
     createdBy: uuid("created_by").notNull(), // FK: user(id)
@@ -48,10 +52,10 @@ export const cbtQuestion = pgTable(
       .default(sql`NOW()`),
   },
   (table) => ({
-    // Must have scope: either tingkat or kelas_id
-    checkScope: check(
-      "chk_question_scope",
-      sql`${table.tingkat} IS NOT NULL OR ${table.kelasId} IS NOT NULL`,
+    // Index for bank_soal lookup
+    idxQuestionBankSoal: index("idx_cbt_question_bank_soal").on(
+      table.bankSoalId,
+      table.nomorUrut,
     ),
     // Can't answer E without option E
     checkOptionE: check(

@@ -21,6 +21,7 @@ import { ProctorModule } from "./modules/proctor/proctor.module";
 import { NotificationModule } from "./modules/notification/notification.module";
 import { SuperadminModule } from "./modules/superadmin/superadmin.module";
 import { DataRetentionModule } from "./modules/data-retention/data-retention.module";
+import { BankSoalModule } from "./modules/bank-soal/bank-soal.module";
 
 @Module({
   imports: [
@@ -124,6 +125,9 @@ import { DataRetentionModule } from "./modules/data-retention/data-retention.mod
 
     // Data Retention (snapshot purge, audit log partitioning, data export)
     DataRetentionModule,
+
+    // Bank Soal (question bank management for exams)
+    BankSoalModule,
   ],
   controllers: [AppController],
   providers: [],

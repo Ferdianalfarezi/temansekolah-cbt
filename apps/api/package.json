@@ -17,6 +17,7 @@
     "test:watch": "jest --selectProjects unit --watch",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate-bank-soal": "ts-node -r tsconfig-paths/register src/drizzle/migrations/migrate-to-bank-soal.ts",
     "db:seed": "ts-node -r tsconfig-paths/register src/drizzle/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
