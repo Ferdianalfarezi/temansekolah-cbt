@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
+import ActionButton from "@/components/ui/ActionButton.vue";
 import {
   getExamSessions,
   packageSession,
@@ -275,116 +276,46 @@ onMounted(fetchSessions);
                 >
               </td>
               <td class="px-4 py-3 text-right">
-                <div class="flex items-center justify-end gap-1">
-                  <button
+                <div class="flex items-center justify-end gap-2">
+                  <ActionButton
                     v-if="s.status === 'draft'"
-                    title="Package sesi"
-                    class="rounded-md p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    variant="primary"
+                    icon="play"
                     @click="handlePackage(s.id)"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                      />
-                    </svg>
-                  </button>
-                  <button
+                    Package
+                  </ActionButton>
+                  <ActionButton
                     v-if="s.status === 'packaged'"
-                    title="Batalkan sesi"
-                    class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    variant="danger"
+                    icon="x"
                     @click="handleCancel(s.id)"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                  <button
+                    Batalkan
+                  </ActionButton>
+                  <ActionButton
                     v-if="s.status === 'completed' && !s.resultsReleased"
-                    title="Rilis hasil"
-                    class="rounded-md p-1.5 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                    variant="success"
+                    icon="check"
                     @click="handleRelease(s.id)"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </button>
+                    Rilis Hasil
+                  </ActionButton>
                   <!-- Export dropdown for completed sessions -->
                   <div
                     v-if="s.status === 'completed'"
                     class="relative"
                     data-export-menu
                   >
-                    <button
-                      title="Export hasil"
-                      class="rounded-md p-1.5 text-gray-400 hover:bg-green-50 hover:text-green-600 transition-colors"
+                    <ActionButton
+                      variant="success"
+                      icon="download"
                       :disabled="exportingId === s.id"
                       @click="toggleExportMenu(s.id)"
                     >
-                      <!-- Loading spinner when exporting -->
-                      <svg
-                        v-if="exportingId === s.id"
-                        class="h-4 w-4 animate-spin"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          class="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          stroke-width="4"
-                        ></circle>
-                        <path
-                          class="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      <!-- Download icon -->
-                      <svg
-                        v-else
-                        class="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                        />
-                      </svg>
-                    </button>
+                      <span v-if="exportingId === s.id">Exporting...</span>
+                      <span v-else>Export</span>
+                    </ActionButton>
                     <!-- Export dropdown menu -->
                     <div
                       v-if="exportMenuOpenId === s.id"
@@ -406,26 +337,14 @@ onMounted(fetchSessions);
                       </div>
                     </div>
                   </div>
-                  <RouterLink
+                  <ActionButton
                     v-if="s.status === 'completed'"
-                    :to="`/cbt/report/${s.id}`"
-                    title="Lihat laporan"
-                    class="rounded-md p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                    variant="primary"
+                    icon="view"
+                    @click="$router.push(`/cbt/report/${s.id}`)"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                  </RouterLink>
+                    Laporan
+                  </ActionButton>
                 </div>
               </td>
             </tr>

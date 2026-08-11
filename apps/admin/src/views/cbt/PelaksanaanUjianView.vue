@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
+import ActionButton from "@/components/ui/ActionButton.vue";
 import {
   getPelaksanaanUjianList,
   createPelaksanaanUjian,
@@ -372,40 +373,15 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Export dropdown button -->
-                    <button
-                      v-else
-                      class="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
-                      title="Export semua hasil"
-                      @click="toggleExportMenu(item.id)"
-                    >
-                      <svg
-                        class="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        viewBox="0 0 24 24"
+                    <template v-else>
+                      <ActionButton
+                        variant="success"
+                        icon="download"
+                        @click="toggleExportMenu(item.id)"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      Export Semua Hasil
-                      <svg
-                        class="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
+                        Export Semua
+                      </ActionButton>
+                    </template>
 
                     <!-- Export dropdown menu -->
                     <div
@@ -456,13 +432,14 @@ onUnmounted(() => {
                   </div>
 
                   <!-- Deactivate button -->
-                  <button
+                  <ActionButton
                     v-if="item.isActive"
-                    class="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
+                    variant="danger"
+                    icon="x"
                     @click="handleDeactivate(item.id)"
                   >
                     Nonaktifkan
-                  </button>
+                  </ActionButton>
                 </div>
               </td>
             </tr>

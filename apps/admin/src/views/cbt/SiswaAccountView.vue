@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import ActionButton from "@/components/ui/ActionButton.vue";
 import {
   getSiswaAccounts,
   syncSiswaAccounts,
@@ -243,12 +244,12 @@ onMounted(fetchAccounts);
                 }}
               </td>
               <td class="px-4 py-3 text-right">
-                <button
-                  class="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                <ActionButton
+                  variant="purple"
                   @click="handleResetPassword(acc.id, acc.nisn)"
                 >
                   Reset Password
-                </button>
+                </ActionButton>
               </td>
             </tr>
             <tr v-if="accounts.length === 0">
