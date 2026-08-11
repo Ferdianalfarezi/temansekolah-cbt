@@ -1210,18 +1210,20 @@ export class BankSoalService {
   }
 
   /**
-   * Create Exam Session from Bank Soal
+   * Schedule Exam Sessions from Bank Soal
+   *
+   * Creates exam sessions for ALL target kelas in the bank soal automatically.
+   * Each target kelas gets its own exam session with the same settings.
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param id - The bank soal ID
-   * @param dto - ScheduleExamDto with scheduledAt, kelasId, and optional proctorId
-   * @returns The created exam session
+   * @param dto - ScheduleExamDto with scheduledAt and optional proctorId
+   * @returns Object with created sessions array and count
    * @throws NotFoundException if bank soal not found
-   * @throws ForbiddenException if guru doesn't have access
-   * @throws BadRequestException if bank soal has no soal or kelasId is not in target kelas
-   *
-   * _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+   * @throws ForbiddenException if user doesn't have access
+   * @throws BadRequestException if bank soal has no soal or no target kelas
    */
   async scheduleExam(
     tenantId: string,
@@ -1229,7 +1231,11 @@ export class BankSoalService {
     cbtRole: CbtRole,
     id: string,
     dto: ScheduleExamDto,
-  ): Promise<typeof cbtExamSession.$inferSelect> {
+  ): Promise<{
+    sessions: Array<typeof cbtExamSession.$inferSelect>;
+    count: number;
+    message: string;
+  }> {
     // 1. Get the bank soal
     const [bankSoal] = await this.db
       .select()
@@ -1268,7 +1274,7 @@ export class BankSoalService {
       throw new BadRequestException("Bank soal belum memiliki soal");
     }
 
-    // 4. Validate kelasId is in bank soal's target kelas
+    // 4. Get all target kelas from bank soal
     const targetKelas = await this.db
       .select({ kelasId: cbtBankSoalKelas.kelasId })
       .from(cbtBankSoalKelas)
@@ -1276,16 +1282,16 @@ export class BankSoalService {
 
     const targetKelasIds = targetKelas.map((tk) => tk.kelasId);
 
-    if (!targetKelasIds.includes(dto.kelasId)) {
+    if (targetKelasIds.length === 0) {
       throw new BadRequestException(
-        "Kelas yang dipilih bukan target dari bank soal ini",
+        "Bank soal tidak memiliki target kelas. Tambahkan target kelas terlebih dahulu.",
       );
     }
 
     // 5. Determine proctor (default to current user if not provided)
     const proctorId = dto.proctorId ?? userId;
 
-    // 6. Get all soal for copying to exam session
+    // 6. Get all soal for copying to exam sessions
     const soalList = await this.db
       .select({
         id: cbtQuestion.id,
@@ -1295,40 +1301,50 @@ export class BankSoalService {
       .where(eq(cbtQuestion.bankSoalId, id))
       .orderBy(asc(cbtQuestion.nomorUrut));
 
-    // 7. Create exam session with bank soal settings in a transaction
-    const [examSession] = await this.db.transaction(async (tx) => {
-      // Insert cbt_exam_session with settings from bank soal
-      const [session] = await tx
-        .insert(cbtExamSession)
-        .values({
-          tenantId,
-          pelaksanaanUjianId: bankSoal.pelaksanaanUjianId,
-          mataPelajaranId: bankSoal.mataPelajaranId,
-          kelasId: dto.kelasId,
-          proctorId,
-          status: "draft",
-          scheduledAt: new Date(dto.scheduledAt),
-          durationMinutes: bankSoal.durasiMenit,
-          randomizeQuestions: bankSoal.shuffleQuestions,
-          randomizeOptions: bankSoal.shuffleOptions,
-        })
-        .returning();
+    // 7. Create exam sessions for ALL target kelas in a transaction
+    const createdSessions = await this.db.transaction(async (tx) => {
+      const sessions: Array<typeof cbtExamSession.$inferSelect> = [];
 
-      // Copy all soal to cbt_exam_session_question with nomorUrut
-      if (soalList.length > 0) {
-        await tx.insert(cbtExamSessionQuestion).values(
-          soalList.map((soal) => ({
-            examSessionId: session.id,
-            questionId: soal.id,
-            nomorUrut: soal.nomorUrut,
-          })),
-        );
+      for (const kelasId of targetKelasIds) {
+        // Insert cbt_exam_session with settings from bank soal
+        const [session] = await tx
+          .insert(cbtExamSession)
+          .values({
+            tenantId,
+            pelaksanaanUjianId: bankSoal.pelaksanaanUjianId,
+            mataPelajaranId: bankSoal.mataPelajaranId,
+            kelasId,
+            proctorId,
+            status: "draft",
+            scheduledAt: new Date(dto.scheduledAt),
+            durationMinutes: bankSoal.durasiMenit,
+            randomizeQuestions: bankSoal.shuffleQuestions,
+            randomizeOptions: bankSoal.shuffleOptions,
+          })
+          .returning();
+
+        // Copy all soal to cbt_exam_session_question with nomorUrut
+        if (soalList.length > 0) {
+          await tx.insert(cbtExamSessionQuestion).values(
+            soalList.map((soal) => ({
+              examSessionId: session.id,
+              questionId: soal.id,
+              nomorUrut: soal.nomorUrut,
+            })),
+          );
+        }
+
+        sessions.push(session);
       }
 
-      return [session];
+      return sessions;
     });
 
-    return examSession;
+    return {
+      sessions: createdSessions,
+      count: createdSessions.length,
+      message: `${createdSessions.length} sesi ujian berhasil dibuat untuk ${targetKelasIds.length} kelas`,
+    };
   }
 
   // ==================== Soal Management ====================

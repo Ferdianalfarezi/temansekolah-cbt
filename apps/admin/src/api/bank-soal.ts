@@ -131,7 +131,6 @@ export interface ListBankSoalQueryDto {
 
 export interface ScheduleExamDto {
   scheduledAt: string; // ISO date string
-  kelasId: string;
   proctorId?: string;
 }
 
@@ -203,7 +202,8 @@ export interface DuplicateResponse {
 }
 
 export interface ScheduleExamResponse {
-  sessionId: string;
+  sessions: Array<{ id: string }>;
+  count: number;
   message: string;
 }
 

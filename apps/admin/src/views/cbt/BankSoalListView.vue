@@ -225,12 +225,11 @@ async function handleDuplicate(bankSoal: BankSoal) {
 }
 
 function handleScheduleExam(bankSoal: BankSoal) {
-  // Convert target kelas strings to KelasOption format
-  // In real implementation, this would come from API with proper IDs
-  const targetKelasOptions: KelasOption[] = bankSoal.targetKelas.map(
-    (kelas, idx) => ({
-      value: `kelas-${idx}`, // TODO: Use actual kelas IDs from API
-      label: kelas,
+  // Use the actual kelas IDs from the API response
+  const targetKelasOptions: KelasOption[] = bankSoal.targetKelasIds.map(
+    (id, idx) => ({
+      value: id,
+      label: bankSoal.targetKelas[idx] || `Kelas ${idx + 1}`,
     }),
   );
 
@@ -252,11 +251,12 @@ function closeScheduleModal() {
   schedulingBankSoal.value = null;
 }
 
-function handleScheduled(sessionId: string) {
+function handleScheduled(result: { count: number; message: string }) {
   showScheduleModal.value = false;
   schedulingBankSoal.value = null;
-  // Navigate to exam session detail
-  router.push(`/cbt/exam-session/${sessionId}`);
+  // Show success message and navigate to exam sessions list
+  alert(result.message);
+  router.push("/cbt/exam-session");
 }
 
 // API: Fetch user options for proktor dropdown
