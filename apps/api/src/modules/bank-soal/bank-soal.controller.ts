@@ -38,15 +38,32 @@ import {
  * All endpoints are guarded by:
  * - JwtAuthGuard: Requires valid JWT token
  * - TenantGuard: Extracts tenant context
- * - RolesGuard: Restricts to Guru role
+ * - RolesGuard: Restricts to Admin and Guru roles
  *
  * Implementation will be filled in Task 8.1
  */
 @Controller("bank-soal")
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
-@Roles(CbtRole.GURU)
+@Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
 export class BankSoalController {
   constructor(private readonly bankSoalService: BankSoalService) {}
+
+  // ==================== Scope/Options ====================
+
+  /**
+   * GET /api/bank-soal/scope
+   * Returns the user's scope (mata pelajaran and kelas they can access).
+   * - Admin: Returns all mata pelajaran and kelas in tenant
+   * - Guru: Returns only mata pelajaran and kelas from their jadwal_pelajaran
+   */
+  @Get("scope")
+  async getScope(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
+  ) {
+    return this.bankSoalService.getScope(tenantId, userId, cbtRole);
+  }
 
   // ==================== Bank Soal CRUD ====================
 
@@ -59,9 +76,10 @@ export class BankSoalController {
   async create(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Body() dto: CreateBankSoalDto,
   ) {
-    return this.bankSoalService.create(tenantId, userId, dto);
+    return this.bankSoalService.create(tenantId, userId, cbtRole, dto);
   }
 
   /**
@@ -73,9 +91,10 @@ export class BankSoalController {
   async findAll(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Query() query: ListBankSoalQueryDto,
   ) {
-    return this.bankSoalService.findAll(tenantId, userId, query);
+    return this.bankSoalService.findAll(tenantId, userId, cbtRole, query);
   }
 
   /**
@@ -106,9 +125,10 @@ export class BankSoalController {
   async findOne(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
-    return this.bankSoalService.findOne(tenantId, userId, id);
+    return this.bankSoalService.findOne(tenantId, userId, cbtRole, id);
   }
 
   /**
@@ -120,10 +140,11 @@ export class BankSoalController {
   async update(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateBankSoalDto,
   ) {
-    return this.bankSoalService.update(tenantId, userId, id, dto);
+    return this.bankSoalService.update(tenantId, userId, cbtRole, id, dto);
   }
 
   /**
@@ -134,9 +155,10 @@ export class BankSoalController {
   async remove(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
-    return this.bankSoalService.remove(tenantId, userId, id);
+    return this.bankSoalService.remove(tenantId, userId, cbtRole, id);
   }
 
   // ==================== Advanced Operations ====================
@@ -149,9 +171,10 @@ export class BankSoalController {
   async duplicate(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
-    return this.bankSoalService.duplicate(tenantId, userId, id);
+    return this.bankSoalService.duplicate(tenantId, userId, cbtRole, id);
   }
 
   /**
@@ -165,10 +188,17 @@ export class BankSoalController {
   async scheduleExam(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: ScheduleExamDto,
   ) {
-    return this.bankSoalService.scheduleExam(tenantId, userId, id, dto);
+    return this.bankSoalService.scheduleExam(
+      tenantId,
+      userId,
+      cbtRole,
+      id,
+      dto,
+    );
   }
 
   // ==================== Soal Management ====================
@@ -182,10 +212,17 @@ export class BankSoalController {
   async addSoal(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) bankSoalId: string,
     @Body() dto: CreateSoalDto,
   ) {
-    return this.bankSoalService.addSoal(tenantId, userId, bankSoalId, dto);
+    return this.bankSoalService.addSoal(
+      tenantId,
+      userId,
+      cbtRole,
+      bankSoalId,
+      dto,
+    );
   }
 
   /**
@@ -197,6 +234,7 @@ export class BankSoalController {
   async updateSoal(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) bankSoalId: string,
     @Param("soalId", ParseUUIDPipe) soalId: string,
     @Body() dto: UpdateSoalDto,
@@ -204,6 +242,7 @@ export class BankSoalController {
     return this.bankSoalService.updateSoal(
       tenantId,
       userId,
+      cbtRole,
       bankSoalId,
       soalId,
       dto,
@@ -218,12 +257,14 @@ export class BankSoalController {
   async removeSoal(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) bankSoalId: string,
     @Param("soalId", ParseUUIDPipe) soalId: string,
   ) {
     return this.bankSoalService.removeSoal(
       tenantId,
       userId,
+      cbtRole,
       bankSoalId,
       soalId,
     );
@@ -258,6 +299,7 @@ export class BankSoalController {
   async importSoal(
     @CurrentUser("tenantId") tenantId: string,
     @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
     @Param("id", ParseUUIDPipe) bankSoalId: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
@@ -267,6 +309,7 @@ export class BankSoalController {
     return this.bankSoalService.importSoal(
       tenantId,
       userId,
+      cbtRole,
       bankSoalId,
       file.buffer,
     );

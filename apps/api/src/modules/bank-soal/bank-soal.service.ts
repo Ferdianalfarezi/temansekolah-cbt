@@ -9,6 +9,7 @@ import {
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { and, asc, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
+import { CbtRole } from "@/common/enums";
 import { DRIZZLE } from "../../drizzle/drizzle.module";
 import {
   jadwalPelajaran,
@@ -144,6 +145,107 @@ export interface ImportResult {
 @Injectable()
 export class BankSoalService {
   constructor(@Inject(DRIZZLE) private readonly db: NodePgDatabase) {}
+
+  /**
+   * Check if the user has admin role (admin_sekolah or superadmin).
+   * Admins bypass guru scope restrictions and have full access.
+   */
+  private isAdmin(cbtRole: CbtRole): boolean {
+    return cbtRole === CbtRole.ADMIN_SEKOLAH || cbtRole === CbtRole.SUPERADMIN;
+  }
+
+  /**
+   * Get mata pelajaran and kelas options for the current user's scope.
+   * - Admin: Returns all mata pelajaran and kelas in tenant
+   * - Guru: Returns only mata pelajaran and kelas from their jadwal_pelajaran
+   *
+   * @param tenantId - The tenant ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
+   * @returns Object with mataPelajaran and kelas arrays
+   */
+  async getScope(
+    tenantId: string,
+    userId: string,
+    cbtRole: CbtRole,
+  ): Promise<{
+    mataPelajaran: Array<{ id: string; nama: string }>;
+    kelas: Array<{ id: string; nama: string; tingkat: number }>;
+  }> {
+    if (this.isAdmin(cbtRole)) {
+      // Admin: return all mata pelajaran and kelas in tenant
+      const [allMataPelajaran, allKelas] = await Promise.all([
+        this.db
+          .select({
+            id: mataPelajaran.id,
+            nama: mataPelajaran.nama,
+          })
+          .from(mataPelajaran)
+          .where(eq(mataPelajaran.tenantId, tenantId))
+          .orderBy(mataPelajaran.nama),
+        this.db
+          .select({
+            id: kelas.id,
+            nama: kelas.nama,
+            tingkat: kelas.tingkat,
+          })
+          .from(kelas)
+          .where(eq(kelas.tenantId, tenantId))
+          .orderBy(kelas.tingkat, kelas.nama),
+      ]);
+
+      return {
+        mataPelajaran: allMataPelajaran,
+        kelas: allKelas,
+      };
+    }
+
+    // Guru: return only what they teach
+    const scope = await this.getGuruScope(userId, tenantId);
+
+    if (scope.mataPelajaranIds.length === 0 && scope.kelasIds.length === 0) {
+      return { mataPelajaran: [], kelas: [] };
+    }
+
+    const [scopedMataPelajaran, scopedKelas] = await Promise.all([
+      scope.mataPelajaranIds.length > 0
+        ? this.db
+            .select({
+              id: mataPelajaran.id,
+              nama: mataPelajaran.nama,
+            })
+            .from(mataPelajaran)
+            .where(
+              and(
+                eq(mataPelajaran.tenantId, tenantId),
+                inArray(mataPelajaran.id, scope.mataPelajaranIds),
+              ),
+            )
+            .orderBy(mataPelajaran.nama)
+        : Promise.resolve([]),
+      scope.kelasIds.length > 0
+        ? this.db
+            .select({
+              id: kelas.id,
+              nama: kelas.nama,
+              tingkat: kelas.tingkat,
+            })
+            .from(kelas)
+            .where(
+              and(
+                eq(kelas.tenantId, tenantId),
+                inArray(kelas.id, scope.kelasIds),
+              ),
+            )
+            .orderBy(kelas.tingkat, kelas.nama)
+        : Promise.resolve([]),
+    ]);
+
+    return {
+      mataPelajaran: scopedMataPelajaran,
+      kelas: scopedKelas,
+    };
+  }
 
   /**
    * Get the scope of mata pelajaran and kelas that a Guru can access.
@@ -309,7 +411,8 @@ export class BankSoalService {
    * Create a new Bank Soal
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param dto - The CreateBankSoalDto with bank soal details
    * @returns The created Bank Soal record
    * @throws NotFoundException if no active pelaksanaan ujian
@@ -320,6 +423,7 @@ export class BankSoalService {
   async create(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     dto: CreateBankSoalDto,
   ): Promise<typeof cbtBankSoal.$inferSelect> {
     // 1. Get active pelaksanaan_ujian for tenant
@@ -340,17 +444,19 @@ export class BankSoalService {
       );
     }
 
-    // 2. Validate guru scope for mataPelajaranId
-    await this.validateGuruScope(userId, tenantId, dto.mataPelajaranId);
+    // 2. Validate scope for mataPelajaranId (only for guru, admins bypass)
+    if (!this.isAdmin(cbtRole)) {
+      await this.validateGuruScope(userId, tenantId, dto.mataPelajaranId);
 
-    // 3. Validate guru scope for targetKelasIds (if provided)
-    if (dto.targetKelasIds && dto.targetKelasIds.length > 0) {
-      await this.validateGuruScope(
-        userId,
-        tenantId,
-        dto.mataPelajaranId,
-        dto.targetKelasIds,
-      );
+      // 3. Validate guru scope for targetKelasIds (if provided)
+      if (dto.targetKelasIds && dto.targetKelasIds.length > 0) {
+        await this.validateGuruScope(
+          userId,
+          tenantId,
+          dto.mataPelajaranId,
+          dto.targetKelasIds,
+        );
+      }
     }
 
     // 4. Handle tingkat vs targetKelasIds precedence
@@ -400,7 +506,8 @@ export class BankSoalService {
    * List Bank Soal with filters and pagination
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param query - Filter and pagination parameters
    * @returns Paginated list of bank soal with soal count and target kelas
    *
@@ -409,12 +516,10 @@ export class BankSoalService {
   async findAll(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     query: ListBankSoalQueryDto,
   ): Promise<BankSoalListResponse> {
-    // 1. Get guru scope to determine accessible mata pelajaran
-    const scope = await this.getGuruScope(userId, tenantId);
-
-    // 2. Get active pelaksanaan ujian for tenant
+    // 1. Get active pelaksanaan ujian for tenant
     const [activePu] = await this.db
       .select()
       .from(cbtPelaksanaanUjian)
@@ -436,27 +541,30 @@ export class BankSoalService {
       };
     }
 
-    // 3. Build base conditions
+    // 2. Build base conditions
     const baseConditions = [
       eq(cbtBankSoal.tenantId, tenantId),
       eq(cbtBankSoal.pelaksanaanUjianId, activePu.id),
     ];
 
-    // 4. Scope filter: mata pelajaran in guru's scope OR created by the guru
-    // This ensures guru can see bank soal for their taught subjects OR their own creations
-    if (scope.mataPelajaranIds.length > 0) {
-      baseConditions.push(
-        or(
-          inArray(cbtBankSoal.mataPelajaranId, scope.mataPelajaranIds),
-          eq(cbtBankSoal.createdBy, userId),
-        )!,
-      );
-    } else {
-      // If guru has no jadwal pelajaran, only show their own created bank soal
-      baseConditions.push(eq(cbtBankSoal.createdBy, userId));
+    // 3. Scope filter: admin sees all, guru sees their scope + own creations
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      if (scope.mataPelajaranIds.length > 0) {
+        baseConditions.push(
+          or(
+            inArray(cbtBankSoal.mataPelajaranId, scope.mataPelajaranIds),
+            eq(cbtBankSoal.createdBy, userId),
+          )!,
+        );
+      } else {
+        // If guru has no jadwal pelajaran, only show their own created bank soal
+        baseConditions.push(eq(cbtBankSoal.createdBy, userId));
+      }
     }
+    // Admin: no scope filter, sees all bank soal in tenant
 
-    // 5. Apply optional filters
+    // 4. Apply optional filters
     if (query.mataPelajaranId) {
       baseConditions.push(
         eq(cbtBankSoal.mataPelajaranId, query.mataPelajaranId),
@@ -471,7 +579,7 @@ export class BankSoalService {
       baseConditions.push(ilike(cbtBankSoal.nama, `%${query.search}%`));
     }
 
-    // 6. Count total for pagination
+    // 5. Count total for pagination
     const [countResult] = await this.db
       .select({ count: count() })
       .from(cbtBankSoal)
@@ -479,7 +587,7 @@ export class BankSoalService {
 
     const total = countResult?.count ?? 0;
 
-    // 7. Get paginated bank soal with mata pelajaran name
+    // 6. Get paginated bank soal with mata pelajaran name
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const offset = (page - 1) * limit;
@@ -509,7 +617,7 @@ export class BankSoalService {
       .limit(limit)
       .offset(offset);
 
-    // 8. Get soal count for each bank soal
+    // 7. Get soal count for each bank soal
     const bankSoalIds = bankSoalList.map((bs) => bs.id);
 
     let soalCounts: Record<string, number> = {};
@@ -592,7 +700,8 @@ export class BankSoalService {
    * Get Bank Soal detail with all soal
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param id - The bank soal ID
    * @returns Bank soal detail with soal list, target kelas, and lock status
    * @throws NotFoundException if bank soal not found
@@ -603,6 +712,7 @@ export class BankSoalService {
   async findOne(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     id: string,
   ): Promise<BankSoalDetail> {
     // 1. Get bank soal with mata pelajaran name
@@ -633,17 +743,19 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access (mataPelajaranId in scope OR createdBy === userId)
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      bankSoalResult.mataPelajaranId,
-    );
-    const isCreator = bankSoalResult.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        bankSoalResult.mataPelajaranId,
       );
+      const isCreator = bankSoalResult.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
     }
 
     // 3. Get all soal ordered by nomorUrut
@@ -714,7 +826,8 @@ export class BankSoalService {
    * Update Bank Soal settings
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param id - The bank soal ID
    * @param dto - The UpdateBankSoalDto with fields to update
    * @returns The updated Bank Soal record
@@ -727,6 +840,7 @@ export class BankSoalService {
   async update(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     id: string,
     dto: UpdateBankSoalDto,
   ): Promise<typeof cbtBankSoal.$inferSelect> {
@@ -741,17 +855,29 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access (mataPelajaranId in scope OR createdBy === userId)
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      existing.mataPelajaranId,
-    );
-    const isCreator = existing.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        existing.mataPelajaranId,
       );
+      const isCreator = existing.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
+
+      // Validate guru scope for new targetKelasIds (if changed)
+      if (dto.targetKelasIds && dto.targetKelasIds.length > 0) {
+        await this.validateGuruScope(
+          userId,
+          tenantId,
+          existing.mataPelajaranId,
+          dto.targetKelasIds,
+        );
+      }
     }
 
     // 3. Check if bank soal is locked - BEFORE field validation per requirements
@@ -762,21 +888,7 @@ export class BankSoalService {
       );
     }
 
-    // 4. mataPelajaranId is not included in UpdateBankSoalDto by design
-    // But if somehow passed, we should reject it (defensive)
-    // This is handled by DTO validation (no mataPelajaranId field)
-
-    // 5. Validate guru scope for new targetKelasIds (if changed)
-    if (dto.targetKelasIds && dto.targetKelasIds.length > 0) {
-      await this.validateGuruScope(
-        userId,
-        tenantId,
-        existing.mataPelajaranId,
-        dto.targetKelasIds,
-      );
-    }
-
-    // 6. Handle tingkat vs targetKelasIds precedence
+    // 4. Handle tingkat vs targetKelasIds precedence
     let tingkatValue = existing.tingkat;
     if (dto.targetKelasIds !== undefined) {
       // If targetKelasIds explicitly provided (even empty), use it
@@ -788,7 +900,7 @@ export class BankSoalService {
       tingkatValue = dto.tingkat;
     }
 
-    // 7. Build update values (only include fields that are provided)
+    // 5. Build update values (only include fields that are provided)
     const updateValues: Record<string, unknown> = {
       updatedAt: new Date(),
     };
@@ -803,7 +915,7 @@ export class BankSoalService {
     if (dto.shuffleOptions !== undefined)
       updateValues.shuffleOptions = dto.shuffleOptions;
 
-    // 8. Update with transaction (for atomicity with junction table)
+    // 6. Update with transaction (for atomicity with junction table)
     const [updated] = await this.db.transaction(async (tx) => {
       // Update cbt_bank_soal
       const [result] = await tx
@@ -840,7 +952,8 @@ export class BankSoalService {
    * Delete Bank Soal (with cascade delete of soal)
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param id - The bank soal ID to delete
    * @throws NotFoundException if bank soal not found
    * @throws ForbiddenException if guru doesn't have access
@@ -848,7 +961,12 @@ export class BankSoalService {
    *
    * _Requirements: 6.1, 6.2, 6.3, 6.4_
    */
-  async remove(tenantId: string, userId: string, id: string): Promise<void> {
+  async remove(
+    tenantId: string,
+    userId: string,
+    cbtRole: CbtRole,
+    id: string,
+  ): Promise<void> {
     // 1. Get the bank soal first
     const [existing] = await this.db
       .select()
@@ -860,17 +978,19 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access (mataPelajaranId in scope OR createdBy === userId)
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      existing.mataPelajaranId,
-    );
-    const isCreator = existing.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        existing.mataPelajaranId,
       );
+      const isCreator = existing.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
     }
 
     // 3. Check if bank soal is used in ANY exam session (any status including draft)
@@ -900,7 +1020,7 @@ export class BankSoalService {
         tenantId,
         actorId: userId,
         actorType: "staff",
-        actorRole: "guru",
+        actorRole: this.isAdmin(cbtRole) ? "admin" : "guru",
         action: "delete",
         resourceType: "bank_soal",
         resourceId: id,
@@ -926,7 +1046,8 @@ export class BankSoalService {
    * Duplicate Bank Soal with all soal
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param id - The bank soal ID to duplicate
    * @returns The newly created duplicated Bank Soal
    * @throws NotFoundException if bank soal not found
@@ -937,6 +1058,7 @@ export class BankSoalService {
   async duplicate(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     id: string,
   ): Promise<typeof cbtBankSoal.$inferSelect> {
     // 1. Get the source bank soal
@@ -950,17 +1072,19 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      source.mataPelajaranId,
-    );
-    const isCreator = source.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        source.mataPelajaranId,
       );
+      const isCreator = source.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
     }
 
     // 3. Get all soal from source bank soal
@@ -1055,6 +1179,7 @@ export class BankSoalService {
   async scheduleExam(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     id: string,
     dto: ScheduleExamDto,
   ): Promise<typeof cbtExamSession.$inferSelect> {
@@ -1069,17 +1194,19 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access (mataPelajaranId in scope OR createdBy === userId)
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      bankSoal.mataPelajaranId,
-    );
-    const isCreator = bankSoal.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        bankSoal.mataPelajaranId,
       );
+      const isCreator = bankSoal.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
     }
 
     // 3. Check bank soal has at least 1 soal
@@ -1164,7 +1291,8 @@ export class BankSoalService {
    * Add soal to Bank Soal
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param bankSoalId - The bank soal ID to add soal to
    * @param dto - The CreateSoalDto with soal details
    * @returns The created soal record
@@ -1177,6 +1305,7 @@ export class BankSoalService {
   async addSoal(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     bankSoalId: string,
     dto: CreateSoalDto,
   ): Promise<typeof cbtQuestion.$inferSelect> {
@@ -1193,17 +1322,19 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      bankSoal.mataPelajaranId,
-    );
-    const isCreator = bankSoal.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        bankSoal.mataPelajaranId,
       );
+      const isCreator = bankSoal.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
     }
 
     // 3. Check if bank soal is locked
@@ -1256,7 +1387,8 @@ export class BankSoalService {
    * Update soal in Bank Soal
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param bankSoalId - The bank soal ID
    * @param soalId - The soal ID to update
    * @param dto - The UpdateSoalDto with fields to update
@@ -1270,6 +1402,7 @@ export class BankSoalService {
   async updateSoal(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     bankSoalId: string,
     soalId: string,
     dto: UpdateSoalDto,
@@ -1287,17 +1420,19 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      bankSoal.mataPelajaranId,
-    );
-    const isCreator = bankSoal.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        bankSoal.mataPelajaranId,
       );
+      const isCreator = bankSoal.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
     }
 
     // 3. Check if bank soal is locked - BEFORE field validation per requirements
@@ -1369,6 +1504,7 @@ export class BankSoalService {
   async removeSoal(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     bankSoalId: string,
     soalId: string,
   ): Promise<void> {
@@ -1385,17 +1521,19 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      bankSoal.mataPelajaranId,
-    );
-    const isCreator = bankSoal.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        bankSoal.mataPelajaranId,
       );
+      const isCreator = bankSoal.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
     }
 
     // 3. Check if bank soal is locked - BEFORE any other validation per requirements
@@ -1429,7 +1567,8 @@ export class BankSoalService {
    * Import soal from Excel file
    *
    * @param tenantId - The tenant ID
-   * @param userId - The guru's user ID
+   * @param userId - The user's ID
+   * @param cbtRole - The user's CBT role
    * @param bankSoalId - The bank soal ID to import into
    * @param file - Excel file buffer
    * @returns Import result with count and any errors
@@ -1443,6 +1582,7 @@ export class BankSoalService {
   async importSoal(
     tenantId: string,
     userId: string,
+    cbtRole: CbtRole,
     bankSoalId: string,
     file: Buffer,
   ): Promise<ImportResult> {
@@ -1459,17 +1599,19 @@ export class BankSoalService {
       throw new NotFoundException("Bank soal tidak ditemukan");
     }
 
-    // 2. Validate guru has access
-    const scope = await this.getGuruScope(userId, tenantId);
-    const hasMapelAccess = scope.mataPelajaranIds.includes(
-      bankSoal.mataPelajaranId,
-    );
-    const isCreator = bankSoal.createdBy === userId;
-
-    if (!hasMapelAccess && !isCreator) {
-      throw new ForbiddenException(
-        "Anda tidak memiliki akses ke bank soal ini",
+    // 2. Validate access (admin has full access, guru needs scope check)
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        bankSoal.mataPelajaranId,
       );
+      const isCreator = bankSoal.createdBy === userId;
+
+      if (!hasMapelAccess && !isCreator) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
     }
 
     // 3. Check if bank soal is locked

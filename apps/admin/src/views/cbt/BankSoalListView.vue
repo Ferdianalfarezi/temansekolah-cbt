@@ -152,22 +152,17 @@ async function fetchBankSoalList() {
   }
 }
 
-// API: Fetch mata pelajaran options (from Guru's scope)
+// API: Fetch mata pelajaran options (from user's scope)
 async function fetchMataPelajaranOptions() {
   try {
-    // Use the CBT API to get mata pelajaran for the logged-in guru
-    const res = await cbtApi.get("/question/scope");
+    // Use the bank-soal scope endpoint
+    const res = await cbtApi.get("/bank-soal/scope");
     mataPelajaranOptions.value = res.data.mataPelajaran || [];
     kelasOptions.value = res.data.kelas || [];
   } catch (e: any) {
     console.error("Gagal memuat mata pelajaran:", e);
-    // Fallback: fetch from generic endpoint if scope endpoint doesn't exist
-    try {
-      const res = await cbtApi.get("/mata-pelajaran");
-      mataPelajaranOptions.value = res.data || [];
-    } catch {
-      mataPelajaranOptions.value = [];
-    }
+    mataPelajaranOptions.value = [];
+    kelasOptions.value = [];
   }
 }
 
