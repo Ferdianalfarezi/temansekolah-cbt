@@ -258,7 +258,7 @@ function handleScheduled(sessionId: string) {
 // API: Fetch user options for proktor dropdown
 async function fetchUserOptions() {
   try {
-    const res = await cbtApi.get("/proctor/users");
+    const res = await cbtApi.get("/bank-soal/proctor-options");
     userOptions.value = res.data.map((u: { id: string; nama: string }) => ({
       value: u.id,
       label: u.nama,

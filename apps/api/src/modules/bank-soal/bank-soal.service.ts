@@ -15,6 +15,7 @@ import {
   jadwalPelajaran,
   kelas,
   mataPelajaran,
+  user,
 } from "../../drizzle/schema/lms-tables";
 import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
 import { cbtExamSessionQuestion } from "../../drizzle/schema/cbt-exam-session-question";
@@ -245,6 +246,38 @@ export class BankSoalService {
       mataPelajaran: scopedMataPelajaran,
       kelas: scopedKelas,
     };
+  }
+
+  /**
+   * Get users who can be proctors (staff with admin or guru role).
+   * Returns users from the LMS user table who belong to this tenant.
+   *
+   * @param tenantId - The tenant ID
+   * @returns Array of users with id and nama
+   */
+  async getProctorOptions(
+    tenantId: string,
+  ): Promise<Array<{ id: string; nama: string }>> {
+    // Get active users in this tenant with admin or guru roles
+    const users = await this.db
+      .select({
+        id: user.id,
+        nama: user.nama,
+      })
+      .from(user)
+      .where(
+        and(
+          eq(user.tenantId, tenantId),
+          eq(user.isActive, true),
+          sql`${user.role} IN ('admin', 'guru', 'kepala_sekolah')`,
+        ),
+      )
+      .orderBy(user.nama);
+
+    return users.filter((u) => u.nama !== null) as Array<{
+      id: string;
+      nama: string;
+    }>;
   }
 
   /**

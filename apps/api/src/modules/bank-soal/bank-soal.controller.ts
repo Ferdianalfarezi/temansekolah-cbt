@@ -65,6 +65,16 @@ export class BankSoalController {
     return this.bankSoalService.getScope(tenantId, userId, cbtRole);
   }
 
+  /**
+   * GET /api/bank-soal/proctor-options
+   * Returns users who can be proctors (staff with admin_sekolah or guru role).
+   * Used in the schedule exam modal's proctor dropdown.
+   */
+  @Get("proctor-options")
+  async getProctorOptions(@CurrentUser("tenantId") tenantId: string) {
+    return this.bankSoalService.getProctorOptions(tenantId);
+  }
+
   // ==================== Bank Soal CRUD ====================
 
   /**
