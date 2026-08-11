@@ -15,6 +15,7 @@ import {
   jadwalPelajaran,
   kelas,
   mataPelajaran,
+  tahunAjaran,
   user,
 } from "../../drizzle/schema/lms-tables";
 import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
@@ -161,7 +162,7 @@ export class BankSoalService {
 
   /**
    * Get mata pelajaran and kelas options for the current user's scope.
-   * - Admin: Returns all mata pelajaran and kelas in tenant
+   * - Admin: Returns all mata pelajaran and kelas in tenant (active tahun ajaran only)
    * - Guru: Returns only mata pelajaran and kelas from their jadwal_pelajaran
    *
    * @param tenantId - The tenant ID
@@ -177,8 +178,20 @@ export class BankSoalService {
     mataPelajaran: Array<{ id: string; nama: string }>;
     kelas: Array<{ id: string; nama: string; tingkat: number }>;
   }> {
+    // Get active tahun ajaran for this tenant
+    const [activeTahunAjaran] = await this.db
+      .select({ id: tahunAjaran.id })
+      .from(tahunAjaran)
+      .where(
+        and(
+          eq(tahunAjaran.tenantId, tenantId),
+          eq(tahunAjaran.status, "aktif"),
+        ),
+      )
+      .limit(1);
+
     if (this.isAdmin(cbtRole)) {
-      // Admin: return all mata pelajaran and kelas in tenant
+      // Admin: return all mata pelajaran and kelas in tenant (filtered by active tahun ajaran)
       const [allMataPelajaran, allKelas] = await Promise.all([
         this.db
           .select({
@@ -188,15 +201,22 @@ export class BankSoalService {
           .from(mataPelajaran)
           .where(eq(mataPelajaran.tenantId, tenantId))
           .orderBy(mataPelajaran.nama),
-        this.db
-          .select({
-            id: kelas.id,
-            nama: kelas.nama,
-            tingkat: kelas.tingkat,
-          })
-          .from(kelas)
-          .where(eq(kelas.tenantId, tenantId))
-          .orderBy(kelas.tingkat, kelas.nama),
+        activeTahunAjaran
+          ? this.db
+              .select({
+                id: kelas.id,
+                nama: kelas.nama,
+                tingkat: kelas.tingkat,
+              })
+              .from(kelas)
+              .where(
+                and(
+                  eq(kelas.tenantId, tenantId),
+                  eq(kelas.tahunAjaranId, activeTahunAjaran.id),
+                ),
+              )
+              .orderBy(kelas.tingkat, kelas.nama)
+          : Promise.resolve([]),
       ]);
 
       return {
@@ -228,7 +248,7 @@ export class BankSoalService {
             )
             .orderBy(mataPelajaran.nama)
         : Promise.resolve([]),
-      scope.kelasIds.length > 0
+      scope.kelasIds.length > 0 && activeTahunAjaran
         ? this.db
             .select({
               id: kelas.id,
@@ -240,6 +260,7 @@ export class BankSoalService {
               and(
                 eq(kelas.tenantId, tenantId),
                 inArray(kelas.id, scope.kelasIds),
+                eq(kelas.tahunAjaranId, activeTahunAjaran.id),
               ),
             )
             .orderBy(kelas.tingkat, kelas.nama)
@@ -1276,7 +1297,7 @@ export class BankSoalService {
 
     // 4. Get all target kelas from bank soal
     // If bank soal has specific target kelas (cbt_bank_soal_kelas), use those
-    // If bank soal has tingkat instead, find all kelas with that tingkat
+    // If bank soal has tingkat instead, find all kelas with that tingkat in active tahun ajaran
     let targetKelasIds: string[] = [];
 
     const targetKelas = await this.db
@@ -1288,18 +1309,33 @@ export class BankSoalService {
       // Use specific target kelas
       targetKelasIds = targetKelas.map((tk) => tk.kelasId);
     } else if (bankSoal.tingkat !== null) {
-      // Find all kelas with the specified tingkat in this tenant
-      const kelasByTingkat = await this.db
-        .select({ id: kelas.id })
-        .from(kelas)
+      // Find active tahun ajaran first
+      const [activeTahunAjaran] = await this.db
+        .select({ id: tahunAjaran.id })
+        .from(tahunAjaran)
         .where(
           and(
-            eq(kelas.tenantId, tenantId),
-            eq(kelas.tingkat, bankSoal.tingkat),
+            eq(tahunAjaran.tenantId, tenantId),
+            eq(tahunAjaran.status, "aktif"),
           ),
-        );
+        )
+        .limit(1);
 
-      targetKelasIds = kelasByTingkat.map((k) => k.id);
+      if (activeTahunAjaran) {
+        // Find all kelas with the specified tingkat in active tahun ajaran
+        const kelasByTingkat = await this.db
+          .select({ id: kelas.id })
+          .from(kelas)
+          .where(
+            and(
+              eq(kelas.tenantId, tenantId),
+              eq(kelas.tingkat, bankSoal.tingkat),
+              eq(kelas.tahunAjaranId, activeTahunAjaran.id),
+            ),
+          );
+
+        targetKelasIds = kelasByTingkat.map((k) => k.id);
+      }
     }
 
     if (targetKelasIds.length === 0) {
