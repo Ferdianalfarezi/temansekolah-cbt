@@ -1,0 +1,3 @@
+ALTER TABLE "cbt_exam_session" ADD COLUMN "bank_soal_id" uuid;--> statement-breakpoint
+ALTER TABLE "cbt_exam_session" ADD CONSTRAINT "cbt_exam_session_bank_soal_id_cbt_bank_soal_id_fk" FOREIGN KEY ("bank_soal_id") REFERENCES "public"."cbt_bank_soal"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "idx_cbt_session_bank_soal" ON "cbt_exam_session" USING btree ("bank_soal_id");

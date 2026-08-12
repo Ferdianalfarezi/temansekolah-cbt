@@ -1295,16 +1295,13 @@ export class BankSoalService {
       throw new BadRequestException("Bank soal belum memiliki soal");
     }
 
-    // 3b. Check for existing active sessions for this bank soal
-    // A bank soal can only have one set of active sessions (draft/packaged/active)
+    // 3b. Check for existing active sessions for THIS specific bank soal
     const existingSessions = await this.db
       .select({ id: cbtExamSession.id, status: cbtExamSession.status })
       .from(cbtExamSession)
       .where(
         and(
-          eq(cbtExamSession.tenantId, tenantId),
-          eq(cbtExamSession.pelaksanaanUjianId, bankSoal.pelaksanaanUjianId),
-          eq(cbtExamSession.mataPelajaranId, bankSoal.mataPelajaranId),
+          eq(cbtExamSession.bankSoalId, id),
           inArray(cbtExamSession.status, ["draft", "packaged", "active"]),
         ),
       )
@@ -1389,6 +1386,7 @@ export class BankSoalService {
           .values({
             tenantId,
             pelaksanaanUjianId: bankSoal.pelaksanaanUjianId,
+            bankSoalId: id, // Link to the specific bank soal
             mataPelajaranId: bankSoal.mataPelajaranId,
             kelasId,
             proctorId,

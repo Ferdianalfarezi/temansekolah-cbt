@@ -15,6 +15,7 @@ import {
   cbtResultDetailLevelEnum,
 } from "./enums";
 import { cbtPelaksanaanUjian } from "./cbt-pelaksanaan-ujian";
+import { cbtBankSoal } from "./cbt-bank-soal";
 
 export const cbtExamSession = pgTable(
   "cbt_exam_session",
@@ -26,6 +27,7 @@ export const cbtExamSession = pgTable(
     pelaksanaanUjianId: uuid("pelaksanaan_ujian_id")
       .notNull()
       .references(() => cbtPelaksanaanUjian.id),
+    bankSoalId: uuid("bank_soal_id").references(() => cbtBankSoal.id), // FK: cbt_bank_soal(id) - nullable for backwards compat
     mataPelajaranId: uuid("mata_pelajaran_id").notNull(), // FK: mata_pelajaran(id)
     kelasId: uuid("kelas_id").notNull(), // FK: kelas(id)
     proctorId: uuid("proctor_id").notNull(), // FK: user(id)
@@ -62,5 +64,6 @@ export const cbtExamSession = pgTable(
       table.proctorId,
       table.scheduledAt,
     ),
+    idxSessionBankSoal: index("idx_cbt_session_bank_soal").on(table.bankSoalId),
   }),
 );
