@@ -238,12 +238,7 @@ export default function ExamPage() {
     };
   }, [on, off, sessionId, navigate]);
 
-  // ── Connectivity indicator ────────────────────────────────────────────────
-  useEffect(() => {
-    setSaveStatus(isConnected ? "saved" : "offline");
-  }, [isConnected]);
-
-  // ── Select answer ─────────────────────────────────────────────────────────
+  // ── Select answer (save via HTTP API for reliability) ─────────────────────
   const selectAnswer = useCallback(
     async (questionId: string, answer: string) => {
       setAnswers((prev) => {
@@ -253,13 +248,25 @@ export default function ExamPage() {
       });
 
       setSaveStatus("saving");
+
+      // Save locally first (for offline support)
       await saveAnswerLocally(sessionId!, questionId, answer);
 
-      if (isConnected) {
-        socketSaveAnswer(questionId, answer);
+      // Save via HTTP API (more reliable than WebSocket)
+      try {
+        await api.post(`/siswa/exam-sessions/${sessionId}/answer`, {
+          questionId,
+          option: answer,
+        });
         await markAnswerSynced(sessionId!, questionId);
         setSaveStatus("saved");
-      } else {
+
+        // Also send via WebSocket for real-time sync (optional, non-blocking)
+        if (isConnected) {
+          socketSaveAnswer(questionId, answer);
+        }
+      } catch {
+        // Failed to save via API - mark as offline
         setSaveStatus("offline");
       }
     },
