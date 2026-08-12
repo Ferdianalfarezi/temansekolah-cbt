@@ -98,11 +98,21 @@ export interface ExamSession {
   createdAt: string;
 }
 
+export interface ExamSessionListResponse {
+  data: ExamSession[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export function getExamSessions(params?: {
   status?: ExamSessionStatus;
   pelaksanaanUjianId?: string;
 }) {
-  return api.get<ExamSession[]>("/exam-sessions", { params });
+  return api.get<ExamSessionListResponse>("/exam-sessions", { params });
 }
 
 export function createExamSession(data: Partial<ExamSession>) {
@@ -228,12 +238,22 @@ export interface SiswaAccount {
   kelasNama?: string;
 }
 
+export interface SiswaAccountListResponse {
+  data: SiswaAccount[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export function getSiswaAccounts(params?: {
   search?: string;
   isActive?: boolean;
   needsReview?: boolean;
 }) {
-  return api.get<SiswaAccount[]>("/siswa-accounts", { params });
+  return api.get<SiswaAccountListResponse>("/siswa-accounts", { params });
 }
 
 export function syncSiswaAccounts() {
@@ -277,8 +297,18 @@ export interface CbtNotification {
   createdAt: string;
 }
 
+export interface NotificationListResponse {
+  data: CbtNotification[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export function getNotifications() {
-  return api.get<CbtNotification[]>("/notifications");
+  return api.get<NotificationListResponse>("/notifications");
 }
 
 export function acknowledgeNotification(id: string) {

@@ -53,8 +53,7 @@ async function fetchSessions() {
       ? { status: statusFilter.value }
       : undefined;
     const res = await getExamSessions(params);
-    // Handle both array response and { data: [], meta: {} } response
-    sessions.value = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
+    sessions.value = res.data.data;
   } catch (e: any) {
     error.value = e.response?.data?.message || "Gagal memuat sesi ujian";
   } finally {
