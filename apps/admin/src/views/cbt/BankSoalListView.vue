@@ -256,7 +256,7 @@ function handleScheduled(result: { count: number; message: string }) {
   schedulingBankSoal.value = null;
   // Show success message and navigate to exam sessions list
   alert(result.message);
-  router.push("/cbt/exam-session");
+  router.push("/cbt/sessions");
 }
 
 // API: Fetch user options for proktor dropdown
