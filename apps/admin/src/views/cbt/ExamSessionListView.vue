@@ -38,11 +38,11 @@ onUnmounted(() => {
 
 const statusOptions: { value: ExamSessionStatus | ""; label: string }[] = [
   { value: "", label: "Semua Status" },
-  { value: "draft", label: "Draft" },
-  { value: "packaged", label: "Packaged" },
-  { value: "active", label: "Active" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "draft", label: "Draf" },
+  { value: "packaged", label: "Siap Dijadwalkan" },
+  { value: "active", label: "Sedang Berlangsung" },
+  { value: "completed", label: "Selesai" },
+  { value: "cancelled", label: "Dibatalkan" },
 ];
 
 async function fetchSessions() {
@@ -66,7 +66,7 @@ async function handlePackage(id: string) {
     await packageSession(id);
     await fetchSessions();
   } catch (e: any) {
-    error.value = e.response?.data?.message || "Gagal package sesi";
+    error.value = e.response?.data?.message || "Gagal mempersiapkan sesi ujian";
   }
 }
 
@@ -94,7 +94,7 @@ async function handleRelease(id: string) {
 function statusBadgeClass(status: ExamSessionStatus) {
   const map: Record<ExamSessionStatus, string> = {
     draft: "bg-gray-100 text-gray-700",
-    packaged: "bg-yellow-100 text-yellow-800",
+    packaged: "bg-amber-100 text-amber-800",
     active: "bg-blue-100 text-blue-800",
     completed: "bg-green-100 text-green-800",
     cancelled: "bg-red-100 text-red-700",
@@ -232,14 +232,14 @@ onMounted(fetchSessions);
                   v-if="s.status === 'draft'"
                   class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600"
                 >
-                  Draft
+                  Draf
                 </span>
                 <!-- packaged -->
                 <span
                   v-else-if="s.status === 'packaged'"
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700"
+                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700"
                 >
-                  Packaged
+                  Siap Dijadwalkan
                 </span>
                 <!-- active -->
                 <span
@@ -249,21 +249,21 @@ onMounted(fetchSessions);
                   <span
                     class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"
                   ></span>
-                  Active
+                  Sedang Berlangsung
                 </span>
                 <!-- completed -->
                 <span
                   v-else-if="s.status === 'completed'"
                   class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-500"
                 >
-                  Completed
+                  Selesai
                 </span>
                 <!-- cancelled -->
                 <span
                   v-else-if="s.status === 'cancelled'"
                   class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-600"
                 >
-                  Cancelled
+                  Dibatalkan
                 </span>
                 <span
                   v-else
@@ -282,7 +282,7 @@ onMounted(fetchSessions);
                     icon="play"
                     @click="handlePackage(s.id)"
                   >
-                    Package
+                    Persiapkan Ujian
                   </ActionButton>
                   <ActionButton
                     v-if="s.status === 'packaged'"
@@ -312,8 +312,8 @@ onMounted(fetchSessions);
                       :disabled="exportingId === s.id"
                       @click="toggleExportMenu(s.id)"
                     >
-                      <span v-if="exportingId === s.id">Exporting...</span>
-                      <span v-else>Export</span>
+                      <span v-if="exportingId === s.id">Mengekspor...</span>
+                      <span v-else>Ekspor</span>
                     </ActionButton>
                     <!-- Export dropdown menu -->
                     <div
@@ -325,13 +325,13 @@ onMounted(fetchSessions);
                           class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           @click="handleExport(s.id, false)"
                         >
-                          Export Ringkasan
+                          Ekspor Ringkasan
                         </button>
                         <button
                           class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           @click="handleExport(s.id, true)"
                         >
-                          Export dengan Detail Jawaban
+                          Ekspor dengan Detail Jawaban
                         </button>
                       </div>
                     </div>
