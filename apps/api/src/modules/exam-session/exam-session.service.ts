@@ -281,11 +281,11 @@ export class ExamSessionService {
 
   private async validateScheduledAt(scheduledAt: string) {
     const scheduled = new Date(scheduledAt);
-    const minTime = new Date(Date.now() + 60 * 60 * 1000); // now + 60 minutes
+    const minTime = new Date(Date.now() + 5 * 60 * 1000); // now + 5 minutes
 
     if (scheduled < minTime) {
       throw new BadRequestException(
-        "Waktu jadwal harus minimal 60 menit dari sekarang",
+        "Waktu jadwal harus minimal 5 menit dari sekarang",
       );
     }
   }

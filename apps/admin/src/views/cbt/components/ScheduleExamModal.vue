@@ -118,10 +118,10 @@ function validate(): boolean {
     errors.value.scheduledAt = "Tanggal dan waktu wajib diisi";
   } else {
     const selectedDate = new Date(form.value.scheduledAt);
-    const minTime = new Date(Date.now() + 60 * 60 * 1000); // now + 60 minutes
+    const minTime = new Date(Date.now() + 5 * 60 * 1000); // now + 5 minutes
     if (selectedDate < minTime) {
       errors.value.scheduledAt =
-        "Waktu jadwal harus minimal 60 menit dari sekarang";
+        "Waktu jadwal harus minimal 5 menit dari sekarang";
     }
   }
 
