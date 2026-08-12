@@ -148,4 +148,16 @@ export class ExamSessionController {
   ) {
     return this.examSessionService.releaseResults(tenantId, id);
   }
+
+  /**
+   * GET /api/exam-sessions/:id/report
+   * Get post-exam report with violations, proctor actions, and early submissions.
+   */
+  @Get(":id/report")
+  async getReport(
+    @CurrentUser("tenantId") tenantId: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.examSessionService.getReport(tenantId, id);
+  }
 }

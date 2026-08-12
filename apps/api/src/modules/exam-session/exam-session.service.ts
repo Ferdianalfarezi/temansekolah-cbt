@@ -13,7 +13,15 @@ import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
 import { cbtExamSessionQuestion } from "../../drizzle/schema/cbt-exam-session-question";
 import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtPelaksanaanUjian } from "../../drizzle/schema/cbt-pelaksanaan-ujian";
-import { kelas, mataPelajaran, user } from "../../drizzle/schema/lms-tables";
+import { cbtViolationEvent } from "../../drizzle/schema/cbt-violation-event";
+import { cbtProctorAction } from "../../drizzle/schema/cbt-proctor-action";
+import { cbtSiswaAccount } from "../../drizzle/schema/cbt-siswa-account";
+import {
+  kelas,
+  mataPelajaran,
+  user,
+  siswa as siswaTbl,
+} from "../../drizzle/schema/lms-tables";
 import {
   CreateExamSessionDto,
   BatchCreateExamSessionDto,
@@ -286,6 +294,161 @@ export class ExamSessionService {
       .returning();
 
     return updated;
+  }
+
+  /**
+   * Get post-exam report with violations, proctor actions, and early submissions.
+   */
+  async getReport(tenantId: string, sessionId: string) {
+    const session = await this.getSessionOrFail(tenantId, sessionId);
+
+    // Get all participants with siswa info (join through cbtSiswaAccount to siswa)
+    const participants = await this.db
+      .select({
+        id: cbtExamParticipant.id,
+        siswaAccountId: cbtExamParticipant.siswaAccountId,
+        status: cbtExamParticipant.status,
+        startedAt: cbtExamParticipant.startedAt,
+        submittedAt: cbtExamParticipant.submittedAt,
+        violationCount: cbtExamParticipant.violationCount,
+        isFlaggedCheating: cbtExamParticipant.isFlaggedCheating,
+        isEarlySubmission: cbtExamParticipant.isEarlySubmission,
+        scoreCorrect: cbtExamParticipant.scoreCorrect,
+        scoreTotal: cbtExamParticipant.scoreTotal,
+        scorePercentage: cbtExamParticipant.scorePercentage,
+        submissionType: cbtExamParticipant.submissionType,
+        namaSiswa: siswaTbl.nama,
+        nisn: cbtSiswaAccount.nisn,
+      })
+      .from(cbtExamParticipant)
+      .innerJoin(
+        cbtSiswaAccount,
+        eq(cbtExamParticipant.siswaAccountId, cbtSiswaAccount.id),
+      )
+      .innerJoin(siswaTbl, eq(cbtSiswaAccount.siswaId, siswaTbl.id))
+      .where(eq(cbtExamParticipant.examSessionId, sessionId));
+
+    const participantMap = new Map(participants.map((p) => [p.id, p]));
+    const participantIds = participants.map((p) => p.id);
+
+    // Get violations grouped by participant and type
+    const violations =
+      participantIds.length > 0
+        ? await this.db
+            .select({
+              participantId: cbtViolationEvent.participantId,
+              violationType: cbtViolationEvent.violationType,
+              count: sql<number>`count(*)::int`,
+              detectedAt: sql<string>`min(${cbtViolationEvent.detectedAt})`,
+            })
+            .from(cbtViolationEvent)
+            .where(
+              sql`${cbtViolationEvent.participantId} = ANY(${participantIds})`,
+            )
+            .groupBy(
+              cbtViolationEvent.participantId,
+              cbtViolationEvent.violationType,
+            )
+        : [];
+
+    // Get proctor actions
+    const proctorActions = await this.db
+      .select({
+        participantId: cbtProctorAction.participantId,
+        actionType: cbtProctorAction.actionType,
+        extensionMinutes: cbtProctorAction.extensionMinutes,
+        reason: cbtProctorAction.reason,
+        createdAt: cbtProctorAction.createdAt,
+      })
+      .from(cbtProctorAction)
+      .where(eq(cbtProctorAction.examSessionId, sessionId))
+      .orderBy(cbtProctorAction.createdAt);
+
+    // Build violations response with siswa names
+    const violationsWithNames = violations.map((v) => {
+      const participant = participantMap.get(v.participantId);
+      return {
+        participantId: v.participantId,
+        namaSiswa: participant?.namaSiswa || "-",
+        nisn: participant?.nisn || "-",
+        violationType: v.violationType,
+        count: v.count,
+        detectedAt: v.detectedAt,
+      };
+    });
+
+    // Build proctor actions response with siswa names
+    const proctorActionsWithNames = proctorActions.map((a) => {
+      const participant = participantMap.get(a.participantId);
+      return {
+        participantId: a.participantId,
+        namaSiswa: participant?.namaSiswa || "-",
+        actionType: a.actionType,
+        extensionMinutes: a.extensionMinutes,
+        reason: a.reason,
+        createdAt: a.createdAt,
+      };
+    });
+
+    // Get early submissions (submitted with isEarlySubmission=true)
+    const earlySubmissions = participants
+      .filter((p) => p.isEarlySubmission && p.submittedAt)
+      .map((p) => {
+        // Calculate duration percentage
+        const startTime = p.startedAt ? new Date(p.startedAt).getTime() : 0;
+        const submitTime = p.submittedAt
+          ? new Date(p.submittedAt).getTime()
+          : 0;
+        const actualDurationMs = submitTime - startTime;
+        const totalDurationMs = session.durationMinutes * 60 * 1000;
+        const durationPct =
+          totalDurationMs > 0
+            ? Math.round((actualDurationMs / totalDurationMs) * 100)
+            : 0;
+
+        return {
+          participantId: p.id,
+          namaSiswa: p.namaSiswa,
+          nisn: p.nisn || "-",
+          durationPct,
+          submittedAt: p.submittedAt,
+        };
+      });
+
+    // Calculate summary
+    const totalParticipants = participants.length;
+    const totalSubmitted = participants.filter(
+      (p) => p.submissionType === "manual",
+    ).length;
+    const totalAutoSubmitted = participants.filter(
+      (p) => p.submissionType === "auto",
+    ).length;
+    const totalFlagged = participants.filter((p) => p.isFlaggedCheating).length;
+
+    const scoresWithPercentage = participants
+      .filter((p) => p.scorePercentage !== null)
+      .map((p) => Number(p.scorePercentage));
+    const averageScore =
+      scoresWithPercentage.length > 0
+        ? Math.round(
+            scoresWithPercentage.reduce((a, b) => a + b, 0) /
+              scoresWithPercentage.length,
+          )
+        : null;
+
+    return {
+      sessionId,
+      violations: violationsWithNames,
+      proctorActions: proctorActionsWithNames,
+      earlySubmissions,
+      summary: {
+        totalParticipants,
+        totalSubmitted,
+        totalAutoSubmitted,
+        totalFlagged,
+        averageScore,
+      },
+    };
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────────
