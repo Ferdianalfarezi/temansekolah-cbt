@@ -1295,6 +1295,27 @@ export class BankSoalService {
       throw new BadRequestException("Bank soal belum memiliki soal");
     }
 
+    // 3b. Check for existing active sessions for this bank soal
+    // A bank soal can only have one set of active sessions (draft/packaged/active)
+    const existingSessions = await this.db
+      .select({ id: cbtExamSession.id, status: cbtExamSession.status })
+      .from(cbtExamSession)
+      .where(
+        and(
+          eq(cbtExamSession.tenantId, tenantId),
+          eq(cbtExamSession.pelaksanaanUjianId, bankSoal.pelaksanaanUjianId),
+          eq(cbtExamSession.mataPelajaranId, bankSoal.mataPelajaranId),
+          inArray(cbtExamSession.status, ["draft", "packaged", "active"]),
+        ),
+      )
+      .limit(1);
+
+    if (existingSessions.length > 0) {
+      throw new ConflictException(
+        "Bank soal ini sudah memiliki sesi ujian yang aktif. Batalkan atau selesaikan sesi yang ada terlebih dahulu.",
+      );
+    }
+
     // 4. Get all target kelas from bank soal
     // If bank soal has specific target kelas (cbt_bank_soal_kelas), use those
     // If bank soal has tingkat instead, find all kelas with that tingkat in active tahun ajaran
