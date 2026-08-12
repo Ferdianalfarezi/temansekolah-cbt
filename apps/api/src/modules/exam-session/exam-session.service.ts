@@ -13,6 +13,7 @@ import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
 import { cbtExamSessionQuestion } from "../../drizzle/schema/cbt-exam-session-question";
 import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtPelaksanaanUjian } from "../../drizzle/schema/cbt-pelaksanaan-ujian";
+import { kelas, mataPelajaran, user } from "../../drizzle/schema/lms-tables";
 import {
   CreateExamSessionDto,
   BatchCreateExamSessionDto,
@@ -143,6 +144,7 @@ export class ExamSessionService {
 
   /**
    * List exam sessions with filters and pagination.
+   * Joins with kelas, mata_pelajaran, and user tables for readable names.
    */
   async list(tenantId: string, filters: ListSessionsQueryDto) {
     const page = filters.page ?? 1;
@@ -176,8 +178,36 @@ export class ExamSessionService {
         .from(cbtExamSession)
         .where(whereClause),
       this.db
-        .select()
+        .select({
+          id: cbtExamSession.id,
+          tenantId: cbtExamSession.tenantId,
+          pelaksanaanUjianId: cbtExamSession.pelaksanaanUjianId,
+          mataPelajaranId: cbtExamSession.mataPelajaranId,
+          kelasId: cbtExamSession.kelasId,
+          proctorId: cbtExamSession.proctorId,
+          scheduledAt: cbtExamSession.scheduledAt,
+          durationMinutes: cbtExamSession.durationMinutes,
+          randomizeQuestions: cbtExamSession.randomizeQuestions,
+          randomizeOptions: cbtExamSession.randomizeOptions,
+          antiCheatLevel: cbtExamSession.antiCheatLevel,
+          resultDetailLevel: cbtExamSession.resultDetailLevel,
+          resultsReleased: cbtExamSession.resultsReleased,
+          status: cbtExamSession.status,
+          cancellationReason: cbtExamSession.cancellationReason,
+          createdAt: cbtExamSession.createdAt,
+          updatedAt: cbtExamSession.updatedAt,
+          // Joined names
+          kelasNama: kelas.nama,
+          mataPelajaranNama: mataPelajaran.nama,
+          proctorNama: user.nama,
+        })
         .from(cbtExamSession)
+        .leftJoin(kelas, eq(cbtExamSession.kelasId, kelas.id))
+        .leftJoin(
+          mataPelajaran,
+          eq(cbtExamSession.mataPelajaranId, mataPelajaran.id),
+        )
+        .leftJoin(user, eq(cbtExamSession.proctorId, user.id))
         .where(whereClause)
         .orderBy(sql`${cbtExamSession.scheduledAt} DESC`)
         .limit(limit)

@@ -96,6 +96,10 @@ export interface ExamSession {
   resultDetailLevel: string;
   resultsReleased: boolean;
   createdAt: string;
+  // Joined readable names
+  kelasNama?: string;
+  mataPelajaranNama?: string;
+  proctorNama?: string;
 }
 
 export interface ExamSessionListResponse {

@@ -16,6 +16,8 @@ import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtExamSessionQuestion } from "../../drizzle/schema/cbt-exam-session-question";
 import { cbtQuestion } from "../../drizzle/schema/cbt-question";
 import { cbtAnswer } from "../../drizzle/schema/cbt-answer";
+import { cbtBankSoal } from "../../drizzle/schema/cbt-bank-soal";
+import { mataPelajaran } from "../../drizzle/schema/lms-tables";
 import { SchedulerService } from "../scheduler/scheduler.service";
 
 /**
@@ -51,6 +53,7 @@ export class ExamTakingService {
   /**
    * List assigned exam sessions for a siswa.
    * Returns sessions in packaged, active, or completed state.
+   * Includes readable names for mata pelajaran and bank soal title.
    */
   async listSessions(siswaAccountId: string) {
     const participants = await this.db
@@ -65,16 +68,25 @@ export class ExamTakingService {
         durationMinutes: cbtExamSession.durationMinutes,
         mataPelajaranId: cbtExamSession.mataPelajaranId,
         kelasId: cbtExamSession.kelasId,
+        bankSoalId: cbtExamSession.bankSoalId,
         resultsReleased: cbtExamSession.resultsReleased,
         scoreCorrect: cbtExamParticipant.scoreCorrect,
         scoreTotal: cbtExamParticipant.scoreTotal,
         scorePercentage: cbtExamParticipant.scorePercentage,
+        // Joined names
+        mataPelajaranNama: mataPelajaran.nama,
+        bankSoalNama: cbtBankSoal.nama,
       })
       .from(cbtExamParticipant)
       .innerJoin(
         cbtExamSession,
         eq(cbtExamParticipant.examSessionId, cbtExamSession.id),
       )
+      .leftJoin(
+        mataPelajaran,
+        eq(cbtExamSession.mataPelajaranId, mataPelajaran.id),
+      )
+      .leftJoin(cbtBankSoal, eq(cbtExamSession.bankSoalId, cbtBankSoal.id))
       .where(
         and(
           eq(cbtExamParticipant.siswaAccountId, siswaAccountId),
@@ -95,6 +107,9 @@ export class ExamTakingService {
       startedAt: p.startedAt,
       submittedAt: p.submittedAt,
       resultsReleased: p.resultsReleased,
+      // Readable names
+      title: p.bankSoalNama || null,
+      subject: p.mataPelajaranNama || null,
       score: p.resultsReleased
         ? {
             correct: p.scoreCorrect,

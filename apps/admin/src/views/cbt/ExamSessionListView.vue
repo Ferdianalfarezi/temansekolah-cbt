@@ -215,10 +215,10 @@ onMounted(fetchSessions);
               class="hover:bg-gray-50/60 transition-colors"
             >
               <td class="px-4 py-3 text-sm text-gray-900 font-medium">
-                {{ s.mataPelajaranId?.slice(0, 8) ?? "-" }}…
+                {{ s.mataPelajaranNama || "-" }}
               </td>
               <td class="px-4 py-3 text-sm text-gray-600">
-                {{ s.kelasId?.slice(0, 8) ?? "-" }}…
+                {{ s.kelasNama || "-" }}
               </td>
               <td class="px-4 py-3 text-sm text-gray-600">
                 {{ new Date(s.scheduledAt).toLocaleString("id-ID") }}

@@ -13,6 +13,7 @@ interface ExamSession {
   participantStatus?: string;
   resultsReleased?: boolean;
   score?: { correct: number; total: number; percentage: number } | null;
+  // Readable names from backend
   title?: string;
   subject?: string;
   questionCount?: number;
@@ -466,9 +467,7 @@ export default function ExamListPage() {
                                 className="text-sm mt-0.5"
                                 style={{ color: "var(--text-muted)" }}
                               >
-                                {session.subject ||
-                                  session.mataPelajaranId ||
-                                  "-"}
+                                {session.subject || "-"}
                               </p>
                             </div>
                             <span
@@ -575,7 +574,7 @@ export default function ExamListPage() {
                             className="text-xs mt-0.5 truncate"
                             style={{ color: "var(--text-muted)" }}
                           >
-                            {session.subject || session.mataPelajaranId || "-"}
+                            {session.subject || "-"}
                           </p>
                         </div>
 
@@ -682,7 +681,7 @@ export default function ExamListPage() {
                             className="text-xs mt-0.5"
                             style={{ color: "var(--text-muted)" }}
                           >
-                            {session.subject || session.mataPelajaranId || "-"}
+                            {session.subject || "-"}
                           </p>
                         </div>
 
