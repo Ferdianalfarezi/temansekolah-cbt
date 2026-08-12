@@ -430,90 +430,157 @@ export default function ExamListPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {activeSessions.map((session) => (
-                    <div
-                      key={session.sessionId}
-                      className="card-hover rounded-2xl p-5 cursor-pointer"
-                      style={{
-                        background: "var(--surface)",
-                        border: "2px solid var(--emerald)",
-                        boxShadow: "var(--shadow)",
-                      }}
-                      onClick={() => navigate(`/exam/${session.sessionId}`)}
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Icon */}
-                        <div
-                          className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
-                          style={{
-                            background: "var(--emerald-bg)",
-                            color: "var(--emerald)",
-                          }}
-                        >
-                          <Icons.Play />
-                        </div>
+                  {activeSessions.map((session) => {
+                    const isSubmitted = [
+                      "submitted",
+                      "auto_submitted",
+                    ].includes(session.participantStatus || "");
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h3
-                                className="font-semibold"
-                                style={{ color: "var(--text)" }}
-                              >
-                                {session.title || "Ujian"}
-                              </h3>
-                              <p
-                                className="text-sm mt-0.5"
-                                style={{ color: "var(--text-muted)" }}
-                              >
-                                {session.subject || "-"}
-                              </p>
-                            </div>
-                            <span
-                              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-                              style={{
-                                background: "var(--emerald-bg)",
-                                color: "var(--emerald-text)",
-                              }}
-                            >
-                              <span
-                                className="w-1.5 h-1.5 rounded-full status-active-dot"
-                                style={{ background: "var(--emerald)" }}
-                              />
-                              Aktif
-                            </span>
+                    return (
+                      <div
+                        key={session.sessionId}
+                        className={
+                          isSubmitted
+                            ? "rounded-2xl p-5"
+                            : "card-hover rounded-2xl p-5 cursor-pointer"
+                        }
+                        style={{
+                          background: "var(--surface)",
+                          border: isSubmitted
+                            ? "2px solid var(--border)"
+                            : "2px solid var(--emerald)",
+                          boxShadow: "var(--shadow)",
+                          opacity: isSubmitted ? 0.8 : 1,
+                        }}
+                        onClick={() => {
+                          if (isSubmitted) {
+                            navigate(`/result/${session.sessionId}`);
+                          } else {
+                            navigate(`/exam/${session.sessionId}`);
+                          }
+                        }}
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Icon */}
+                          <div
+                            className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
+                            style={{
+                              background: isSubmitted
+                                ? "var(--bg-secondary)"
+                                : "var(--emerald-bg)",
+                              color: isSubmitted
+                                ? "var(--text-muted)"
+                                : "var(--emerald)",
+                            }}
+                          >
+                            {isSubmitted ? <Icons.Trophy /> : <Icons.Play />}
                           </div>
 
-                          {/* Meta info */}
-                          <div
-                            className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm"
-                            style={{ color: "var(--text-muted)" }}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <Icons.Clock />
-                              {formatDuration(session.durationMinutes)}
-                            </span>
-                            {session.questionCount != null && (
-                              <span className="flex items-center gap-1.5">
-                                <Icons.Questions />
-                                {session.questionCount} soal
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <h3
+                                  className="font-semibold"
+                                  style={{ color: "var(--text)" }}
+                                >
+                                  {session.title || "Ujian"}
+                                </h3>
+                                <p
+                                  className="text-sm mt-0.5"
+                                  style={{ color: "var(--text-muted)" }}
+                                >
+                                  {session.subject || "-"}
+                                </p>
+                              </div>
+                              <span
+                                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
+                                style={{
+                                  background: isSubmitted
+                                    ? "var(--bg-secondary)"
+                                    : "var(--emerald-bg)",
+                                  color: isSubmitted
+                                    ? "var(--text-muted)"
+                                    : "var(--emerald-text)",
+                                }}
+                              >
+                                {isSubmitted ? (
+                                  <>
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                      strokeWidth={2}
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                    Sudah Dikumpulkan
+                                  </>
+                                ) : (
+                                  <>
+                                    <span
+                                      className="w-1.5 h-1.5 rounded-full status-active-dot"
+                                      style={{ background: "var(--emerald)" }}
+                                    />
+                                    Aktif
+                                  </>
+                                )}
                               </span>
+                            </div>
+
+                            {/* Meta info */}
+                            <div
+                              className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm"
+                              style={{ color: "var(--text-muted)" }}
+                            >
+                              <span className="flex items-center gap-1.5">
+                                <Icons.Clock />
+                                {formatDuration(session.durationMinutes)}
+                              </span>
+                              {session.questionCount != null && (
+                                <span className="flex items-center gap-1.5">
+                                  <Icons.Questions />
+                                  {session.questionCount} soal
+                                </span>
+                              )}
+                            </div>
+
+                            {/* CTA Button */}
+                            {isSubmitted ? (
+                              <button
+                                className="w-full mt-4 py-3 flex items-center justify-center gap-2 rounded-xl text-sm font-semibold"
+                                style={{
+                                  background: "var(--bg-secondary)",
+                                  color: "var(--text-muted)",
+                                  border: "1px solid var(--border)",
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/result/${session.sessionId}`);
+                                }}
+                              >
+                                <Icons.Trophy />
+                                Lihat Hasil
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-primary w-full mt-4 py-3 flex items-center justify-center gap-2"
+                                style={{ background: "var(--emerald)" }}
+                              >
+                                <Icons.Play />
+                                Mulai Ujian Sekarang
+                              </button>
                             )}
                           </div>
-
-                          {/* CTA Button */}
-                          <button
-                            className="btn-primary w-full mt-4 py-3 flex items-center justify-center gap-2"
-                            style={{ background: "var(--emerald)" }}
-                          >
-                            <Icons.Play />
-                            Mulai Ujian Sekarang
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
@@ -553,7 +620,7 @@ export default function ExamListPage() {
                       <div className="flex items-start gap-3">
                         {/* Icon */}
                         <div
-                          className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
                           style={{
                             background: "var(--blue-bg)",
                             color: "var(--blue)",
@@ -580,7 +647,7 @@ export default function ExamListPage() {
 
                         {/* Time badge */}
                         <span
-                          className="flex-shrink-0 text-xs font-medium px-2 py-1 rounded-lg"
+                          className="shrink-0 text-xs font-medium px-2 py-1 rounded-lg"
                           style={{
                             background: "var(--blue-bg)",
                             color: "var(--blue-text)",
@@ -660,7 +727,7 @@ export default function ExamListPage() {
                       <div className="flex items-center gap-3">
                         {/* Icon */}
                         <div
-                          className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
                           style={{
                             background: "var(--bg-secondary)",
                             color: "var(--text-muted)",
