@@ -55,6 +55,7 @@ export default function ExamPage() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "offline">(
     "saved",
   );
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const token = localStorage.getItem("cbt_token") || "";
@@ -79,6 +80,71 @@ export default function ExamPage() {
         .catch(() => {});
     },
   });
+
+  // ── Fullscreen tracking ────────────────────────────────────────────────────
+  useEffect(() => {
+    function checkFullscreen() {
+      const isFS = !!(
+        document.fullscreenElement ||
+        (document as unknown as { webkitFullscreenElement?: Element })
+          .webkitFullscreenElement ||
+        (document as unknown as { mozFullScreenElement?: Element })
+          .mozFullScreenElement ||
+        (document as unknown as { msFullscreenElement?: Element })
+          .msFullscreenElement
+      );
+      setIsFullscreen(isFS);
+    }
+
+    // Check initial state
+    checkFullscreen();
+
+    // Listen for fullscreen changes
+    document.addEventListener("fullscreenchange", checkFullscreen);
+    document.addEventListener("webkitfullscreenchange", checkFullscreen);
+    document.addEventListener("mozfullscreenchange", checkFullscreen);
+    document.addEventListener("MSFullscreenChange", checkFullscreen);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", checkFullscreen);
+      document.removeEventListener("webkitfullscreenchange", checkFullscreen);
+      document.removeEventListener("mozfullscreenchange", checkFullscreen);
+      document.removeEventListener("MSFullscreenChange", checkFullscreen);
+    };
+  }, []);
+
+  // Function to enter fullscreen
+  const enterFullscreen = useCallback(async () => {
+    try {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen();
+      } else if (
+        (elem as unknown as { webkitRequestFullscreen?: () => Promise<void> })
+          .webkitRequestFullscreen
+      ) {
+        await (
+          elem as unknown as { webkitRequestFullscreen: () => Promise<void> }
+        ).webkitRequestFullscreen();
+      } else if (
+        (elem as unknown as { mozRequestFullScreen?: () => Promise<void> })
+          .mozRequestFullScreen
+      ) {
+        await (
+          elem as unknown as { mozRequestFullScreen: () => Promise<void> }
+        ).mozRequestFullScreen();
+      } else if (
+        (elem as unknown as { msRequestFullscreen?: () => Promise<void> })
+          .msRequestFullscreen
+      ) {
+        await (
+          elem as unknown as { msRequestFullscreen: () => Promise<void> }
+        ).msRequestFullscreen();
+      }
+    } catch (err) {
+      console.error("Failed to enter fullscreen:", err);
+    }
+  }, []);
 
   // ── Load exam ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -323,8 +389,137 @@ export default function ExamPage() {
       className="flex min-h-screen flex-col"
       style={{ background: "#fafaf9" }}
     >
-      {/* ── FULLSCREEN WARNING ──────────────────────────────────────────── */}
-      {violationCount > 0 && (
+      {/* ── FULLSCREEN OVERLAY (blocking) ───────────────────────────────── */}
+      {!isFullscreen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "white",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+          }}
+        >
+          <div style={{ textAlign: "center", maxWidth: "400px" }}>
+            {/* Warning Icon */}
+            <div
+              style={{
+                margin: "0 auto 24px",
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                background: "#fef3c7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#d97706"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h2
+              style={{
+                fontSize: "24px",
+                fontWeight: 700,
+                color: "#1c1917",
+                marginBottom: "12px",
+              }}
+            >
+              Mode Layar Penuh Diperlukan
+            </h2>
+
+            {/* Description */}
+            <p
+              style={{
+                fontSize: "15px",
+                color: "#57534e",
+                lineHeight: 1.6,
+                marginBottom: "8px",
+              }}
+            >
+              Ujian harus dikerjakan dalam mode layar penuh untuk mencegah
+              kecurangan.
+            </p>
+
+            {violationCount > 0 && (
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "#dc2626",
+                  fontWeight: 600,
+                  marginBottom: "24px",
+                }}
+              >
+                ⚠️ Pelanggaran terdeteksi: {violationCount}x
+              </p>
+            )}
+
+            {/* Fullscreen Button */}
+            <button
+              onClick={enterFullscreen}
+              style={{
+                width: "100%",
+                padding: "16px 24px",
+                background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                color: "white",
+                border: "none",
+                borderRadius: "12px",
+                fontSize: "16px",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+              }}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                />
+              </svg>
+              Aktifkan Layar Penuh
+            </button>
+
+            {/* Note */}
+            <p
+              style={{ marginTop: "16px", fontSize: "12px", color: "#a8a29e" }}
+            >
+              Tekan tombol di atas atau gunakan F11 pada keyboard
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── VIOLATION WARNING BAR (shown when fullscreen but has violations) ─ */}
+      {isFullscreen && violationCount > 0 && (
         <div
           style={{
             background: "#fef3c7",
