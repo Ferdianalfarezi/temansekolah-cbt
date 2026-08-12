@@ -194,6 +194,19 @@ export class SessionLifecycleProcessor {
       terminalStatuses.includes(p.status),
     );
 
+    // If all participants have submitted, complete immediately
+    if (allTerminal) {
+      await this.db
+        .update(cbtExamSession)
+        .set({ status: "completed", updatedAt: new Date() })
+        .where(eq(cbtExamSession.id, session.id));
+
+      this.logger.log(
+        `Session ${session.id} completed (all participants submitted)`,
+      );
+      return;
+    }
+
     // Check if max end time has passed
     // max_end_time = scheduled_at + duration_minutes + max extension (per participant)
     const maxExtensionSeconds = Math.max(
@@ -206,14 +219,36 @@ export class SessionLifecycleProcessor {
     );
     const timeExpired = new Date() > maxEndTime;
 
-    if (allTerminal || timeExpired) {
+    // Check if there are still students who haven't started (assigned status)
+    const hasAssignedParticipants = participants.some(
+      (p) => p.status === "assigned",
+    );
+
+    // Grace period: Allow 15 minutes after scheduled start for late students to join
+    const lateJoinGracePeriodMs = 15 * 60 * 1000; // 15 minutes
+    const lateJoinDeadline = new Date(
+      session.scheduledAt.getTime() + lateJoinGracePeriodMs,
+    );
+    const withinLateJoinGracePeriod = new Date() < lateJoinDeadline;
+
+    // Don't complete if:
+    // 1. Within late join grace period AND there are still assigned participants
+    // 2. Time hasn't expired yet
+    if (hasAssignedParticipants && withinLateJoinGracePeriod) {
+      this.logger.debug(
+        `Session ${session.id}: ${participants.filter((p) => p.status === "assigned").length} participants still assigned, within late join grace period`,
+      );
+      return;
+    }
+
+    if (timeExpired) {
       await this.db
         .update(cbtExamSession)
         .set({ status: "completed", updatedAt: new Date() })
         .where(eq(cbtExamSession.id, session.id));
 
       this.logger.log(
-        `Session ${session.id} completed (allTerminal=${allTerminal}, timeExpired=${timeExpired})`,
+        `Session ${session.id} completed (time expired, hasAssigned=${hasAssignedParticipants})`,
       );
     }
   }
