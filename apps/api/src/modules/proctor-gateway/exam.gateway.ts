@@ -30,7 +30,6 @@ interface SiswaSocketData {
 
 interface JoinSessionPayload {
   sessionId: string;
-  token: string;
 }
 
 interface HeartbeatPayload {
@@ -112,7 +111,16 @@ export class ExamGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: JoinSessionPayload,
   ) {
-    const { sessionId, token } = payload;
+    const { sessionId } = payload;
+
+    // Get token from socket handshake auth (sent during connection)
+    const token = client.handshake.auth?.token as string | undefined;
+
+    if (!token) {
+      client.emit("error", { message: "No authentication token provided" });
+      client.disconnect();
+      return;
+    }
 
     // Validate JWT
     let decoded: { siswaAccountId: string; tenantId: string };

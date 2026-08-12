@@ -27,6 +27,11 @@ export function useExamSocket(sessionId: string, token: string) {
   const answersRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
+    // Skip if no token (not logged in)
+    if (!token) {
+      return;
+    }
+
     // Determine WebSocket URL - use VITE_WS_URL or strip /api/v1 from API URL
     const env = (
       import.meta as unknown as {
@@ -37,8 +42,17 @@ export function useExamSocket(sessionId: string, token: string) {
 
     // Fallback: derive from API URL if WS URL not set
     if (!wsUrl && env?.VITE_API_URL) {
-      wsUrl = env.VITE_API_URL.replace(/\/api\/v1$/, "").replace(/^http/, "ws");
+      // Remove /api/v1 suffix but keep https:// (Socket.IO handles protocol upgrade)
+      wsUrl = env.VITE_API_URL.replace(/\/api\/v1$/, "");
     }
+
+    // Don't proceed if no URL configured
+    if (!wsUrl) {
+      console.warn("WebSocket URL not configured");
+      return;
+    }
+
+    console.log("[ExamSocket] Connecting to:", wsUrl);
 
     const socket = io(`${wsUrl}/exam`, {
       auth: { token },
@@ -51,6 +65,7 @@ export function useExamSocket(sessionId: string, token: string) {
     socketRef.current = socket;
 
     socket.on("connect", () => {
+      console.log("[ExamSocket] Connected, joining session:", sessionId);
       setIsConnected(true);
       socket.emit("join_session", { sessionId });
 
@@ -75,7 +90,16 @@ export function useExamSocket(sessionId: string, token: string) {
       }, SNAPSHOT_INTERVAL_MS);
     });
 
-    socket.on("disconnect", () => {
+    socket.on("connect_error", (error) => {
+      console.error("[ExamSocket] Connection error:", error.message);
+    });
+
+    socket.on("error", (data) => {
+      console.error("[ExamSocket] Server error:", data);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("[ExamSocket] Disconnected:", reason);
       setIsConnected(false);
       if (heartbeatRef.current) {
         clearInterval(heartbeatRef.current);
