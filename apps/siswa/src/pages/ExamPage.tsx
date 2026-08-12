@@ -34,6 +34,7 @@ interface ExamData {
   totalQuestions: number;
   questions: Question[];
   savedAnswers?: Record<string, string>;
+  namaUjian?: string;
 }
 
 export default function ExamPage() {
@@ -90,7 +91,6 @@ export default function ExamPage() {
         setExamData(data);
         setTimeRemaining(data.remainingSeconds);
 
-        // Load saved answers from server or local cache
         const serverAnswers = new Map(Object.entries(data.savedAnswers || {}));
         const localAnswers = await getSessionAnswers(sessionId!);
         const merged = new Map([...serverAnswers, ...localAnswers]);
@@ -232,9 +232,19 @@ export default function ExamPage() {
   );
 
   function formatTimer(seconds: number): string {
-    const m = Math.floor(seconds / 60);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
+    if (h > 0) {
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    }
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function getTimerClass(): string {
+    if (timeRemaining <= 60) return "danger";
+    if (timeRemaining <= 300) return "warning";
+    return "";
   }
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -242,14 +252,14 @@ export default function ExamPage() {
     return (
       <div
         className="flex min-h-screen items-center justify-center"
-        style={{ background: "#0f1117" }}
+        style={{ background: "#f5f3ef" }}
       >
         <div className="text-center">
           <div
             className="h-10 w-10 mx-auto animate-spin rounded-full border-2 border-t-transparent"
-            style={{ borderColor: "#f59e0b", borderTopColor: "transparent" }}
+            style={{ borderColor: "#2563eb", borderTopColor: "transparent" }}
           />
-          <p className="mt-4 text-sm" style={{ color: "#94a3b8" }}>
+          <p className="mt-4 text-sm" style={{ color: "#57534e" }}>
             Memuat ujian...
           </p>
         </div>
@@ -262,12 +272,12 @@ export default function ExamPage() {
     return (
       <div
         className="flex min-h-screen items-center justify-center px-4"
-        style={{ background: "#0f1117" }}
+        style={{ background: "#f5f3ef" }}
       >
         <div className="text-center max-w-sm">
           <div
             className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
-            style={{ background: "rgba(239, 68, 68, 0.15)" }}
+            style={{ background: "#fef2f2" }}
           >
             <svg
               className="h-8 w-8"
@@ -284,16 +294,16 @@ export default function ExamPage() {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-bold mb-2" style={{ color: "#f8fafc" }}>
+          <h3 className="text-lg font-bold mb-2" style={{ color: "#1c1917" }}>
             Tidak Dapat Memuat Ujian
           </h3>
-          <p className="text-sm mb-6" style={{ color: "#94a3b8" }}>
+          <p className="text-sm mb-6" style={{ color: "#57534e" }}>
             {error || "Ujian tidak ditemukan atau Anda tidak memiliki akses."}
           </p>
           <button
             onClick={() => navigate("/exams")}
-            className="rounded-xl px-6 py-2.5 text-sm font-bold"
-            style={{ background: "#f59e0b", color: "#0f1117" }}
+            className="rounded-lg px-6 py-2.5 text-sm font-bold"
+            style={{ background: "#2563eb", color: "white" }}
           >
             Kembali ke Daftar Ujian
           </button>
@@ -306,102 +316,27 @@ export default function ExamPage() {
   const totalQuestions = examData.questions.length;
   const answeredCount = answers.size;
   const unansweredCount = totalQuestions - answeredCount;
+  const timerClass = getTimerClass();
 
   return (
     <div
       className="flex min-h-screen flex-col"
-      style={{ background: "#0f1117" }}
+      style={{ background: "#fafaf9" }}
     >
-      {/* ── TOP BAR ────────────────────────────────────────────────────────── */}
-      <header
-        className="h-12 flex items-center px-4 shrink-0"
-        style={{
-          background: "#1a1d27",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-        }}
-      >
-        {/* Left: question info */}
-        <div className="flex-1 min-w-0">
-          <span className="text-sm truncate" style={{ color: "#94a3b8" }}>
-            {totalQuestions} Soal
-          </span>
-        </div>
-
-        {/* Center: timer pill */}
-        <div className="flex-1 flex justify-center">
-          <div
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1 ${
-              timeRemaining < 300 ? "animate-pulse" : ""
-            }`}
-            style={{
-              background: "rgba(245,158,11,0.10)",
-              border: "1px solid rgba(245,158,11,0.30)",
-            }}
-          >
-            {/* Clock icon */}
-            <svg
-              className="h-3.5 w-3.5 shrink-0"
-              style={{ color: "#f59e0b" }}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                color: "#f59e0b",
-                fontSize: "0.8125rem",
-                fontWeight: 700,
-              }}
-            >
-              {isPaused ? "PAUSE" : formatTimer(timeRemaining)}
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Q counter + nav toggle */}
-        <div className="flex-1 flex justify-end items-center gap-3">
-          <span className="text-sm" style={{ color: "#94a3b8" }}>
-            Q: {currentIndex + 1}/{totalQuestions}
-          </span>
-          <button
-            onClick={() => setShowNavPanel(!showNavPanel)}
-            className="rounded-lg p-1.5 transition-colors"
-            style={{ color: "#94a3b8" }}
-            aria-label="Navigasi soal"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16m-7 6h7"
-              />
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      {/* ── VIOLATION BAR ─────────────────────────────────────────────────── */}
+      {/* ── FULLSCREEN WARNING ──────────────────────────────────────────── */}
       {violationCount > 0 && (
         <div
-          className="px-4 py-2 text-center text-xs font-medium"
           style={{
-            background: "rgba(120,53,15,0.5)",
-            color: "#fbbf24",
-            borderBottom: "1px solid rgba(245,158,11,0.2)",
+            background: "#fef3c7",
+            borderBottom: "2px solid #fde68a",
+            padding: "10px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "#92400e",
           }}
         >
           ⚠️ Pelanggaran terdeteksi ({violationCount}x). Aktivitas Anda
@@ -409,28 +344,150 @@ export default function ExamPage() {
         </div>
       )}
 
-      {/* ── MAIN AREA ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* ── TOP BAR ────────────────────────────────────────────────────────── */}
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "14px 24px",
+          background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+        }}
+      >
+        {/* Left: subject info */}
+        <div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "white" }}>
+            {examData.namaUjian || "Ujian"}
+          </div>
+          <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
+            {totalQuestions} Soal • Pilihan Ganda
+          </div>
+        </div>
+
+        {/* Center: timer pill */}
+        <div
+          className={`timer ${timerClass}`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background:
+              timerClass === "danger"
+                ? "rgba(239, 68, 68, 0.2)"
+                : timerClass === "warning"
+                  ? "rgba(251, 191, 36, 0.2)"
+                  : "rgba(255,255,255,0.15)",
+            padding: "8px 16px",
+            borderRadius: "20px",
+            border:
+              timerClass === "danger"
+                ? "1.5px solid rgba(239, 68, 68, 0.4)"
+                : timerClass === "warning"
+                  ? "1.5px solid rgba(251, 191, 36, 0.4)"
+                  : "1.5px solid rgba(255,255,255,0.25)",
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            style={{ color: "white" }}
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+          <span
+            style={{
+              fontSize: "16px",
+              fontWeight: 800,
+              color:
+                timerClass === "danger"
+                  ? "#fecaca"
+                  : timerClass === "warning"
+                    ? "#fde68a"
+                    : "white",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {isPaused ? "PAUSE" : formatTimer(timeRemaining)}
+          </span>
+        </div>
+
+        {/* Right: save indicator */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "12px",
+            color: "rgba(255,255,255,0.85)",
+            fontWeight: 600,
+          }}
+        >
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background:
+                saveStatus === "saved"
+                  ? "#4ade80"
+                  : saveStatus === "saving"
+                    ? "#fbbf24"
+                    : "#94a3b8",
+              animation: saveStatus === "saved" ? "pulse 2s infinite" : "none",
+            }}
+          />
+          {saveStatus === "saved"
+            ? "Tersimpan"
+            : saveStatus === "saving"
+              ? "Menyimpan..."
+              : "Offline"}
+        </div>
+      </header>
+
+      {/* ── MAIN BODY ─────────────────────────────────────────────────────── */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* Question panel */}
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
-          <div className="mx-auto max-w-2xl">
-            {/* Question number label */}
-            <p
-              className="mb-3 text-xs font-semibold uppercase"
+        <main style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+          <div
+            style={{
+              background: "white",
+              border: "2px solid #e7e5e4",
+              borderRadius: "16px",
+              padding: "28px",
+              maxWidth: "720px",
+              margin: "0 auto",
+            }}
+          >
+            {/* Question number */}
+            <div
               style={{
-                color: "#f59e0b",
-                letterSpacing: "0.1em",
+                fontSize: "13px",
+                fontWeight: 700,
+                color: "#2563eb",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                marginBottom: "12px",
               }}
             >
-              SOAL {String(currentIndex + 1).padStart(2, "0")}
-            </p>
+              Soal {currentIndex + 1} dari {totalQuestions}
+            </div>
 
             {/* Question text */}
             <div
-              className="mb-8 text-xl leading-relaxed"
               style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                color: "#f8fafc",
+                fontSize: "16px",
+                fontWeight: 500,
+                color: "#1c1917",
+                lineHeight: 1.7,
+                marginBottom: "24px",
               }}
             >
               <p>{currentQuestion.teksSoal}</p>
@@ -438,14 +495,20 @@ export default function ExamPage() {
                 <img
                   src={currentQuestion.gambarSoalUrl}
                   alt="Gambar Soal"
-                  className="mt-4 max-w-full rounded-lg"
-                  style={{ maxHeight: "300px" }}
+                  style={{
+                    marginTop: "16px",
+                    maxWidth: "100%",
+                    borderRadius: "12px",
+                    maxHeight: "300px",
+                  }}
                 />
               )}
             </div>
 
             {/* Options */}
-            <div className="flex flex-col gap-3">
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
               {currentQuestion.options.map((option) => {
                 const isSelected =
                   answers.get(currentQuestion.id) === option.key;
@@ -454,64 +517,83 @@ export default function ExamPage() {
                   <button
                     key={option.key}
                     onClick={() => selectAnswer(currentQuestion.id, option.key)}
-                    className="w-full text-left rounded-xl px-5 py-4 transition-all"
-                    style={
-                      isSelected
-                        ? {
-                            background: "rgba(245,158,11,0.08)",
-                            borderTop: "1px solid rgba(245,158,11,0.20)",
-                            borderRight: "1px solid rgba(245,158,11,0.20)",
-                            borderBottom: "1px solid rgba(245,158,11,0.20)",
-                            borderLeft: "4px solid #f59e0b",
-                          }
-                        : {
-                            background: "#1a1d27",
-                            border: "1px solid rgba(255,255,255,0.08)",
-                          }
-                    }
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "14px",
+                      padding: "16px 18px",
+                      border: isSelected
+                        ? "2px solid #3b82f6"
+                        : "2px solid #e7e5e4",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                      background: isSelected ? "#eff6ff" : "white",
+                      boxShadow: isSelected
+                        ? "0 0 0 3px rgba(59, 130, 246, 0.1)"
+                        : "none",
+                      textAlign: "left",
+                      width: "100%",
+                    }}
                     onMouseEnter={(e) => {
-                      if (!isSelected)
+                      if (!isSelected) {
                         (
                           e.currentTarget as HTMLButtonElement
-                        ).style.background = "#22263a";
+                        ).style.borderColor = "#93c5fd";
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = "#eff6ff";
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      if (!isSelected)
+                      if (!isSelected) {
                         (
                           e.currentTarget as HTMLButtonElement
-                        ).style.background = "#1a1d27";
+                        ).style.borderColor = "#e7e5e4";
+                        (
+                          e.currentTarget as HTMLButtonElement
+                        ).style.background = "white";
+                      }
                     }}
                   >
-                    <div className="flex items-start gap-4">
-                      {/* Letter badge */}
-                      <span
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                        style={
-                          isSelected
-                            ? { background: "#f59e0b", color: "#0f1117" }
-                            : { background: "#22263a", color: "#94a3b8" }
-                        }
-                      >
-                        {option.key}
-                      </span>
-                      <div className="flex-1">
-                        {option.text && (
-                          <span
-                            className="text-sm leading-relaxed"
-                            style={{ color: "#e2e8f0" }}
-                          >
-                            {option.text}
-                          </span>
-                        )}
-                        {option.imageUrl && (
-                          <img
-                            src={option.imageUrl}
-                            alt={`Opsi ${option.key}`}
-                            className="mt-2 max-w-full rounded-lg"
-                            style={{ maxHeight: "150px" }}
-                          />
-                        )}
-                      </div>
+                    {/* Letter badge */}
+                    <span
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        border: isSelected ? "none" : "2px solid #e7e5e4",
+                        flexShrink: 0,
+                        background: isSelected ? "#2563eb" : "white",
+                        color: isSelected ? "white" : "#1c1917",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {option.key}
+                    </span>
+                    <div style={{ flex: 1, paddingTop: "4px" }}>
+                      {option.text && (
+                        <span style={{ fontSize: "15px", color: "#1c1917" }}>
+                          {option.text}
+                        </span>
+                      )}
+                      {option.imageUrl && (
+                        <img
+                          src={option.imageUrl}
+                          alt={`Opsi ${option.key}`}
+                          style={{
+                            marginTop: "8px",
+                            maxWidth: "100%",
+                            borderRadius: "8px",
+                            maxHeight: "150px",
+                          }}
+                        />
+                      )}
                     </div>
                   </button>
                 );
@@ -520,45 +602,285 @@ export default function ExamPage() {
           </div>
         </main>
 
-        {/* ── NAV SIDEBAR ───────────────────────────────────────────────── */}
+        {/* ── NAV SIDEBAR (Desktop) ─────────────────────────────────────── */}
+        <aside
+          className="hidden lg:flex"
+          style={{
+            width: "280px",
+            background: "white",
+            borderLeft: "2px solid #e7e5e4",
+            padding: "20px",
+            overflowY: "auto",
+            flexDirection: "column",
+          }}
+        >
+          <h4
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "#57534e",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              marginBottom: "16px",
+            }}
+          >
+            Navigasi Soal
+          </h4>
+
+          {/* Question grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: "8px",
+            }}
+          >
+            {examData.questions.map((q, idx) => {
+              const isAnswered = answers.has(q.id);
+              const isCurrent = idx === currentIndex;
+
+              let btnStyle: React.CSSProperties = {
+                width: "40px",
+                height: "40px",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+                border: "2px solid #e7e5e4",
+                background: "white",
+                color: "#1c1917",
+                transition: "all 0.15s",
+              };
+
+              if (isCurrent) {
+                btnStyle = {
+                  ...btnStyle,
+                  borderColor: "#2563eb",
+                  background: "#2563eb",
+                  color: "white",
+                };
+              } else if (isAnswered) {
+                btnStyle = {
+                  ...btnStyle,
+                  borderColor: "#22c55e",
+                  background: "#dcfce7",
+                  color: "#15803d",
+                };
+              }
+
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => setCurrentIndex(idx)}
+                  style={btnStyle}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Prev/Next buttons in sidebar */}
+          <div style={{ marginTop: "20px", display: "flex", gap: "8px" }}>
+            <button
+              onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+              disabled={currentIndex === 0}
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                padding: "10px 20px",
+                border: "2px solid #e7e5e4",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "#57534e",
+                background: "white",
+                cursor: currentIndex === 0 ? "not-allowed" : "pointer",
+                opacity: currentIndex === 0 ? 0.4 : 1,
+              }}
+            >
+              ← Prev
+            </button>
+            <button
+              onClick={() =>
+                setCurrentIndex((i) => Math.min(totalQuestions - 1, i + 1))
+              }
+              disabled={currentIndex === totalQuestions - 1}
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                padding: "10px 20px",
+                border: "2px solid #e7e5e4",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "#57534e",
+                background: "white",
+                cursor:
+                  currentIndex === totalQuestions - 1
+                    ? "not-allowed"
+                    : "pointer",
+                opacity: currentIndex === totalQuestions - 1 ? 0.4 : 1,
+              }}
+            >
+              Next →
+            </button>
+          </div>
+
+          {/* Legend */}
+          <div
+            style={{
+              marginTop: "auto",
+              paddingTop: "20px",
+              borderTop: "1px solid #e7e5e4",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "12px",
+                color: "#57534e",
+              }}
+            >
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "3px",
+                  border: "2px solid #2563eb",
+                  background: "#2563eb",
+                }}
+              />
+              Soal aktif
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "12px",
+                color: "#57534e",
+              }}
+            >
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "3px",
+                  border: "2px solid #22c55e",
+                  background: "#dcfce7",
+                }}
+              />
+              Sudah dijawab
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "12px",
+                color: "#57534e",
+              }}
+            >
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "3px",
+                  border: "2px solid #e7e5e4",
+                  background: "white",
+                }}
+              />
+              Belum dijawab
+            </div>
+          </div>
+        </aside>
+
+        {/* ── MOBILE NAV PANEL ──────────────────────────────────────────── */}
         {showNavPanel && (
           <>
-            {/* Mobile backdrop */}
+            {/* Backdrop */}
             <div
-              className="fixed inset-0 z-40 lg:hidden"
-              style={{ background: "rgba(0,0,0,0.6)" }}
+              className="lg:hidden"
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.5)",
+                zIndex: 40,
+              }}
               onClick={() => setShowNavPanel(false)}
             />
 
+            {/* Panel */}
             <aside
-              className="fixed right-0 top-0 bottom-0 z-50 w-64 overflow-y-auto p-4 lg:relative lg:shrink-0"
+              className="lg:hidden"
               style={{
-                background: "#1a1d27",
-                borderLeft: "1px solid rgba(255,255,255,0.06)",
+                position: "fixed",
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: "280px",
+                background: "white",
+                borderLeft: "2px solid #e7e5e4",
+                padding: "20px",
+                overflowY: "auto",
+                zIndex: 50,
               }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <p
-                  className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "#64748b" }}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "16px",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    color: "#57534e",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
                 >
-                  NAVIGASI SOAL
-                </p>
+                  Navigasi Soal
+                </h4>
                 <button
                   onClick={() => setShowNavPanel(false)}
-                  className="lg:hidden rounded p-1"
-                  style={{ color: "#64748b" }}
+                  style={{
+                    padding: "4px",
+                    color: "#57534e",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
                 >
                   <svg
-                    className="h-4 w-4"
-                    fill="none"
+                    width="20"
+                    height="20"
                     viewBox="0 0 24 24"
+                    fill="none"
                     stroke="currentColor"
+                    strokeWidth={2}
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
@@ -566,27 +888,45 @@ export default function ExamPage() {
               </div>
 
               {/* Question grid */}
-              <div className="grid grid-cols-5 gap-2">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(5, 1fr)",
+                  gap: "8px",
+                }}
+              >
                 {examData.questions.map((q, idx) => {
                   const isAnswered = answers.has(q.id);
                   const isCurrent = idx === currentIndex;
 
                   let btnStyle: React.CSSProperties = {
-                    background: "#22263a",
-                    color: "#94a3b8",
-                    border: "1px solid transparent",
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: "2px solid #e7e5e4",
+                    background: "white",
+                    color: "#1c1917",
                   };
+
                   if (isCurrent) {
                     btnStyle = {
-                      background: "#f59e0b",
-                      color: "#0f1117",
-                      border: "1px solid transparent",
+                      ...btnStyle,
+                      borderColor: "#2563eb",
+                      background: "#2563eb",
+                      color: "white",
                     };
                   } else if (isAnswered) {
                     btnStyle = {
-                      background: "rgba(16,185,129,0.20)",
-                      color: "#34d399",
-                      border: "1px solid rgba(16,185,129,0.30)",
+                      ...btnStyle,
+                      borderColor: "#22c55e",
+                      background: "#dcfce7",
+                      color: "#15803d",
                     };
                   }
 
@@ -597,7 +937,6 @@ export default function ExamPage() {
                         setCurrentIndex(idx);
                         setShowNavPanel(false);
                       }}
-                      className="h-10 w-full rounded-lg text-xs font-bold transition-opacity hover:opacity-80"
                       style={btnStyle}
                     >
                       {idx + 1}
@@ -607,89 +946,124 @@ export default function ExamPage() {
               </div>
 
               {/* Stats */}
-              <p className="mt-4 text-xs" style={{ color: "#64748b" }}>
+              <p
+                style={{
+                  marginTop: "16px",
+                  fontSize: "13px",
+                  color: "#57534e",
+                }}
+              >
                 Dijawab: {answeredCount} | Belum: {unansweredCount}
               </p>
-
-              {/* Submit button */}
-              <button
-                onClick={() => handleSubmit(false)}
-                disabled={submitting}
-                className="mt-3 w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-50"
-                style={{ background: "#f59e0b", color: "#0f1117" }}
-              >
-                {submitting ? "Mengirim..." : "Kumpulkan"}
-              </button>
             </aside>
           </>
         )}
       </div>
 
-      {/* ── BOTTOM BAR ───────────────────────────────────────────────────── */}
+      {/* ── BOTTOM NAV ───────────────────────────────────────────────────── */}
       <footer
-        className="h-14 flex items-center px-4 shrink-0"
         style={{
-          background: "#1a1d27",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "14px 24px",
+          background: "white",
+          borderTop: "2px solid #e7e5e4",
         }}
       >
-        <div className="mx-auto w-full max-w-2xl flex items-center justify-between">
-          {/* Prev */}
-          <button
-            onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-            disabled={currentIndex === 0}
-            className="flex items-center gap-1.5 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
-            style={{ color: "#cbd5e1" }}
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            Sebelumnya
-          </button>
+        {/* Prev button */}
+        <button
+          onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+          disabled={currentIndex === 0}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "10px 20px",
+            border: "2px solid #e7e5e4",
+            borderRadius: "8px",
+            fontSize: "14px",
+            fontWeight: 600,
+            color: "#57534e",
+            background: "white",
+            cursor: currentIndex === 0 ? "not-allowed" : "pointer",
+            opacity: currentIndex === 0 ? 0.4 : 1,
+          }}
+        >
+          ← Sebelumnya
+        </button>
 
-          {/* Submit */}
-          <button
-            onClick={() => handleSubmit(false)}
-            disabled={submitting}
-            className="rounded-xl px-6 py-2 text-sm font-bold disabled:opacity-50"
-            style={{ background: "#f59e0b", color: "#0f1117" }}
-          >
-            {submitting ? "Mengirim..." : "KUMPULKAN"}
-          </button>
+        {/* Mobile nav toggle */}
+        <button
+          className="lg:hidden"
+          onClick={() => setShowNavPanel(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            padding: "8px 12px",
+            border: "2px solid #e7e5e4",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "#57534e",
+            background: "white",
+            cursor: "pointer",
+          }}
+        >
+          📋 {currentIndex + 1}/{totalQuestions}
+        </button>
 
-          {/* Next */}
+        {/* Desktop counter */}
+        <span
+          className="hidden lg:block"
+          style={{ fontSize: "14px", fontWeight: 600, color: "#57534e" }}
+        >
+          {currentIndex + 1} / {totalQuestions}
+        </span>
+
+        {/* Right: Next + Submit */}
+        <div style={{ display: "flex", gap: "8px" }}>
           <button
             onClick={() =>
               setCurrentIndex((i) => Math.min(totalQuestions - 1, i + 1))
             }
             disabled={currentIndex === totalQuestions - 1}
-            className="flex items-center gap-1.5 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
-            style={{ color: "#cbd5e1" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "10px 20px",
+              border: "2px solid #e7e5e4",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: 600,
+              color: "#57534e",
+              background: "white",
+              cursor:
+                currentIndex === totalQuestions - 1 ? "not-allowed" : "pointer",
+              opacity: currentIndex === totalQuestions - 1 ? 0.4 : 1,
+            }}
           >
-            Selanjutnya
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+            Selanjutnya →
+          </button>
+          <button
+            onClick={() => handleSubmit(false)}
+            disabled={submitting}
+            style={{
+              padding: "10px 24px",
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: 700,
+              cursor: submitting ? "not-allowed" : "pointer",
+              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
+              opacity: submitting ? 0.5 : 1,
+            }}
+          >
+            {submitting ? "Mengirim..." : "Kumpulkan"}
           </button>
         </div>
       </footer>
@@ -697,57 +1071,89 @@ export default function ExamPage() {
       {/* ── SUBMIT MODAL ─────────────────────────────────────────────────── */}
       {showSubmitModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
-          style={{ background: "rgba(0,0,0,0.70)" }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 100,
+          }}
         >
           <div
-            className="w-full max-w-sm rounded-2xl p-6"
             style={{
-              background: "#1a1d27",
-              border: "1px solid rgba(255,255,255,0.10)",
+              width: "100%",
+              maxWidth: "400px",
+              background: "white",
+              borderRadius: "16px",
+              padding: "32px",
+              border: "2px solid #e7e5e4",
             }}
           >
             {/* Warning icon */}
-            <div className="text-center mb-4">
+            <div style={{ textAlign: "center", marginBottom: "16px" }}>
               <div
-                className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
-                style={{ background: "rgba(245,158,11,0.15)" }}
+                style={{
+                  margin: "0 auto 16px",
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "50%",
+                  background: "#fef3c7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
                 <svg
-                  className="h-6 w-6"
-                  style={{ color: "#f59e0b" }}
-                  fill="none"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  fill="none"
+                  stroke="#d97706"
+                  strokeWidth={2}
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
                     d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold" style={{ color: "#f8fafc" }}>
+              <h3
+                style={{
+                  fontSize: "18px",
+                  fontWeight: 700,
+                  color: "#1c1917",
+                  marginBottom: "8px",
+                }}
+              >
                 Konfirmasi Kumpulkan
               </h3>
-              <p className="mt-2 text-sm" style={{ color: "#94a3b8" }}>
+              <p style={{ fontSize: "14px", color: "#57534e" }}>
                 Masih ada{" "}
-                <span className="font-bold text-red-400">
+                <span style={{ fontWeight: 700, color: "#dc2626" }}>
                   {unansweredCount} soal
                 </span>{" "}
                 yang belum dijawab. Yakin ingin mengumpulkan?
               </p>
             </div>
 
-            <div className="flex gap-3">
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: "12px" }}>
               <button
                 onClick={() => setShowSubmitModal(false)}
-                className="flex-1 rounded-xl py-2.5 text-sm font-medium"
                 style={{
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  color: "#94a3b8",
-                  background: "transparent",
+                  flex: 1,
+                  padding: "12px",
+                  border: "2px solid #e7e5e4",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#57534e",
+                  background: "white",
+                  cursor: "pointer",
                 }}
               >
                 Kembali
@@ -755,8 +1161,18 @@ export default function ExamPage() {
               <button
                 onClick={() => handleSubmit(true)}
                 disabled={submitting}
-                className="flex-1 rounded-xl py-2.5 text-sm font-bold disabled:opacity-50"
-                style={{ background: "#f59e0b", color: "#0f1117" }}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "#2563eb",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  opacity: submitting ? 0.5 : 1,
+                }}
               >
                 {submitting ? "Mengirim..." : "Kumpulkan"}
               </button>
@@ -764,6 +1180,14 @@ export default function ExamPage() {
           </div>
         </div>
       )}
+
+      {/* Keyframe animation for save indicator */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 }
