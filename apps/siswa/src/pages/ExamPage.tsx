@@ -278,30 +278,29 @@ export default function ExamPage() {
     async (force = false) => {
       if (submitting) return;
 
-      if (!force && examData) {
-        const unanswered = examData.questions.filter((q) => !answers.has(q.id));
-        if (unanswered.length > 0) {
-          setShowSubmitModal(true);
-          return;
-        }
+      // Always show confirmation modal unless force=true
+      if (!force) {
+        setShowSubmitModal(true);
+        return;
       }
 
       setSubmitting(true);
       setShowSubmitModal(false);
 
       try {
-        const answerObj = Object.fromEntries(answers);
-        await api.post(`/siswa/exam-sessions/${sessionId}/submit`, {
-          answers: answerObj,
-        });
+        await api.post(`/siswa/exam-sessions/${sessionId}/submit`);
         await clearSessionCache(sessionId!);
         navigate(`/result/${sessionId}`);
-      } catch {
+      } catch (err: unknown) {
         setSubmitting(false);
-        setError("Gagal mengirim jawaban. Coba lagi.");
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        const message =
+          axiosErr.response?.data?.message ||
+          "Gagal mengirim jawaban. Coba lagi.";
+        setError(message);
       }
     },
-    [submitting, examData, answers, sessionId, navigate],
+    [submitting, sessionId, navigate],
   );
 
   function formatTimer(seconds: number): string {
@@ -1294,41 +1293,58 @@ export default function ExamPage() {
           <div
             style={{
               width: "100%",
-              maxWidth: "400px",
+              maxWidth: "420px",
               background: "white",
               borderRadius: "16px",
               padding: "32px",
               border: "2px solid #e7e5e4",
             }}
           >
-            {/* Warning icon */}
-            <div style={{ textAlign: "center", marginBottom: "16px" }}>
+            {/* Icon - different based on answered status */}
+            <div style={{ textAlign: "center", marginBottom: "20px" }}>
               <div
                 style={{
                   margin: "0 auto 16px",
-                  width: "48px",
-                  height: "48px",
+                  width: "56px",
+                  height: "56px",
                   borderRadius: "50%",
-                  background: "#fef3c7",
+                  background: unansweredCount > 0 ? "#fef3c7" : "#dcfce7",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#d97706"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
+                {unansweredCount > 0 ? (
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#d97706"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#16a34a"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
               </div>
               <h3
                 style={{
@@ -1338,16 +1354,107 @@ export default function ExamPage() {
                   marginBottom: "8px",
                 }}
               >
-                Konfirmasi Kumpulkan
+                Konfirmasi Kumpulkan Jawaban
               </h3>
-              <p style={{ fontSize: "14px", color: "#57534e" }}>
-                Masih ada{" "}
-                <span style={{ fontWeight: 700, color: "#dc2626" }}>
-                  {unansweredCount} soal
-                </span>{" "}
-                yang belum dijawab. Yakin ingin mengumpulkan?
-              </p>
             </div>
+
+            {/* Summary stats */}
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                marginBottom: "20px",
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  padding: "14px",
+                  background: "#f0fdf4",
+                  borderRadius: "10px",
+                  textAlign: "center",
+                  border: "1px solid #bbf7d0",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: 800,
+                    color: "#16a34a",
+                  }}
+                >
+                  {answeredCount}
+                </div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#15803d",
+                    fontWeight: 600,
+                  }}
+                >
+                  Dijawab
+                </div>
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  padding: "14px",
+                  background: unansweredCount > 0 ? "#fef2f2" : "#f5f5f4",
+                  borderRadius: "10px",
+                  textAlign: "center",
+                  border:
+                    unansweredCount > 0
+                      ? "1px solid #fecaca"
+                      : "1px solid #e7e5e4",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: 800,
+                    color: unansweredCount > 0 ? "#dc2626" : "#78716c",
+                  }}
+                >
+                  {unansweredCount}
+                </div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: unansweredCount > 0 ? "#b91c1c" : "#78716c",
+                    fontWeight: 600,
+                  }}
+                >
+                  Belum Dijawab
+                </div>
+              </div>
+            </div>
+
+            {/* Message */}
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#57534e",
+                textAlign: "center",
+                marginBottom: "24px",
+                lineHeight: 1.6,
+              }}
+            >
+              {unansweredCount > 0 ? (
+                <>
+                  Masih ada{" "}
+                  <span style={{ fontWeight: 700, color: "#dc2626" }}>
+                    {unansweredCount} soal
+                  </span>{" "}
+                  yang belum dijawab. Soal yang tidak dijawab akan dianggap
+                  kosong.
+                </>
+              ) : (
+                <>
+                  Semua soal sudah dijawab. Setelah dikumpulkan, jawaban{" "}
+                  <span style={{ fontWeight: 700 }}>tidak dapat diubah</span>.
+                </>
+              )}
+            </p>
 
             {/* Buttons */}
             <div style={{ display: "flex", gap: "12px" }}>
@@ -1355,9 +1462,9 @@ export default function ExamPage() {
                 onClick={() => setShowSubmitModal(false)}
                 style={{
                   flex: 1,
-                  padding: "12px",
+                  padding: "14px",
                   border: "2px solid #e7e5e4",
-                  borderRadius: "8px",
+                  borderRadius: "10px",
                   fontSize: "14px",
                   fontWeight: 600,
                   color: "#57534e",
@@ -1372,18 +1479,22 @@ export default function ExamPage() {
                 disabled={submitting}
                 style={{
                   flex: 1,
-                  padding: "12px",
-                  background: "#2563eb",
+                  padding: "14px",
+                  background: unansweredCount > 0 ? "#dc2626" : "#2563eb",
                   color: "white",
                   border: "none",
-                  borderRadius: "8px",
+                  borderRadius: "10px",
                   fontSize: "14px",
                   fontWeight: 700,
                   cursor: submitting ? "not-allowed" : "pointer",
                   opacity: submitting ? 0.5 : 1,
+                  boxShadow:
+                    unansweredCount > 0
+                      ? "0 4px 12px rgba(220, 38, 38, 0.3)"
+                      : "0 4px 12px rgba(37, 99, 235, 0.3)",
                 }}
               >
-                {submitting ? "Mengirim..." : "Kumpulkan"}
+                {submitting ? "Mengirim..." : "Ya, Kumpulkan"}
               </button>
             </div>
           </div>

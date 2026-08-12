@@ -349,10 +349,55 @@ export class ExamTakingService {
    * Submit the exam (manual submission by siswa).
    */
   async submitExam(siswaAccountId: string, sessionId: string) {
-    const participant = await this.getActiveParticipant(
-      siswaAccountId,
-      sessionId,
-    );
+    // Load session - allow submit even if session is completed
+    const sessions = await this.db
+      .select({ status: cbtExamSession.status })
+      .from(cbtExamSession)
+      .where(eq(cbtExamSession.id, sessionId))
+      .limit(1);
+
+    const session = sessions[0];
+    if (!session) {
+      throw new NotFoundException("Exam session not found");
+    }
+
+    // Allow submit if session is active OR completed (for late submissions)
+    if (!["active", "completed"].includes(session.status)) {
+      throw new BadRequestException(
+        `Cannot submit exam. Session status: ${session.status}`,
+      );
+    }
+
+    // Load participant
+    const participants = await this.db
+      .select()
+      .from(cbtExamParticipant)
+      .where(
+        and(
+          eq(cbtExamParticipant.examSessionId, sessionId),
+          eq(cbtExamParticipant.siswaAccountId, siswaAccountId),
+        ),
+      )
+      .limit(1);
+
+    const participant = participants[0];
+    if (!participant) {
+      throw new ForbiddenException("You are not assigned to this exam session");
+    }
+
+    // Check if already submitted
+    if (["submitted", "auto_submitted"].includes(participant.status)) {
+      throw new BadRequestException("You have already submitted this exam");
+    }
+
+    // Allow submit only if in_progress (or potentially disconnected/paused)
+    if (
+      !["in_progress", "disconnected", "paused"].includes(participant.status)
+    ) {
+      throw new BadRequestException(
+        `Cannot submit exam. Current status: ${participant.status}`,
+      );
+    }
 
     // Mark as submitted
     const now = new Date();
