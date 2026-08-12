@@ -12,21 +12,28 @@ import {
   clearSessionCache,
 } from "@/services/examCache";
 
+interface QuestionOption {
+  key: string;
+  text: string | null;
+  imageUrl: string | null;
+}
+
 interface Question {
   id: string;
-  questionText: string;
-  options: string[]; // ["A. ...", "B. ...", ...]
-  orderIndex: number;
+  nomor: number;
+  teksSoal: string;
+  gambarSoalUrl: string | null;
+  options: QuestionOption[];
 }
 
 interface ExamData {
   sessionId: string;
-  title: string;
-  subject: string;
-  duration: number; // total seconds
+  participantId: string;
+  durationMinutes: number;
   remainingSeconds: number;
+  totalQuestions: number;
   questions: Question[];
-  answers: Record<string, string>; // questionId -> answer
+  savedAnswers?: Record<string, string>;
 }
 
 export default function ExamPage() {
@@ -79,11 +86,12 @@ export default function ExamPage() {
     async function loadExam() {
       try {
         const res = await api.get(`/siswa/exam-sessions/${sessionId}/start`);
-        const data: ExamData = res.data;
+        const data = res.data;
         setExamData(data);
         setTimeRemaining(data.remainingSeconds);
 
-        const serverAnswers = new Map(Object.entries(data.answers || {}));
+        // Load saved answers from server or local cache
+        const serverAnswers = new Map(Object.entries(data.savedAnswers || {}));
         const localAnswers = await getSessionAnswers(sessionId!);
         const merged = new Map([...serverAnswers, ...localAnswers]);
         setAnswers(merged);
@@ -93,7 +101,10 @@ export default function ExamPage() {
         const axiosErr = err as {
           response?: { status?: number; data?: { message?: string } };
         };
-        if (axiosErr.response?.status === 401) return;
+        if (axiosErr.response?.status === 401) {
+          navigate("/");
+          return;
+        }
         setError(axiosErr.response?.data?.message || "Gagal memuat ujian.");
       } finally {
         setLoading(false);
@@ -101,7 +112,7 @@ export default function ExamPage() {
     }
 
     loadExam();
-  }, [sessionId]);
+  }, [sessionId, navigate]);
 
   // ── Sync unsynced answers on reconnect ────────────────────────────────────
   useEffect(() => {
@@ -247,17 +258,41 @@ export default function ExamPage() {
   }
 
   // ── Error ─────────────────────────────────────────────────────────────────
-  if (error && !examData) {
+  if (error || !examData) {
     return (
       <div
         className="flex min-h-screen items-center justify-center px-4"
         style={{ background: "#0f1117" }}
       >
-        <div className="text-center">
-          <p className="text-sm text-red-400">{error}</p>
+        <div className="text-center max-w-sm">
+          <div
+            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+            style={{ background: "rgba(239, 68, 68, 0.15)" }}
+          >
+            <svg
+              className="h-8 w-8"
+              style={{ color: "#ef4444" }}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold mb-2" style={{ color: "#f8fafc" }}>
+            Tidak Dapat Memuat Ujian
+          </h3>
+          <p className="text-sm mb-6" style={{ color: "#94a3b8" }}>
+            {error || "Ujian tidak ditemukan atau Anda tidak memiliki akses."}
+          </p>
           <button
             onClick={() => navigate("/exams")}
-            className="mt-4 rounded-xl px-5 py-2.5 text-sm font-bold"
+            className="rounded-xl px-6 py-2.5 text-sm font-bold"
             style={{ background: "#f59e0b", color: "#0f1117" }}
           >
             Kembali ke Daftar Ujian
@@ -266,8 +301,6 @@ export default function ExamPage() {
       </div>
     );
   }
-
-  if (!examData) return null;
 
   const currentQuestion = examData.questions[currentIndex];
   const totalQuestions = examData.questions.length;
@@ -287,10 +320,10 @@ export default function ExamPage() {
           borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}
       >
-        {/* Left: subject */}
+        {/* Left: question info */}
         <div className="flex-1 min-w-0">
           <span className="text-sm truncate" style={{ color: "#94a3b8" }}>
-            {examData.subject}
+            {totalQuestions} Soal
           </span>
         </div>
 
@@ -393,29 +426,34 @@ export default function ExamPage() {
             </p>
 
             {/* Question text */}
-            <p
+            <div
               className="mb-8 text-xl leading-relaxed"
               style={{
                 fontFamily: "'Instrument Serif', Georgia, serif",
                 color: "#f8fafc",
               }}
             >
-              {currentQuestion.questionText}
-            </p>
+              <p>{currentQuestion.teksSoal}</p>
+              {currentQuestion.gambarSoalUrl && (
+                <img
+                  src={currentQuestion.gambarSoalUrl}
+                  alt="Gambar Soal"
+                  className="mt-4 max-w-full rounded-lg"
+                  style={{ maxHeight: "300px" }}
+                />
+              )}
+            </div>
 
             {/* Options */}
             <div className="flex flex-col gap-3">
-              {currentQuestion.options.map((option, idx) => {
-                const optionLetter = String.fromCharCode(65 + idx);
+              {currentQuestion.options.map((option) => {
                 const isSelected =
-                  answers.get(currentQuestion.id) === optionLetter;
+                  answers.get(currentQuestion.id) === option.key;
 
                 return (
                   <button
-                    key={idx}
-                    onClick={() =>
-                      selectAnswer(currentQuestion.id, optionLetter)
-                    }
+                    key={option.key}
+                    onClick={() => selectAnswer(currentQuestion.id, option.key)}
                     className="w-full text-left rounded-xl px-5 py-4 transition-all"
                     style={
                       isSelected
@@ -454,14 +492,26 @@ export default function ExamPage() {
                             : { background: "#22263a", color: "#94a3b8" }
                         }
                       >
-                        {optionLetter}
+                        {option.key}
                       </span>
-                      <span
-                        className="text-sm leading-relaxed pt-0.5"
-                        style={{ color: "#e2e8f0" }}
-                      >
-                        {option}
-                      </span>
+                      <div className="flex-1">
+                        {option.text && (
+                          <span
+                            className="text-sm leading-relaxed"
+                            style={{ color: "#e2e8f0" }}
+                          >
+                            {option.text}
+                          </span>
+                        )}
+                        {option.imageUrl && (
+                          <img
+                            src={option.imageUrl}
+                            alt={`Opsi ${option.key}`}
+                            className="mt-2 max-w-full rounded-lg"
+                            style={{ maxHeight: "150px" }}
+                          />
+                        )}
+                      </div>
                     </div>
                   </button>
                 );
