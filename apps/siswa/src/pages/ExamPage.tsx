@@ -509,95 +509,102 @@ export default function ExamPage() {
             <div
               style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
-              {currentQuestion.options.map((option) => {
-                const isSelected =
-                  answers.get(currentQuestion.id) === option.key;
+              {currentQuestion.options
+                // Filter out empty options (no text and no image)
+                .filter((option) => option.text || option.imageUrl)
+                .map((option, displayIndex) => {
+                  const isSelected =
+                    answers.get(currentQuestion.id) === option.key;
+                  // Display sequential letters A, B, C, D, E based on position
+                  const displayLetter = String.fromCharCode(65 + displayIndex); // A=65, B=66, etc.
 
-                return (
-                  <button
-                    key={option.key}
-                    onClick={() => selectAnswer(currentQuestion.id, option.key)}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "14px",
-                      padding: "16px 18px",
-                      border: isSelected
-                        ? "2px solid #3b82f6"
-                        : "2px solid #e7e5e4",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                      background: isSelected ? "#eff6ff" : "white",
-                      boxShadow: isSelected
-                        ? "0 0 0 3px rgba(59, 130, 246, 0.1)"
-                        : "none",
-                      textAlign: "left",
-                      width: "100%",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        (
-                          e.currentTarget as HTMLButtonElement
-                        ).style.borderColor = "#93c5fd";
-                        (
-                          e.currentTarget as HTMLButtonElement
-                        ).style.background = "#eff6ff";
+                  return (
+                    <button
+                      key={option.key}
+                      onClick={() =>
+                        selectAnswer(currentQuestion.id, option.key)
                       }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        (
-                          e.currentTarget as HTMLButtonElement
-                        ).style.borderColor = "#e7e5e4";
-                        (
-                          e.currentTarget as HTMLButtonElement
-                        ).style.background = "white";
-                      }
-                    }}
-                  >
-                    {/* Letter badge */}
-                    <span
                       style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "14px",
-                        fontWeight: 700,
-                        border: isSelected ? "none" : "2px solid #e7e5e4",
-                        flexShrink: 0,
-                        background: isSelected ? "#2563eb" : "white",
-                        color: isSelected ? "white" : "#1c1917",
+                        alignItems: "flex-start",
+                        gap: "14px",
+                        padding: "16px 18px",
+                        border: isSelected
+                          ? "2px solid #3b82f6"
+                          : "2px solid #e7e5e4",
+                        borderRadius: "8px",
+                        cursor: "pointer",
                         transition: "all 0.15s",
+                        background: isSelected ? "#eff6ff" : "white",
+                        boxShadow: isSelected
+                          ? "0 0 0 3px rgba(59, 130, 246, 0.1)"
+                          : "none",
+                        textAlign: "left",
+                        width: "100%",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.borderColor = "#93c5fd";
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.background = "#eff6ff";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.borderColor = "#e7e5e4";
+                          (
+                            e.currentTarget as HTMLButtonElement
+                          ).style.background = "white";
+                        }
                       }}
                     >
-                      {option.key}
-                    </span>
-                    <div style={{ flex: 1, paddingTop: "4px" }}>
-                      {option.text && (
-                        <span style={{ fontSize: "15px", color: "#1c1917" }}>
-                          {option.text}
-                        </span>
-                      )}
-                      {option.imageUrl && (
-                        <img
-                          src={option.imageUrl}
-                          alt={`Opsi ${option.key}`}
-                          style={{
-                            marginTop: "8px",
-                            maxWidth: "100%",
-                            borderRadius: "8px",
-                            maxHeight: "150px",
-                          }}
-                        />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+                      {/* Letter badge - shows A, B, C, D, E in order regardless of shuffled key */}
+                      <span
+                        style={{
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "14px",
+                          fontWeight: 700,
+                          border: isSelected ? "none" : "2px solid #e7e5e4",
+                          flexShrink: 0,
+                          background: isSelected ? "#2563eb" : "white",
+                          color: isSelected ? "white" : "#1c1917",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {displayLetter}
+                      </span>
+                      <div style={{ flex: 1, paddingTop: "4px" }}>
+                        {option.text && (
+                          <span style={{ fontSize: "15px", color: "#1c1917" }}>
+                            {option.text}
+                          </span>
+                        )}
+                        {option.imageUrl && (
+                          <img
+                            src={option.imageUrl}
+                            alt={`Opsi ${displayLetter}`}
+                            style={{
+                              marginTop: "8px",
+                              maxWidth: "100%",
+                              borderRadius: "8px",
+                              maxHeight: "150px",
+                            }}
+                          />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
             </div>
           </div>
         </main>
