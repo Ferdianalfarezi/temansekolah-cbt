@@ -754,19 +754,21 @@ export default function ExamListPage() {
 
                         {/* Score or View button */}
                         <div className="flex items-center gap-2">
-                          {session.score && session.resultsReleased && (
-                            <span
-                              className="text-sm font-bold"
-                              style={{
-                                color:
-                                  session.score.percentage >= 70
-                                    ? "var(--emerald)"
-                                    : "var(--amber)",
-                              }}
-                            >
-                              {session.score.percentage.toFixed(0)}%
-                            </span>
-                          )}
+                          {session.score &&
+                            session.resultsReleased &&
+                            session.score.percentage != null && (
+                              <span
+                                className="text-sm font-bold"
+                                style={{
+                                  color:
+                                    session.score.percentage >= 70
+                                      ? "var(--emerald)"
+                                      : "var(--amber)",
+                                }}
+                              >
+                                {session.score.percentage.toFixed(0)}%
+                              </span>
+                            )}
                           <div style={{ color: "var(--text-light)" }}>
                             <Icons.ChevronRight />
                           </div>
