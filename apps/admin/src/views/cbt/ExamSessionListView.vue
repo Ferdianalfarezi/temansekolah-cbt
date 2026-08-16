@@ -171,189 +171,191 @@ onMounted(fetchSessions);
 
       <div
         v-else
-        class="overflow-hidden rounded-xl border border-gray-200 bg-white"
+        class="overflow-visible rounded-xl border border-gray-200 bg-white"
       >
-        <table class="min-w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Mapel
-              </th>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Kelas
-              </th>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Jadwal
-              </th>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Durasi
-              </th>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Status
-              </th>
-              <th
-                class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Aksi
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr
-              v-for="s in sessions"
-              :key="s.id"
-              class="hover:bg-gray-50/60 transition-colors"
-            >
-              <td class="px-4 py-3 text-sm text-gray-900 font-medium">
-                {{ s.mataPelajaranNama || "-" }}
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
-                {{ s.kelasNama || "-" }}
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
-                {{ new Date(s.scheduledAt).toLocaleString("id-ID") }}
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
-                {{ s.durationMinutes }} menit
-              </td>
-              <td class="px-4 py-3">
-                <!-- draft -->
-                <span
-                  v-if="s.status === 'draft'"
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600"
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                 >
-                  Draf
-                </span>
-                <!-- packaged -->
-                <span
-                  v-else-if="s.status === 'packaged'"
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700"
+                  Mapel
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                 >
-                  Siap Dijadwalkan
-                </span>
-                <!-- active -->
-                <span
-                  v-else-if="s.status === 'active'"
-                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700"
+                  Kelas
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                 >
+                  Jadwal
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                >
+                  Durasi
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500"
+                >
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr
+                v-for="s in sessions"
+                :key="s.id"
+                class="hover:bg-gray-50/60 transition-colors"
+              >
+                <td class="px-4 py-3 text-sm text-gray-900 font-medium">
+                  {{ s.mataPelajaranNama || "-" }}
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600">
+                  {{ s.kelasNama || "-" }}
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600">
+                  {{ new Date(s.scheduledAt).toLocaleString("id-ID") }}
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600">
+                  {{ s.durationMinutes }} menit
+                </td>
+                <td class="px-4 py-3">
+                  <!-- draft -->
                   <span
-                    class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"
-                  ></span>
-                  Sedang Berlangsung
-                </span>
-                <!-- completed -->
-                <span
-                  v-else-if="s.status === 'completed'"
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-500"
-                >
-                  Selesai
-                </span>
-                <!-- cancelled -->
-                <span
-                  v-else-if="s.status === 'cancelled'"
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-600"
-                >
-                  Dibatalkan
-                </span>
-                <span
-                  v-else
-                  :class="[
-                    'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
-                    statusBadgeClass(s.status),
-                  ]"
-                  >{{ s.status }}</span
-                >
-              </td>
-              <td class="px-4 py-3 text-right">
-                <div class="flex items-center justify-end gap-2">
-                  <ActionButton
                     v-if="s.status === 'draft'"
-                    variant="primary"
-                    icon="play"
-                    @click="handlePackage(s.id)"
+                    class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600"
                   >
-                    Persiapkan Ujian
-                  </ActionButton>
-                  <ActionButton
-                    v-if="s.status === 'packaged'"
-                    variant="danger"
-                    icon="x"
-                    @click="handleCancel(s.id)"
+                    Draf
+                  </span>
+                  <!-- packaged -->
+                  <span
+                    v-else-if="s.status === 'packaged'"
+                    class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700"
                   >
-                    Batalkan
-                  </ActionButton>
-                  <ActionButton
-                    v-if="s.status === 'completed' && !s.resultsReleased"
-                    variant="success"
-                    icon="check"
-                    @click="handleRelease(s.id)"
+                    Siap Dijadwalkan
+                  </span>
+                  <!-- active -->
+                  <span
+                    v-else-if="s.status === 'active'"
+                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700"
                   >
-                    Rilis Hasil
-                  </ActionButton>
-                  <!-- Export dropdown for completed sessions -->
-                  <div
-                    v-if="s.status === 'completed'"
-                    class="relative"
-                    data-export-menu
+                    <span
+                      class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"
+                    ></span>
+                    Sedang Berlangsung
+                  </span>
+                  <!-- completed -->
+                  <span
+                    v-else-if="s.status === 'completed'"
+                    class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-500"
                   >
+                    Selesai
+                  </span>
+                  <!-- cancelled -->
+                  <span
+                    v-else-if="s.status === 'cancelled'"
+                    class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-600"
+                  >
+                    Dibatalkan
+                  </span>
+                  <span
+                    v-else
+                    :class="[
+                      'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
+                      statusBadgeClass(s.status),
+                    ]"
+                    >{{ s.status }}</span
+                  >
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <div class="flex items-center justify-end gap-2">
                     <ActionButton
-                      variant="success"
-                      icon="download"
-                      :disabled="exportingId === s.id"
-                      @click="toggleExportMenu(s.id)"
+                      v-if="s.status === 'draft'"
+                      variant="primary"
+                      icon="play"
+                      @click="handlePackage(s.id)"
                     >
-                      <span v-if="exportingId === s.id">Mengekspor...</span>
-                      <span v-else>Ekspor</span>
+                      Persiapkan Ujian
                     </ActionButton>
-                    <!-- Export dropdown menu -->
-                    <div
-                      v-if="exportMenuOpenId === s.id"
-                      class="absolute right-0 z-10 mt-1 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                    <ActionButton
+                      v-if="s.status === 'packaged'"
+                      variant="danger"
+                      icon="x"
+                      @click="handleCancel(s.id)"
                     >
-                      <div class="py-1">
-                        <button
-                          class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          @click="handleExport(s.id, false)"
-                        >
-                          Ekspor Ringkasan
-                        </button>
-                        <button
-                          class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          @click="handleExport(s.id, true)"
-                        >
-                          Ekspor dengan Detail Jawaban
-                        </button>
+                      Batalkan
+                    </ActionButton>
+                    <ActionButton
+                      v-if="s.status === 'completed' && !s.resultsReleased"
+                      variant="success"
+                      icon="check"
+                      @click="handleRelease(s.id)"
+                    >
+                      Rilis Hasil
+                    </ActionButton>
+                    <!-- Export dropdown for completed sessions -->
+                    <div
+                      v-if="s.status === 'completed'"
+                      class="relative"
+                      data-export-menu
+                    >
+                      <ActionButton
+                        variant="success"
+                        icon="download"
+                        :disabled="exportingId === s.id"
+                        @click="toggleExportMenu(s.id)"
+                      >
+                        <span v-if="exportingId === s.id">Mengekspor...</span>
+                        <span v-else>Ekspor</span>
+                      </ActionButton>
+                      <!-- Export dropdown menu -->
+                      <div
+                        v-if="exportMenuOpenId === s.id"
+                        class="absolute right-0 z-50 mt-1 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                      >
+                        <div class="py-1">
+                          <button
+                            class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            @click="handleExport(s.id, false)"
+                          >
+                            Ekspor Ringkasan
+                          </button>
+                          <button
+                            class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            @click="handleExport(s.id, true)"
+                          >
+                            Ekspor dengan Detail Jawaban
+                          </button>
+                        </div>
                       </div>
                     </div>
+                    <ActionButton
+                      v-if="s.status === 'completed'"
+                      variant="primary"
+                      icon="view"
+                      @click="$router.push(`/cbt/report/${s.id}`)"
+                    >
+                      Laporan
+                    </ActionButton>
                   </div>
-                  <ActionButton
-                    v-if="s.status === 'completed'"
-                    variant="primary"
-                    icon="view"
-                    @click="$router.push(`/cbt/report/${s.id}`)"
-                  >
-                    Laporan
-                  </ActionButton>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="sessions.length === 0">
-              <td colspan="6" class="py-10 text-center text-sm text-gray-400">
-                Belum ada sesi ujian.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+              <tr v-if="sessions.length === 0">
+                <td colspan="6" class="py-10 text-center text-sm text-gray-400">
+                  Belum ada sesi ujian.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
