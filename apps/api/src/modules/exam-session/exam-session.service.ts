@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { and, eq, sql, SQL } from "drizzle-orm";
+import { and, eq, sql, SQL, inArray } from "drizzle-orm";
 
 import { DRIZZLE } from "../../drizzle/drizzle.module";
 import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
@@ -342,9 +342,7 @@ export class ExamSessionService {
               detectedAt: sql<string>`min(${cbtViolationEvent.detectedAt})`,
             })
             .from(cbtViolationEvent)
-            .where(
-              sql`${cbtViolationEvent.participantId} = ANY(${participantIds})`,
-            )
+            .where(inArray(cbtViolationEvent.participantId, participantIds))
             .groupBy(
               cbtViolationEvent.participantId,
               cbtViolationEvent.violationType,
