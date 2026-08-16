@@ -5,6 +5,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { SessionLifecycleProcessor } from "./session-lifecycle.processor";
 import { SchedulerService } from "./scheduler.service";
 import { SessionLifecycleCron } from "./session-lifecycle.cron";
+import { ProctorGatewayModule } from "../proctor-gateway/proctor-gateway.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SessionLifecycleCron } from "./session-lifecycle.cron";
     }),
     BullModule.registerQueue({ name: "session-lifecycle" }),
     ScheduleModule.forRoot(),
+    ProctorGatewayModule,
   ],
   providers: [
     SessionLifecycleProcessor,

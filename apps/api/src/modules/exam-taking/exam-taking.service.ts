@@ -20,6 +20,7 @@ import { cbtBankSoal } from "../../drizzle/schema/cbt-bank-soal";
 import { mataPelajaran } from "../../drizzle/schema/lms-tables";
 import { SchedulerService } from "../scheduler/scheduler.service";
 import { GradingService } from "../grading/grading.service";
+import { ProctorGateway } from "../proctor-gateway/proctor.gateway";
 
 /**
  * Randomization mapping stored per participant.
@@ -50,6 +51,7 @@ export class ExamTakingService {
     @Inject(DRIZZLE) private readonly db: NodePgDatabase,
     private readonly schedulerService: SchedulerService,
     private readonly gradingService: GradingService,
+    private readonly proctorGateway: ProctorGateway,
   ) {}
 
   /**
@@ -451,10 +453,12 @@ export class ExamTakingService {
     );
 
     // Trigger grading to calculate score
+    let scorePercentage: number | null = null;
     try {
       const gradingResult = await this.gradingService.gradeParticipant(
         participant.id,
       );
+      scorePercentage = gradingResult.scorePercentage;
       this.logger.log(
         `Grading completed for participant ${participant.id}: ${gradingResult.scoreCorrect}/${gradingResult.scoreTotal} (${gradingResult.scorePercentage}%)`,
       );
@@ -466,6 +470,13 @@ export class ExamTakingService {
       );
       // Don't throw - the submission is already saved, grading can be retried
     }
+
+    // Notify proctors of submission
+    this.proctorGateway.emitParticipantUpdate(sessionId, participant.id, {
+      status: "submitted",
+      submittedAt: now.toISOString(),
+      scorePercentage,
+    });
 
     return {
       status: "submitted",

@@ -46,16 +46,32 @@ function connectSocket() {
 
   socket.value = io(`${baseUrl}/proctor`, {
     auth: { token },
-    query: { sessionId },
+  });
+
+  // Join session room after connection
+  socket.value.on("connect", () => {
+    socket.value?.emit("join_session", { sessionId, token });
+  });
+
+  // Handle join confirmation
+  socket.value.on("join_session", (data: { success: boolean }) => {
+    if (data.success) {
+      console.log("Successfully joined proctor session:", sessionId);
+    }
+  });
+
+  // Handle errors from gateway
+  socket.value.on("error", (data: { message: string }) => {
+    error.value = data.message;
+    console.error("Proctor socket error:", data.message);
   });
 
   socket.value.on(
     "participant_update",
-    (data: Partial<ParticipantDashboardData>) => {
+    (data: Partial<ParticipantDashboardData> & { participantId?: string }) => {
       if (!dashboard.value) return;
-      const idx = dashboard.value.participants.findIndex(
-        (p) => p.id === data.id,
-      );
+      const id = data.participantId || data.id;
+      const idx = dashboard.value.participants.findIndex((p) => p.id === id);
       if (idx >= 0) {
         Object.assign(dashboard.value.participants[idx], data);
       }
@@ -105,6 +121,11 @@ function connectSocket() {
       (p) => p.id === data.participantId,
     );
     if (p) p.isEarlySubmission = true;
+  });
+
+  socket.value.on("session_completed", () => {
+    // Refresh dashboard when session completes
+    fetchDashboard();
   });
 }
 

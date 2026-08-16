@@ -10,6 +10,7 @@ import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtAnswerSnapshot } from "../../drizzle/schema/cbt-answer-snapshot";
 import { cbtAnswer } from "../../drizzle/schema/cbt-answer";
 import { GradingService } from "../grading/grading.service";
+import { ProctorGateway } from "../proctor-gateway/proctor.gateway";
 
 @Processor("session-lifecycle")
 export class SessionLifecycleProcessor {
@@ -18,6 +19,7 @@ export class SessionLifecycleProcessor {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzlePg.NodePgDatabase,
     private readonly gradingService: GradingService,
+    private readonly proctorGateway: ProctorGateway,
   ) {}
 
   /**
@@ -141,11 +143,12 @@ export class SessionLifecycleProcessor {
     }
 
     // Mark participant as auto_submitted
+    const submittedAt = new Date();
     await this.db
       .update(cbtExamParticipant)
       .set({
         status: "auto_submitted",
-        submittedAt: new Date(),
+        submittedAt,
         submissionType: "auto_timeout",
         remainingSeconds: 0,
       })
@@ -154,9 +157,11 @@ export class SessionLifecycleProcessor {
     this.logger.log(`Participant ${participantId} auto-submitted successfully`);
 
     // Trigger grading to calculate score
+    let scorePercentage: number | null = null;
     try {
       const gradingResult =
         await this.gradingService.gradeParticipant(participantId);
+      scorePercentage = gradingResult.scorePercentage;
       this.logger.log(
         `Grading completed for participant ${participantId}: ${gradingResult.scoreCorrect}/${gradingResult.scoreTotal} (${gradingResult.scorePercentage}%)`,
       );
@@ -168,6 +173,13 @@ export class SessionLifecycleProcessor {
       );
       // Don't throw - the submission is already saved, grading can be retried manually
     }
+
+    // Notify proctors of auto-submission
+    this.proctorGateway.emitParticipantUpdate(examSessionId, participantId, {
+      status: "auto_submitted",
+      submittedAt: submittedAt.toISOString(),
+      scorePercentage,
+    });
   }
 
   /**
