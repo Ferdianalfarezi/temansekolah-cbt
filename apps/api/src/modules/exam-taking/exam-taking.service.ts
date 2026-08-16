@@ -19,6 +19,7 @@ import { cbtAnswer } from "../../drizzle/schema/cbt-answer";
 import { cbtBankSoal } from "../../drizzle/schema/cbt-bank-soal";
 import { mataPelajaran } from "../../drizzle/schema/lms-tables";
 import { SchedulerService } from "../scheduler/scheduler.service";
+import { GradingService } from "../grading/grading.service";
 
 /**
  * Randomization mapping stored per participant.
@@ -48,6 +49,7 @@ export class ExamTakingService {
   constructor(
     @Inject(DRIZZLE) private readonly db: NodePgDatabase,
     private readonly schedulerService: SchedulerService,
+    private readonly gradingService: GradingService,
   ) {}
 
   /**
@@ -448,7 +450,22 @@ export class ExamTakingService {
       `Siswa ${siswaAccountId} manually submitted exam session ${sessionId}`,
     );
 
-    // TODO: Trigger grading (will integrate with Task 12 later)
+    // Trigger grading to calculate score
+    try {
+      const gradingResult = await this.gradingService.gradeParticipant(
+        participant.id,
+      );
+      this.logger.log(
+        `Grading completed for participant ${participant.id}: ${gradingResult.scoreCorrect}/${gradingResult.scoreTotal} (${gradingResult.scorePercentage}%)`,
+      );
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(
+        `Failed to grade participant ${participant.id}: ${error.message}`,
+        error.stack,
+      );
+      // Don't throw - the submission is already saved, grading can be retried
+    }
 
     return {
       status: "submitted",

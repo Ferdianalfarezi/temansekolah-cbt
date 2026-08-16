@@ -9,12 +9,16 @@ import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
 import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtAnswerSnapshot } from "../../drizzle/schema/cbt-answer-snapshot";
 import { cbtAnswer } from "../../drizzle/schema/cbt-answer";
+import { GradingService } from "../grading/grading.service";
 
 @Processor("session-lifecycle")
 export class SessionLifecycleProcessor {
   private readonly logger = new Logger(SessionLifecycleProcessor.name);
 
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzlePg.NodePgDatabase) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzlePg.NodePgDatabase,
+    private readonly gradingService: GradingService,
+  ) {}
 
   /**
    * Activate sessions whose scheduled_at time has arrived.
@@ -149,7 +153,21 @@ export class SessionLifecycleProcessor {
 
     this.logger.log(`Participant ${participantId} auto-submitted successfully`);
 
-    // TODO (Task 12): Trigger grading service
+    // Trigger grading to calculate score
+    try {
+      const gradingResult =
+        await this.gradingService.gradeParticipant(participantId);
+      this.logger.log(
+        `Grading completed for participant ${participantId}: ${gradingResult.scoreCorrect}/${gradingResult.scoreTotal} (${gradingResult.scorePercentage}%)`,
+      );
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(
+        `Failed to grade participant ${participantId}: ${error.message}`,
+        error.stack,
+      );
+      // Don't throw - the submission is already saved, grading can be retried manually
+    }
   }
 
   /**
