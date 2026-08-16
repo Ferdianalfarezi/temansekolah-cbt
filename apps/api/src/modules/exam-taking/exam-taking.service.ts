@@ -207,20 +207,34 @@ export class ExamTakingService {
       }
     }
 
-    // 5. Update participant to in_progress
+    // 5. Calculate remaining time based on exam end time
+    // Late students get reduced time based on how late they are
     const now = new Date();
+    const examEndTime = new Date(
+      session.scheduledAt.getTime() + session.durationMinutes * 60 * 1000,
+    );
+    const remainingMs = examEndTime.getTime() - now.getTime();
+    const remainingSeconds = Math.floor(remainingMs / 1000);
+
+    if (remainingSeconds <= 0) {
+      throw new BadRequestException(
+        "Waktu ujian sudah berakhir. Anda tidak dapat memulai ujian.",
+      );
+    }
+
+    // 6. Update participant to in_progress
     await this.db
       .update(cbtExamParticipant)
       .set({
         status: "in_progress",
         startedAt: now,
         randomizationMapping: mapping,
-        remainingSeconds: session.durationMinutes * 60,
+        remainingSeconds: remainingSeconds,
       })
       .where(eq(cbtExamParticipant.id, participant.id));
 
-    // 6. Schedule auto-submit
-    const timeoutMs = session.durationMinutes * 60 * 1000;
+    // 7. Schedule auto-submit based on actual remaining time (not full duration)
+    const timeoutMs = remainingSeconds * 1000;
     await this.schedulerService.scheduleAutoSubmit(
       participant.id,
       sessionId,
@@ -228,7 +242,7 @@ export class ExamTakingService {
     );
 
     this.logger.log(
-      `Siswa ${siswaAccountId} started exam session ${sessionId}`,
+      `Siswa ${siswaAccountId} started exam session ${sessionId} with ${remainingSeconds}s remaining (late by ${session.durationMinutes * 60 - remainingSeconds}s)`,
     );
 
     // 7. Return questions in randomized order (without jawaban_benar)
