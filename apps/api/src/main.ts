@@ -63,6 +63,7 @@ async function bootstrap() {
       ? allowedOrigins.split(",").map((o) => o.trim())
       : true,
     credentials: true,
+    exposedHeaders: ["Content-Disposition"],
   });
 
   const port = configService.get<number>("PORT", 5003);

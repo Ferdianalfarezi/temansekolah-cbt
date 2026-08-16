@@ -128,37 +128,10 @@ export function slugify(text: string): string {
 }
 
 /**
- * Formats a Date object as DD-Mon-YYYY string (e.g., "17-Aug-2026").
- *
- * @param date - Date to format
- * @returns Date formatted as DD-Mon-YYYY
- */
-export function formatDateReadable(date: Date): string {
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
-}
-
-/**
  * Generates a standardized export filename for exam results.
  *
- * Format: Ujian_{mata-pelajaran}_{kelas}_{tanggal}.xlsx
- * Example: Ujian_Matematika_7A_17-Aug-2026.xlsx
+ * Format: hasil-ujian_{mata-pelajaran}_{kelas}_{tanggal}.xlsx
+ * Example: hasil-ujian_matematika_7a_20250115.xlsx
  *
  * @param mapelName - Mata pelajaran name (subject name)
  * @param kelasName - Kelas name (class name)
@@ -172,9 +145,9 @@ export function generateFilename(
 ): string {
   const mapelSlug = slugify(mapelName);
   const kelasSlug = slugify(kelasName);
-  const dateStr = formatDateReadable(date);
+  const dateStr = formatDateYYYYMMDD(date);
 
-  return `Ujian_${mapelSlug}_${kelasSlug}_${dateStr}.xlsx`;
+  return `hasil-ujian_${mapelSlug}_${kelasSlug}_${dateStr}.xlsx`;
 }
 
 /**
@@ -682,8 +655,7 @@ export class ResultExportService {
   /**
    * Generates filename for bulk export.
    *
-   * Format: Ujian_{pelaksanaan-ujian-nama}_{tanggal-export}.xlsx
-   * Example: Ujian_UTS-Semester-1_17-Aug-2026.xlsx
+   * Format: hasil-ujian_{pelaksanaan-ujian-nama}_{tanggal-export}.xlsx
    *
    * @param puNama - Pelaksanaan Ujian name
    * @param exportDate - Date of export
@@ -693,8 +665,8 @@ export class ResultExportService {
    */
   private generateBulkExportFilename(puNama: string, exportDate: Date): string {
     const puSlug = slugify(puNama);
-    const dateStr = formatDateReadable(exportDate);
-    return `Ujian_${puSlug}_${dateStr}.xlsx`;
+    const dateStr = formatDateYYYYMMDD(exportDate);
+    return `hasil-ujian_${puSlug}_${dateStr}.xlsx`;
   }
 
   /**
