@@ -28,6 +28,9 @@ const completedSessionCounts = ref<Record<string, number>>({});
 const exportMenuOpenId = ref<string | null>(null);
 const exportingId = ref<string | null>(null);
 const exportError = ref("");
+const dropdownPositions = ref<Record<string, { top: number; left: number }>>(
+  {},
+);
 
 // Filter state
 const filterPeriode = ref<string>("");
@@ -112,12 +115,30 @@ function hasCompletedSessions(puId: string): boolean {
 }
 
 // Export menu handlers
-function toggleExportMenu(puId: string) {
+function toggleExportMenu(puId: string, event?: MouseEvent) {
   if (exportMenuOpenId.value === puId) {
     exportMenuOpenId.value = null;
   } else {
+    // Calculate position from button
+    if (event) {
+      const button = event.currentTarget as HTMLElement;
+      const rect = button.getBoundingClientRect();
+      dropdownPositions.value[puId] = {
+        top: rect.bottom + 4,
+        left: rect.right - 224, // 224px = w-56 (14rem)
+      };
+    }
     exportMenuOpenId.value = puId;
   }
+}
+
+function getDropdownPosition(puId: string) {
+  const pos = dropdownPositions.value[puId];
+  if (!pos) return {};
+  return {
+    top: `${pos.top}px`,
+    left: `${pos.left}px`,
+  };
 }
 
 function closeExportMenu() {
@@ -426,7 +447,7 @@ function getPeriodeLabel(value: string): string {
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr
-                v-for="(item, index) in items"
+                v-for="item in items"
                 :key="item.id"
                 class="hover:bg-gray-50/60 transition-colors"
               >
@@ -475,63 +496,61 @@ function getPeriodeLabel(value: string): string {
                         <ActionButton
                           variant="success"
                           icon="download"
-                          @click="toggleExportMenu(item.id)"
+                          @click="toggleExportMenu(item.id, $event)"
                         >
                           Export Semua
                         </ActionButton>
                       </template>
 
-                      <!-- Export dropdown menu - appears above for last 2 rows -->
-                      <div
-                        v-if="exportMenuOpenId === item.id"
-                        :class="[
-                          'absolute right-0 z-50 w-56 rounded-lg border border-gray-200 bg-white shadow-lg',
-                          index >= items.length - 2
-                            ? 'bottom-full mb-1'
-                            : 'top-full mt-1',
-                        ]"
-                      >
-                        <div class="py-1">
-                          <button
-                            class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                            @click="handleExport(item.id, false)"
-                          >
-                            <svg
-                              class="h-4 w-4 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
+                      <!-- Export dropdown menu -->
+                      <Teleport to="body">
+                        <div
+                          v-if="exportMenuOpenId === item.id"
+                          class="fixed z-9999 w-56 rounded-lg border border-gray-200 bg-white shadow-lg"
+                          :style="getDropdownPosition(item.id)"
+                        >
+                          <div class="py-1">
+                            <button
+                              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                              @click="handleExport(item.id, false)"
                             >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                            Export Ringkasan
-                          </button>
-                          <button
-                            class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                            @click="handleExport(item.id, true)"
-                          >
-                            <svg
-                              class="h-4 w-4 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
+                              <svg
+                                class="h-4 w-4 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                              Export Ringkasan
+                            </button>
+                            <button
+                              class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                              @click="handleExport(item.id, true)"
                             >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                              />
-                            </svg>
-                            Export dengan Detail Jawaban
-                          </button>
+                              <svg
+                                class="h-4 w-4 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                                />
+                              </svg>
+                              Export dengan Detail Jawaban
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      </Teleport>
                     </div>
 
                     <!-- Deactivate button -->

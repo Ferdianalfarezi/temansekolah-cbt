@@ -19,6 +19,9 @@ const statusFilter = ref<ExamSessionStatus | "">("");
 // Export menu state
 const exportMenuOpenId = ref<string | null>(null);
 const exportingId = ref<string | null>(null);
+const dropdownPositions = ref<Record<string, { top: number; left: number }>>(
+  {},
+);
 
 // Close dropdown when clicking outside
 function handleClickOutside(event: MouseEvent) {
@@ -103,12 +106,30 @@ function statusBadgeClass(status: ExamSessionStatus) {
 }
 
 // Export menu handlers
-function toggleExportMenu(sessionId: string) {
+function toggleExportMenu(sessionId: string, event?: MouseEvent) {
   if (exportMenuOpenId.value === sessionId) {
     exportMenuOpenId.value = null;
   } else {
+    // Calculate position from button
+    if (event) {
+      const button = event.currentTarget as HTMLElement;
+      const rect = button.getBoundingClientRect();
+      dropdownPositions.value[sessionId] = {
+        top: rect.bottom + 4,
+        left: rect.right - 224, // 224px = w-56 (14rem)
+      };
+    }
     exportMenuOpenId.value = sessionId;
   }
+}
+
+function getDropdownPosition(sessionId: string) {
+  const pos = dropdownPositions.value[sessionId];
+  if (!pos) return {};
+  return {
+    top: `${pos.top}px`,
+    left: `${pos.left}px`,
+  };
 }
 
 async function handleExport(sessionId: string, detail: boolean) {
@@ -211,7 +232,7 @@ onMounted(fetchSessions);
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr
-                v-for="(s, index) in sessions"
+                v-for="s in sessions"
                 :key="s.id"
                 class="hover:bg-gray-50/60 transition-colors"
               >
@@ -311,36 +332,34 @@ onMounted(fetchSessions);
                         variant="success"
                         icon="download"
                         :disabled="exportingId === s.id"
-                        @click="toggleExportMenu(s.id)"
+                        @click="toggleExportMenu(s.id, $event)"
                       >
                         <span v-if="exportingId === s.id">Mengekspor...</span>
                         <span v-else>Ekspor</span>
                       </ActionButton>
-                      <!-- Export dropdown menu - appears above for last 2 rows -->
-                      <div
-                        v-if="exportMenuOpenId === s.id"
-                        :class="[
-                          'absolute right-0 z-50 w-56 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none',
-                          index >= sessions.length - 2
-                            ? 'bottom-full mb-1'
-                            : 'top-full mt-1',
-                        ]"
-                      >
-                        <div class="py-1">
-                          <button
-                            class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                            @click="handleExport(s.id, false)"
-                          >
-                            Ekspor Ringkasan
-                          </button>
-                          <button
-                            class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                            @click="handleExport(s.id, true)"
-                          >
-                            Ekspor dengan Detail Jawaban
-                          </button>
+                      <!-- Export dropdown menu - teleported to body for proper z-index -->
+                      <Teleport to="body">
+                        <div
+                          v-if="exportMenuOpenId === s.id"
+                          class="fixed z-9999 w-56 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                          :style="getDropdownPosition(s.id)"
+                        >
+                          <div class="py-1">
+                            <button
+                              class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              @click="handleExport(s.id, false)"
+                            >
+                              Ekspor Ringkasan
+                            </button>
+                            <button
+                              class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              @click="handleExport(s.id, true)"
+                            >
+                              Ekspor dengan Detail Jawaban
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      </Teleport>
                     </div>
                     <ActionButton
                       v-if="s.status === 'completed'"
