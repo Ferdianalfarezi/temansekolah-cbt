@@ -14,6 +14,7 @@ import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtSiswaAccount } from "../../drizzle/schema/cbt-siswa-account";
 import { cbtViolationEvent } from "../../drizzle/schema/cbt-violation-event";
 import { cbtProctorAction } from "../../drizzle/schema/cbt-proctor-action";
+import { siswa } from "../../drizzle/schema/lms-tables";
 import { ExamGateway } from "../proctor-gateway/exam.gateway";
 import { HeartbeatService } from "../proctor-gateway/heartbeat.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
@@ -82,18 +83,29 @@ export class ProctorService {
    * Get the proctor dashboard for a session — all participants with status,
    * violation count, connection status, and flagged state.
    */
-  async getDashboard(
-    tenantId: string,
-    sessionId: string,
-  ): Promise<DashboardParticipant[]> {
-    // Validate session belongs to tenant
-    await this.validateSessionAccess(tenantId, sessionId);
+  async getDashboard(tenantId: string, sessionId: string) {
+    // Validate session belongs to tenant and get session details
+    const [session] = await this.db
+      .select()
+      .from(cbtExamSession)
+      .where(
+        and(
+          eq(cbtExamSession.id, sessionId),
+          eq(cbtExamSession.tenantId, tenantId),
+        ),
+      )
+      .limit(1);
 
-    // Get all participants with siswa account info
+    if (!session) {
+      throw new NotFoundException("Exam session not found");
+    }
+
+    // Get all participants with siswa account info and siswa name
     const participants = await this.db
       .select({
         id: cbtExamParticipant.id,
         siswaAccountId: cbtExamParticipant.siswaAccountId,
+        namaSiswa: siswa.nama,
         nisn: cbtSiswaAccount.nisn,
         status: cbtExamParticipant.status,
         startedAt: cbtExamParticipant.startedAt,
@@ -103,12 +115,14 @@ export class ProctorService {
         violationCount: cbtExamParticipant.violationCount,
         isFlaggedCheating: cbtExamParticipant.isFlaggedCheating,
         isEarlySubmission: cbtExamParticipant.isEarlySubmission,
+        scorePercentage: cbtExamParticipant.scorePercentage,
       })
       .from(cbtExamParticipant)
       .innerJoin(
         cbtSiswaAccount,
         eq(cbtExamParticipant.siswaAccountId, cbtSiswaAccount.id),
       )
+      .innerJoin(siswa, eq(cbtSiswaAccount.siswaId, siswa.id))
       .where(eq(cbtExamParticipant.examSessionId, sessionId));
 
     // Get connected client list for this session
@@ -118,9 +132,11 @@ export class ProctorService {
       connectedParticipantIds.add(entry.participantId);
     }
 
-    return participants.map((p) => ({
+    // Map participants with connection status
+    const participantData = participants.map((p) => ({
       id: p.id,
       siswaAccountId: p.siswaAccountId,
+      namaSiswa: p.namaSiswa,
       nisn: p.nisn,
       status: p.status,
       startedAt: p.startedAt?.toISOString() ?? null,
@@ -131,7 +147,35 @@ export class ProctorService {
       isFlaggedCheating: p.isFlaggedCheating,
       isEarlySubmission: p.isEarlySubmission,
       isConnected: connectedParticipantIds.has(p.id),
+      scorePercentage: p.scorePercentage ? Number(p.scorePercentage) : null,
     }));
+
+    // Calculate stats
+    const stats = {
+      total: participantData.length,
+      inProgress: participantData.filter((p) => p.status === "in_progress")
+        .length,
+      submitted: participantData.filter((p) =>
+        ["submitted", "auto_submitted"].includes(p.status),
+      ).length,
+      disconnected: participantData.filter((p) => p.status === "disconnected")
+        .length,
+      flagged: participantData.filter((p) => p.isFlaggedCheating).length,
+    };
+
+    return {
+      session: {
+        id: session.id,
+        status: session.status,
+        scheduledAt: session.scheduledAt.toISOString(),
+        durationMinutes: session.durationMinutes,
+        mataPelajaranId: session.mataPelajaranId,
+        kelasId: session.kelasId,
+        bankSoalId: session.bankSoalId,
+      },
+      participants: participantData,
+      stats,
+    };
   }
 
   /**

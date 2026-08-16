@@ -22,7 +22,7 @@ import {
 
 @Controller("proctor/sessions")
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
-@Roles(CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
+@Roles(CbtRole.SUPERADMIN, CbtRole.ADMIN_SEKOLAH, CbtRole.GURU)
 export class ProctorController {
   constructor(private readonly proctorService: ProctorService) {}
 
