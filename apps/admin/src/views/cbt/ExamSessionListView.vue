@@ -314,6 +314,15 @@ onMounted(fetchSessions);
                     >
                       Batalkan
                     </ActionButton>
+                    <!-- Proctor Dashboard button for active sessions -->
+                    <ActionButton
+                      v-if="s.status === 'active'"
+                      variant="primary"
+                      icon="view"
+                      @click="$router.push(`/cbt/proctor/${s.id}`)"
+                    >
+                      Awasi
+                    </ActionButton>
                     <ActionButton
                       v-if="s.status === 'completed' && !s.resultsReleased"
                       variant="success"
