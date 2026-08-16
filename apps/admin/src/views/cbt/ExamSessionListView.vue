@@ -211,7 +211,7 @@ onMounted(fetchSessions);
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr
-                v-for="s in sessions"
+                v-for="(s, index) in sessions"
                 :key="s.id"
                 class="hover:bg-gray-50/60 transition-colors"
               >
@@ -316,10 +316,15 @@ onMounted(fetchSessions);
                         <span v-if="exportingId === s.id">Mengekspor...</span>
                         <span v-else>Ekspor</span>
                       </ActionButton>
-                      <!-- Export dropdown menu -->
+                      <!-- Export dropdown menu - appears above for last 2 rows -->
                       <div
                         v-if="exportMenuOpenId === s.id"
-                        class="absolute right-0 z-50 mt-1 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                        :class="[
+                          'absolute right-0 z-50 w-56 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none',
+                          index >= sessions.length - 2
+                            ? 'bottom-full mb-1'
+                            : 'top-full mt-1',
+                        ]"
                       >
                         <div class="py-1">
                           <button

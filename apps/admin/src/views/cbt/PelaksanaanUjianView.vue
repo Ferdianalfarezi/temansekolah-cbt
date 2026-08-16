@@ -426,7 +426,7 @@ function getPeriodeLabel(value: string): string {
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr
-                v-for="item in items"
+                v-for="(item, index) in items"
                 :key="item.id"
                 class="hover:bg-gray-50/60 transition-colors"
               >
@@ -481,10 +481,15 @@ function getPeriodeLabel(value: string): string {
                         </ActionButton>
                       </template>
 
-                      <!-- Export dropdown menu -->
+                      <!-- Export dropdown menu - appears above for last 2 rows -->
                       <div
                         v-if="exportMenuOpenId === item.id"
-                        class="absolute right-0 z-50 mt-1 w-56 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg"
+                        :class="[
+                          'absolute right-0 z-50 w-56 rounded-lg border border-gray-200 bg-white shadow-lg',
+                          index >= items.length - 2
+                            ? 'bottom-full mb-1'
+                            : 'top-full mt-1',
+                        ]"
                       >
                         <div class="py-1">
                           <button
