@@ -86,4 +86,23 @@ export class ExamTakingController {
   ) {
     return this.examTakingService.getResult(siswaAccountId, sessionId);
   }
+
+  /**
+   * POST /api/siswa/exam-sessions/:id/violations
+   * Record a violation event detected by anti-cheat.
+   */
+  @Post(":id/violations")
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  async recordViolation(
+    @CurrentUser("siswaAccountId") siswaAccountId: string,
+    @Param("id", ParseUUIDPipe) sessionId: string,
+    @Body() dto: { type: string; durationMs?: number; timestamp?: string },
+  ) {
+    return this.examTakingService.recordViolation(
+      siswaAccountId,
+      sessionId,
+      dto.type,
+      dto.durationMs,
+    );
+  }
 }

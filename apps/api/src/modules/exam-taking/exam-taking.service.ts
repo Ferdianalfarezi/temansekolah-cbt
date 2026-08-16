@@ -784,4 +784,78 @@ export class ExamTakingService {
 
     return options;
   }
+
+  /**
+   * Record a violation event from anti-cheat.
+   */
+  async recordViolation(
+    siswaAccountId: string,
+    sessionId: string,
+    violationType: string,
+    durationMs?: number,
+  ) {
+    // Validate violation type
+    const validTypes = [
+      "tab_switch",
+      "focus_loss",
+      "fullscreen_exit",
+      "multiple_login",
+    ];
+    if (!validTypes.includes(violationType)) {
+      throw new BadRequestException(`Invalid violation type: ${violationType}`);
+    }
+
+    // Load participant (must be in_progress)
+    const participants = await this.db
+      .select({
+        id: cbtExamParticipant.id,
+        status: cbtExamParticipant.status,
+        violationCount: cbtExamParticipant.violationCount,
+      })
+      .from(cbtExamParticipant)
+      .where(
+        and(
+          eq(cbtExamParticipant.examSessionId, sessionId),
+          eq(cbtExamParticipant.siswaAccountId, siswaAccountId),
+        ),
+      )
+      .limit(1);
+
+    const participant = participants[0];
+    if (!participant) {
+      throw new ForbiddenException("You are not assigned to this exam session");
+    }
+
+    // Only record violations for in_progress participants
+    if (participant.status !== "in_progress") {
+      return { recorded: false, reason: "Participant not in progress" };
+    }
+
+    // Insert violation event
+    await this.db.execute(sql`
+      INSERT INTO cbt_violation_event (participant_id, violation_type, duration_ms, detected_at)
+      VALUES (${participant.id}, ${violationType}, ${durationMs ?? null}, NOW())
+    `);
+
+    // Increment violation count on participant
+    const newCount = (participant.violationCount || 0) + 1;
+    await this.db
+      .update(cbtExamParticipant)
+      .set({
+        violationCount: newCount,
+        isFlaggedCheating: newCount >= 3, // Flag if 3+ violations
+      })
+      .where(eq(cbtExamParticipant.id, participant.id));
+
+    this.logger.log(
+      `Violation recorded for participant ${participant.id}: ${violationType} (count: ${newCount})`,
+    );
+
+    return {
+      recorded: true,
+      violationType,
+      totalViolations: newCount,
+      isFlagged: newCount >= 3,
+    };
+  }
 }
