@@ -717,12 +717,11 @@ export default function ExamListPage() {
                   {completedSessions.map((session) => (
                     <div
                       key={session.sessionId}
-                      className="card-hover rounded-xl p-4 cursor-pointer"
+                      className="rounded-xl p-4"
                       style={{
                         background: "var(--surface)",
                         border: "1px solid var(--border)",
                       }}
-                      onClick={() => navigate(`/result/${session.sessionId}`)}
                     >
                       <div className="flex items-center gap-3">
                         {/* Icon */}
@@ -733,7 +732,7 @@ export default function ExamListPage() {
                             color: "var(--text-muted)",
                           }}
                         >
-                          <Icons.Trophy />
+                          <Icons.Book />
                         </div>
 
                         {/* Content */}
@@ -752,27 +751,16 @@ export default function ExamListPage() {
                           </p>
                         </div>
 
-                        {/* Score or View button */}
-                        <div className="flex items-center gap-2">
-                          {session.score &&
-                            session.resultsReleased &&
-                            session.score.percentage != null && (
-                              <span
-                                className="text-sm font-bold"
-                                style={{
-                                  color:
-                                    session.score.percentage >= 70
-                                      ? "var(--emerald)"
-                                      : "var(--amber)",
-                                }}
-                              >
-                                {session.score.percentage.toFixed(0)}%
-                              </span>
-                            )}
-                          <div style={{ color: "var(--text-light)" }}>
-                            <Icons.ChevronRight />
-                          </div>
-                        </div>
+                        {/* Completed badge */}
+                        <span
+                          className="shrink-0 text-xs font-medium px-2 py-1 rounded-lg"
+                          style={{
+                            background: "var(--bg-secondary)",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          Selesai
+                        </span>
                       </div>
                     </div>
                   ))}
