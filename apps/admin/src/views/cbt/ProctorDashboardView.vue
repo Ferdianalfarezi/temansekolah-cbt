@@ -41,11 +41,15 @@ async function fetchDashboard() {
 }
 
 function connectSocket() {
-  const baseUrl = import.meta.env.VITE_API_URL || "";
+  // Socket.IO needs the base server URL without the /api/v1 path
+  let baseUrl = import.meta.env.VITE_API_URL || "";
+  // Remove /api/v1 suffix if present (Socket.IO namespaces are at root level)
+  baseUrl = baseUrl.replace(/\/api\/v\d+$/, "");
   const token = localStorage.getItem("token");
 
   socket.value = io(`${baseUrl}/proctor`, {
     auth: { token },
+    transports: ["websocket", "polling"],
   });
 
   // Join session room after connection
