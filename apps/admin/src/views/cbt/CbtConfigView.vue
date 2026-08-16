@@ -9,7 +9,6 @@ const error = ref("");
 const success = ref("");
 
 const form = ref({
-  timezone: "Asia/Jakarta",
   defaultAntiCheatLevel: "standard",
   earlySubmissionThresholdPct: 20,
   defaultResultDetailLevel: "score_only",
@@ -22,7 +21,6 @@ async function fetchConfig() {
     const res = await getCbtConfig();
     config.value = res.data;
     form.value = {
-      timezone: res.data.timezone,
       defaultAntiCheatLevel: res.data.defaultAntiCheatLevel,
       earlySubmissionThresholdPct: res.data.earlySubmissionThresholdPct,
       defaultResultDetailLevel: res.data.defaultResultDetailLevel,
@@ -82,35 +80,7 @@ onMounted(fetchConfig);
       </div>
 
       <form v-else class="space-y-4" @submit.prevent="handleSave">
-        <!-- Card 1: Zona Waktu -->
-        <div class="rounded-xl border border-gray-200 bg-white p-5">
-          <h2 class="text-sm font-semibold text-gray-700 mb-3">Zona Waktu</h2>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1"
-              >Timezone</label
-            >
-            <select
-              v-model="form.timezone"
-              class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-            >
-              <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
-              <option value="Asia/Makassar">Asia/Makassar (WITA)</option>
-              <option value="Asia/Jayapura">Asia/Jayapura (WIT)</option>
-            </select>
-          </div>
-          <div class="mt-4">
-            <button
-              type="button"
-              :disabled="saving"
-              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-              @click="handleSave"
-            >
-              {{ saving ? "Menyimpan..." : "Simpan" }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Card 2: Anti-Cheat -->
+        <!-- Card 1: Anti-Cheat -->
         <div class="rounded-xl border border-gray-200 bg-white p-5">
           <h2 class="text-sm font-semibold text-gray-700 mb-3">Anti-Cheat</h2>
           <div>
@@ -141,7 +111,7 @@ onMounted(fetchConfig);
           </div>
         </div>
 
-        <!-- Card 3: Hasil Ujian -->
+        <!-- Card 2: Hasil Ujian -->
         <div class="rounded-xl border border-gray-200 bg-white p-5">
           <h2 class="text-sm font-semibold text-gray-700 mb-3">Hasil Ujian</h2>
           <div class="space-y-4">
