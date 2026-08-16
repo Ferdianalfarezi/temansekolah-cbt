@@ -391,162 +391,164 @@ function getPeriodeLabel(value: string): string {
       <!-- Table -->
       <div
         v-else
-        class="overflow-hidden rounded-xl border border-gray-200 bg-white"
+        class="overflow-visible rounded-xl border border-gray-200 bg-white"
       >
-        <table class="min-w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Nama
-              </th>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Periode
-              </th>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Status
-              </th>
-              <th
-                class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Dibuat
-              </th>
-              <th
-                class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Aksi
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr
-              v-for="item in items"
-              :key="item.id"
-              class="hover:bg-gray-50/60 transition-colors"
-            >
-              <td class="px-4 py-3 text-sm text-gray-900 font-medium">
-                {{ item.nama }}
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
-                {{ getPeriodeLabel(item.periodeRapor) }}
-              </td>
-              <td class="px-4 py-3">
-                <span
-                  :class="[
-                    'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
-                    item.isActive
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-gray-100 text-gray-500',
-                  ]"
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                 >
-                  {{ item.isActive ? "Aktif" : "Nonaktif" }}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
-                {{ new Date(item.createdAt).toLocaleDateString("id-ID") }}
-              </td>
-              <td class="px-4 py-3 text-right">
-                <div class="flex items-center justify-end gap-2">
-                  <!-- Export button - only show when completed sessions exist -->
-                  <div
-                    v-if="hasCompletedSessions(item.id)"
-                    class="relative"
-                    data-export-menu
+                  Nama
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                >
+                  Periode
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
+                >
+                  Dibuat
+                </th>
+                <th
+                  class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500"
+                >
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr
+                v-for="item in items"
+                :key="item.id"
+                class="hover:bg-gray-50/60 transition-colors"
+              >
+                <td class="px-4 py-3 text-sm text-gray-900 font-medium">
+                  {{ item.nama }}
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600">
+                  {{ getPeriodeLabel(item.periodeRapor) }}
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    :class="[
+                      'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
+                      item.isActive
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-gray-100 text-gray-500',
+                    ]"
                   >
-                    <!-- Export loading indicator -->
+                    {{ item.isActive ? "Aktif" : "Nonaktif" }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600">
+                  {{ new Date(item.createdAt).toLocaleDateString("id-ID") }}
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <!-- Export button - only show when completed sessions exist -->
                     <div
-                      v-if="exportingId === item.id"
-                      class="flex items-center gap-2 text-sm text-gray-500"
+                      v-if="hasCompletedSessions(item.id)"
+                      class="relative"
+                      data-export-menu
                     >
+                      <!-- Export loading indicator -->
                       <div
-                        class="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent"
-                      ></div>
-                      <span>Mengekspor...</span>
-                    </div>
-
-                    <!-- Export dropdown button -->
-                    <template v-else>
-                      <ActionButton
-                        variant="success"
-                        icon="download"
-                        @click="toggleExportMenu(item.id)"
+                        v-if="exportingId === item.id"
+                        class="flex items-center gap-2 text-sm text-gray-500"
                       >
-                        Export Semua
-                      </ActionButton>
-                    </template>
+                        <div
+                          class="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent"
+                        ></div>
+                        <span>Mengekspor...</span>
+                      </div>
 
-                    <!-- Export dropdown menu -->
-                    <div
-                      v-if="exportMenuOpenId === item.id"
-                      class="absolute right-0 z-10 mt-1 w-56 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg"
-                    >
-                      <div class="py-1">
-                        <button
-                          class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                          @click="handleExport(item.id, false)"
+                      <!-- Export dropdown button -->
+                      <template v-else>
+                        <ActionButton
+                          variant="success"
+                          icon="download"
+                          @click="toggleExportMenu(item.id)"
                         >
-                          <svg
-                            class="h-4 w-4 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            viewBox="0 0 24 24"
+                          Export Semua
+                        </ActionButton>
+                      </template>
+
+                      <!-- Export dropdown menu -->
+                      <div
+                        v-if="exportMenuOpenId === item.id"
+                        class="absolute right-0 z-50 mt-1 w-56 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg"
+                      >
+                        <div class="py-1">
+                          <button
+                            class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                            @click="handleExport(item.id, false)"
                           >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                          </svg>
-                          Export Ringkasan
-                        </button>
-                        <button
-                          class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                          @click="handleExport(item.id, true)"
-                        >
-                          <svg
-                            class="h-4 w-4 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            viewBox="0 0 24 24"
+                            <svg
+                              class="h-4 w-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            Export Ringkasan
+                          </button>
+                          <button
+                            class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                            @click="handleExport(item.id, true)"
                           >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                            />
-                          </svg>
-                          Export dengan Detail Jawaban
-                        </button>
+                            <svg
+                              class="h-4 w-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                              />
+                            </svg>
+                            Export dengan Detail Jawaban
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <!-- Deactivate button -->
-                  <ActionButton
-                    v-if="item.isActive"
-                    variant="danger"
-                    icon="x"
-                    @click="handleDeactivate(item.id)"
-                  >
-                    Nonaktifkan
-                  </ActionButton>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="items.length === 0">
-              <td colspan="5" class="py-10 text-center text-sm text-gray-400">
-                Belum ada pelaksanaan ujian.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                    <!-- Deactivate button -->
+                    <ActionButton
+                      v-if="item.isActive"
+                      variant="danger"
+                      icon="x"
+                      @click="handleDeactivate(item.id)"
+                    >
+                      Nonaktifkan
+                    </ActionButton>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="items.length === 0">
+                <td colspan="5" class="py-10 text-center text-sm text-gray-400">
+                  Belum ada pelaksanaan ujian.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
