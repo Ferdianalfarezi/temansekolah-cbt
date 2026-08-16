@@ -35,126 +35,148 @@ export class ExamSessionLifecycleService {
    * 5. Transition Draft → Packaged
    */
   async package(tenantId: string, sessionId: string) {
-    const session = await this.examSessionService.getSessionOrFail(
-      tenantId,
-      sessionId,
-    );
-
-    // Validate state: must be draft
-    if (session.status !== "draft") {
-      throw new ConflictException(
-        "Hanya sesi ujian berstatus draft yang dapat di-package",
-      );
-    }
-
-    // 1. Resolve questions from bank
-    // Get kelas tingkat for fallback
-    const [kelasRecord] = await this.db
-      .select({ tingkat: kelas.tingkat })
-      .from(kelas)
-      .where(eq(kelas.id, session.kelasId))
-      .limit(1);
-
-    if (!kelasRecord) {
-      throw new BadRequestException("Kelas tidak ditemukan");
-    }
-
-    // Get kelas-specific questions
-    const kelasQuestions = await this.db
-      .select()
-      .from(cbtQuestion)
-      .where(
-        and(
-          eq(cbtQuestion.pelaksanaanUjianId, session.pelaksanaanUjianId),
-          eq(cbtQuestion.mataPelajaranId, session.mataPelajaranId),
-          eq(cbtQuestion.kelasId, session.kelasId),
-        ),
-      )
-      .orderBy(cbtQuestion.nomorUrut, cbtQuestion.createdAt);
-
-    // Get tingkat-level questions (fallback: kelas_id IS NULL AND tingkat matches)
-    const tingkatQuestions = await this.db
-      .select()
-      .from(cbtQuestion)
-      .where(
-        and(
-          eq(cbtQuestion.pelaksanaanUjianId, session.pelaksanaanUjianId),
-          eq(cbtQuestion.mataPelajaranId, session.mataPelajaranId),
-          isNull(cbtQuestion.kelasId),
-          eq(cbtQuestion.tingkat, kelasRecord.tingkat),
-        ),
-      )
-      .orderBy(cbtQuestion.nomorUrut, cbtQuestion.createdAt);
-
-    // Priority: kelas-specific overrides tingkat-level
-    // Use kelas-specific if available, otherwise use tingkat-level
-    const questions =
-      kelasQuestions.length > 0 ? kelasQuestions : tingkatQuestions;
-
-    // 2. Validate: at least 1 question
-    if (questions.length === 0) {
-      throw new BadRequestException(
-        "Tidak ada soal yang tersedia untuk kelas/tingkat dan mata pelajaran ini. Tambahkan soal terlebih dahulu.",
-      );
-    }
-
-    // 3. Get active siswa accounts in this kelas
-    const activeAccounts = await this.db
-      .select({
-        accountId: cbtSiswaAccount.id,
-      })
-      .from(cbtSiswaAccount)
-      .innerJoin(siswa, eq(cbtSiswaAccount.siswaId, siswa.id))
-      .where(
-        and(
-          eq(siswa.kelasId, session.kelasId),
-          eq(siswa.status, "aktif"),
-          eq(cbtSiswaAccount.isActive, true),
-          eq(cbtSiswaAccount.tenantId, tenantId),
-        ),
-      );
-
-    // Validate: at least 1 active siswa
-    if (activeAccounts.length === 0) {
-      throw new BadRequestException(
-        "Tidak ada siswa aktif di kelas ini. Pastikan siswa sudah di-sync dan aktif.",
-      );
-    }
-
-    // 4. Snapshot questions into cbt_exam_session_question
-    const questionValues = questions.map((q, idx) => ({
-      examSessionId: sessionId,
-      questionId: q.id,
-      nomorUrut: idx + 1,
-    }));
-
-    await this.db.insert(cbtExamSessionQuestion).values(questionValues);
-
-    // 5. Auto-assign participants
-    const participantValues = activeAccounts.map((acc) => ({
-      examSessionId: sessionId,
-      siswaAccountId: acc.accountId,
-      status: "assigned" as const,
-    }));
-
-    await this.db.insert(cbtExamParticipant).values(participantValues);
-
-    // 6. Transition to packaged
-    const [updated] = await this.db
-      .update(cbtExamSession)
-      .set({ status: "packaged", updatedAt: new Date() })
-      .where(eq(cbtExamSession.id, sessionId))
-      .returning();
-
     this.logger.log(
-      `Session ${sessionId} packaged: ${questions.length} questions, ${activeAccounts.length} participants`,
+      `Starting package for session ${sessionId}, tenant ${tenantId}`,
     );
 
-    return {
-      ...updated,
-      questionCount: questions.length,
-      participantCount: activeAccounts.length,
-    };
+    try {
+      const session = await this.examSessionService.getSessionOrFail(
+        tenantId,
+        sessionId,
+      );
+      this.logger.log(
+        `Session found: status=${session.status}, kelasId=${session.kelasId}, pelaksanaanUjianId=${session.pelaksanaanUjianId}, mataPelajaranId=${session.mataPelajaranId}`,
+      );
+
+      // Validate state: must be draft
+      if (session.status !== "draft") {
+        throw new ConflictException(
+          "Hanya sesi ujian berstatus draft yang dapat di-package",
+        );
+      }
+
+      // 1. Resolve questions from bank
+      // Get kelas tingkat for fallback
+      const [kelasRecord] = await this.db
+        .select({ tingkat: kelas.tingkat })
+        .from(kelas)
+        .where(eq(kelas.id, session.kelasId))
+        .limit(1);
+
+      if (!kelasRecord) {
+        throw new BadRequestException("Kelas tidak ditemukan");
+      }
+      this.logger.log(`Kelas tingkat: ${kelasRecord.tingkat}`);
+
+      // Get kelas-specific questions
+      const kelasQuestions = await this.db
+        .select()
+        .from(cbtQuestion)
+        .where(
+          and(
+            eq(cbtQuestion.pelaksanaanUjianId, session.pelaksanaanUjianId),
+            eq(cbtQuestion.mataPelajaranId, session.mataPelajaranId),
+            eq(cbtQuestion.kelasId, session.kelasId),
+          ),
+        )
+        .orderBy(cbtQuestion.nomorUrut, cbtQuestion.createdAt);
+      this.logger.log(`Kelas-specific questions: ${kelasQuestions.length}`);
+
+      // Get tingkat-level questions (fallback: kelas_id IS NULL AND tingkat matches)
+      const tingkatQuestions = await this.db
+        .select()
+        .from(cbtQuestion)
+        .where(
+          and(
+            eq(cbtQuestion.pelaksanaanUjianId, session.pelaksanaanUjianId),
+            eq(cbtQuestion.mataPelajaranId, session.mataPelajaranId),
+            isNull(cbtQuestion.kelasId),
+            eq(cbtQuestion.tingkat, kelasRecord.tingkat),
+          ),
+        )
+        .orderBy(cbtQuestion.nomorUrut, cbtQuestion.createdAt);
+      this.logger.log(`Tingkat-level questions: ${tingkatQuestions.length}`);
+
+      // Priority: kelas-specific overrides tingkat-level
+      // Use kelas-specific if available, otherwise use tingkat-level
+      const questions =
+        kelasQuestions.length > 0 ? kelasQuestions : tingkatQuestions;
+
+      // 2. Validate: at least 1 question
+      if (questions.length === 0) {
+        throw new BadRequestException(
+          "Tidak ada soal yang tersedia untuk kelas/tingkat dan mata pelajaran ini. Tambahkan soal terlebih dahulu.",
+        );
+      }
+
+      // 3. Get active siswa accounts in this kelas
+      const activeAccounts = await this.db
+        .select({
+          accountId: cbtSiswaAccount.id,
+        })
+        .from(cbtSiswaAccount)
+        .innerJoin(siswa, eq(cbtSiswaAccount.siswaId, siswa.id))
+        .where(
+          and(
+            eq(siswa.kelasId, session.kelasId),
+            eq(siswa.status, "aktif"),
+            eq(cbtSiswaAccount.isActive, true),
+            eq(cbtSiswaAccount.tenantId, tenantId),
+          ),
+        );
+      this.logger.log(`Active siswa accounts: ${activeAccounts.length}`);
+
+      // Validate: at least 1 active siswa
+      if (activeAccounts.length === 0) {
+        throw new BadRequestException(
+          "Tidak ada siswa aktif di kelas ini. Pastikan siswa sudah di-sync dan aktif.",
+        );
+      }
+
+      // 4. Snapshot questions into cbt_exam_session_question
+      const questionValues = questions.map((q, idx) => ({
+        examSessionId: sessionId,
+        questionId: q.id,
+        nomorUrut: idx + 1,
+      }));
+
+      this.logger.log(`Inserting ${questionValues.length} session questions`);
+      await this.db.insert(cbtExamSessionQuestion).values(questionValues);
+
+      // 5. Auto-assign participants
+      const participantValues = activeAccounts.map((acc) => ({
+        examSessionId: sessionId,
+        siswaAccountId: acc.accountId,
+        status: "assigned" as const,
+      }));
+
+      this.logger.log(`Inserting ${participantValues.length} participants`);
+      await this.db.insert(cbtExamParticipant).values(participantValues);
+
+      // 6. Transition to packaged
+      this.logger.log(`Transitioning session to packaged`);
+      const [updated] = await this.db
+        .update(cbtExamSession)
+        .set({ status: "packaged", updatedAt: new Date() })
+        .where(eq(cbtExamSession.id, sessionId))
+        .returning();
+
+      this.logger.log(
+        `Session ${sessionId} packaged: ${questions.length} questions, ${activeAccounts.length} participants`,
+      );
+
+      return {
+        ...updated,
+        questionCount: questions.length,
+        participantCount: activeAccounts.length,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Package failed for session ${sessionId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
