@@ -88,44 +88,43 @@ describe("generateFilename", () => {
   it("should generate correct filename format", () => {
     const date = new Date(2025, 0, 15); // January 15, 2025
     const filename = generateFilename("Matematika", "7A", date);
-    expect(filename).toBe("hasil-ujian_matematika_7a_20250115.xlsx");
+    expect(filename).toBe("Ujian_matematika_7a_15-Jan-2025.xlsx");
   });
 
   it("should handle mapel names with spaces", () => {
     const date = new Date(2025, 0, 15);
     const filename = generateFilename("Bahasa Indonesia", "7A", date);
-    expect(filename).toBe("hasil-ujian_bahasa-indonesia_7a_20250115.xlsx");
+    expect(filename).toBe("Ujian_bahasa-indonesia_7a_15-Jan-2025.xlsx");
   });
 
   it("should handle kelas names with spaces", () => {
     const date = new Date(2025, 0, 15);
     const filename = generateFilename("Matematika", "12 IPA 1", date);
-    expect(filename).toBe("hasil-ujian_matematika_12-ipa-1_20250115.xlsx");
+    expect(filename).toBe("Ujian_matematika_12-ipa-1_15-Jan-2025.xlsx");
   });
 
   it("should handle special characters in mapel name", () => {
     const date = new Date(2025, 0, 15);
     const filename = generateFilename("IPA/Biologi", "7A", date);
-    expect(filename).toBe("hasil-ujian_ipa-biologi_7a_20250115.xlsx");
+    expect(filename).toBe("Ujian_ipa-biologi_7a_15-Jan-2025.xlsx");
   });
 
   it("should handle special characters in kelas name", () => {
     const date = new Date(2025, 0, 15);
     const filename = generateFilename("Matematika", "7-A (Unggulan)", date);
-    expect(filename).toBe("hasil-ujian_matematika_7-a-unggulan_20250115.xlsx");
+    expect(filename).toBe("Ujian_matematika_7-a-unggulan_15-Jan-2025.xlsx");
   });
 
-  it("should convert everything to lowercase", () => {
+  it("should convert mapel and kelas to lowercase", () => {
     const date = new Date(2025, 0, 15);
     const filename = generateFilename("MATEMATIKA", "VII-A", date);
-    expect(filename).toBe("hasil-ujian_matematika_vii-a_20250115.xlsx");
+    expect(filename).toBe("Ujian_matematika_vii-a_15-Jan-2025.xlsx");
   });
 
-  it("should match the example from requirements", () => {
-    // Example from requirements: hasil-ujian_matematika_7a_20250115.xlsx
-    const date = new Date(2025, 0, 15);
+  it("should format date as DD-Mon-YYYY", () => {
+    const date = new Date(2026, 7, 17); // August 17, 2026
     const filename = generateFilename("matematika", "7a", date);
-    expect(filename).toBe("hasil-ujian_matematika_7a_20250115.xlsx");
+    expect(filename).toBe("Ujian_matematika_7a_17-Aug-2026.xlsx");
   });
 });
 
