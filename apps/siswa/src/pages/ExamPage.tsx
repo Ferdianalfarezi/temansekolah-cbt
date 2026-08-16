@@ -340,7 +340,74 @@ export default function ExamPage() {
   }
 
   // ── Error ─────────────────────────────────────────────────────────────────
+  // Check if error is about already submitted exam (not really an error)
+  const isAlreadySubmitted =
+    error?.toLowerCase().includes("already submitted") ||
+    error?.toLowerCase().includes("sudah submit") ||
+    error?.toLowerCase().includes("sudah dikumpulkan");
+
   if (error || !examData) {
+    // Show friendly completion message for already submitted exams
+    if (isAlreadySubmitted) {
+      return (
+        <div
+          className="flex min-h-screen items-center justify-center px-4"
+          style={{ background: "#f5f3ef" }}
+        >
+          <div className="text-center max-w-sm">
+            {/* Success/Check Icon */}
+            <div
+              className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+              style={{ background: "#dcfce7" }}
+            >
+              <svg
+                className="h-8 w-8"
+                style={{ color: "#22c55e" }}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold mb-2" style={{ color: "#1c1917" }}>
+              Terima Kasih!
+            </h3>
+            <p className="text-sm mb-6" style={{ color: "#57534e" }}>
+              Kamu sudah menyelesaikan ujian ini. Jawaban kamu telah tersimpan
+              dengan aman.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => navigate(`/result/${sessionId}`)}
+                className="rounded-lg px-6 py-2.5 text-sm font-bold"
+                style={{ background: "#22c55e", color: "white" }}
+              >
+                Lihat Hasil Ujian
+              </button>
+              <button
+                onClick={() => navigate("/exams")}
+                className="rounded-lg px-6 py-2.5 text-sm font-bold"
+                style={{
+                  background: "#f5f5f4",
+                  color: "#57534e",
+                  border: "1px solid #e7e5e4",
+                }}
+              >
+                Kembali ke Daftar Ujian
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Show regular error message for other errors
     return (
       <div
         className="flex min-h-screen items-center justify-center px-4"
