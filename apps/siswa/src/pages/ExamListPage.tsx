@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/services/api";
 
@@ -163,14 +163,15 @@ export default function ExamListPage() {
   const [sessions, setSessions] = useState<ExamSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [countdowns, setCountdowns] = useState<Record<string, number>>({});
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
+  const redirectedRef = useRef<Set<string>>(new Set());
 
   const user = JSON.parse(localStorage.getItem("cbt_user") || "{}");
 
-  useEffect(() => {
-    fetchSessions();
-  }, []);
-
-  async function fetchSessions() {
+  const fetchSessions = useCallback(async () => {
     try {
       const res = await api.get("/siswa/exam-sessions");
       setSessions(res.data.sessions ?? res.data ?? []);
@@ -185,7 +186,95 @@ export default function ExamListPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    // Initialize countdowns for upcoming sessions
+    const initCountdowns: Record<string, number> = {};
+    sessions.forEach((s) => {
+      if (s.sessionStatus === "packaged" && s.scheduledAt) {
+        const scheduledTime = new Date(s.scheduledAt).getTime();
+        const now = Date.now();
+        const diffMs = scheduledTime - now;
+        if (diffMs > 0) {
+          initCountdowns[s.sessionId] = Math.floor(diffMs / 1000);
+        }
+      }
+    });
+    setCountdowns(initCountdowns);
+
+    // Clear existing interval
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+
+    // Start countdown interval
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdowns((prev) => {
+        const updated = { ...prev };
+        let hasChanges = false;
+
+        Object.keys(updated).forEach((sessionId) => {
+          if (updated[sessionId] > 0) {
+            updated[sessionId] -= 1;
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? updated : prev;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [sessions]);
+
+  // Auto-redirect when countdown reaches zero
+  useEffect(() => {
+    Object.entries(countdowns).forEach(([sessionId, remaining]) => {
+      if (remaining <= 0 && !redirectedRef.current.has(sessionId)) {
+        // Mark as redirected to prevent multiple redirects
+        redirectedRef.current.add(sessionId);
+
+        // Find the session to check if it should redirect
+        const session = sessions.find((s) => s.sessionId === sessionId);
+        if (session && session.sessionStatus === "packaged") {
+          // Refetch sessions to get updated status, then redirect if active
+          api
+            .get("/siswa/exam-sessions")
+            .then((res) => {
+              const updatedSessions: ExamSession[] =
+                res.data.sessions ?? res.data ?? [];
+              const updatedSession = updatedSessions.find(
+                (s) => s.sessionId === sessionId,
+              );
+
+              if (updatedSession?.sessionStatus === "active") {
+                // Session is now active, redirect to exam
+                navigate(`/exam/${sessionId}`);
+              } else {
+                // Session not yet active, refresh the list
+                setSessions(updatedSessions);
+                // Remove from redirected so it can try again
+                redirectedRef.current.delete(sessionId);
+              }
+            })
+            .catch(() => {
+              // On error, remove from redirected to allow retry
+              redirectedRef.current.delete(sessionId);
+            });
+        }
+      }
+    });
+  }, [countdowns, sessions, navigate]);
 
   function handleLogout() {
     localStorage.removeItem("cbt_token");
@@ -260,6 +349,36 @@ export default function ExamListPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  }
+
+  function formatCountdown(seconds: number): string {
+    if (seconds <= 0) return "Memulai...";
+
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (days > 0) {
+      return `${days}h ${hours}j ${minutes}m`;
+    }
+    if (hours > 0) {
+      return `${hours}j ${minutes}m ${secs}d`;
+    }
+    if (minutes > 0) {
+      return `${minutes}m ${secs}d`;
+    }
+    return `${secs} detik`;
+  }
+
+  function isCountdownUrgent(seconds: number): boolean {
+    // Urgent if less than 5 minutes
+    return seconds > 0 && seconds <= 300;
+  }
+
+  function isCountdownSoon(seconds: number): boolean {
+    // Soon if less than 1 hour
+    return seconds > 0 && seconds <= 3600;
   }
 
   return (
@@ -607,87 +726,138 @@ export default function ExamListPage() {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {upcomingSessions.map((session) => (
-                    <div
-                      key={session.sessionId}
-                      className="rounded-2xl p-4 sm:p-5"
-                      style={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        boxShadow: "var(--shadow-sm)",
-                      }}
-                    >
-                      <div className="flex items-start gap-3">
-                        {/* Icon */}
-                        <div
-                          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-                          style={{
-                            background: "var(--blue-bg)",
-                            color: "var(--blue)",
-                          }}
-                        >
-                          <Icons.Calendar />
-                        </div>
+                  {upcomingSessions.map((session) => {
+                    const countdown = countdowns[session.sessionId] ?? 0;
+                    const isUrgent = isCountdownUrgent(countdown);
+                    const isSoon = isCountdownSoon(countdown);
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <h3
-                            className="font-semibold text-sm truncate"
-                            style={{ color: "var(--text)" }}
-                          >
-                            {session.title || "Ujian"}
-                          </h3>
-                          <p
-                            className="text-xs mt-0.5 truncate"
-                            style={{ color: "var(--text-muted)" }}
-                          >
-                            {session.subject || "-"}
-                          </p>
-                        </div>
-
-                        {/* Time badge */}
-                        <span
-                          className="shrink-0 text-xs font-medium px-2 py-1 rounded-lg"
-                          style={{
-                            background: "var(--blue-bg)",
-                            color: "var(--blue-text)",
-                          }}
-                        >
-                          {formatScheduleTime(session.scheduledAt)}
-                        </span>
-                      </div>
-
-                      {/* Details */}
+                    return (
                       <div
-                        className="mt-4 pt-3 flex items-center gap-4 text-xs"
+                        key={session.sessionId}
+                        className="rounded-2xl p-4 sm:p-5 transition-all"
                         style={{
-                          borderTop: "1px solid var(--border-light)",
-                          color: "var(--text-muted)",
+                          background: "var(--surface)",
+                          border: isUrgent
+                            ? "2px solid var(--orange)"
+                            : isSoon
+                              ? "2px solid var(--blue)"
+                              : "1px solid var(--border)",
+                          boxShadow: isUrgent
+                            ? "0 0 0 4px var(--orange-bg)"
+                            : "var(--shadow-sm)",
                         }}
                       >
-                        <span className="flex items-center gap-1.5">
-                          <Icons.Clock />
-                          {formatDuration(session.durationMinutes)}
-                        </span>
-                        {session.questionCount != null && (
+                        <div className="flex items-start gap-3">
+                          {/* Icon */}
+                          <div
+                            className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                            style={{
+                              background: isUrgent
+                                ? "var(--orange-bg)"
+                                : "var(--blue-bg)",
+                              color: isUrgent ? "var(--orange)" : "var(--blue)",
+                            }}
+                          >
+                            <Icons.Calendar />
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <h3
+                              className="font-semibold text-sm truncate"
+                              style={{ color: "var(--text)" }}
+                            >
+                              {session.title || "Ujian"}
+                            </h3>
+                            <p
+                              className="text-xs mt-0.5 truncate"
+                              style={{ color: "var(--text-muted)" }}
+                            >
+                              {session.subject || "-"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Countdown Display */}
+                        <div
+                          className="mt-4 p-3 rounded-xl text-center"
+                          style={{
+                            background: isUrgent
+                              ? "var(--orange-bg)"
+                              : isSoon
+                                ? "var(--blue-bg)"
+                                : "var(--bg-secondary)",
+                          }}
+                        >
+                          <p
+                            className="text-xs font-medium mb-1"
+                            style={{
+                              color: isUrgent
+                                ? "var(--orange)"
+                                : isSoon
+                                  ? "var(--blue)"
+                                  : "var(--text-muted)",
+                            }}
+                          >
+                            {countdown <= 0
+                              ? "Menunggu ujian aktif..."
+                              : "Dimulai dalam"}
+                          </p>
+                          <p
+                            className={`font-bold ${isUrgent ? "text-2xl" : isSoon ? "text-xl" : "text-lg"}`}
+                            style={{
+                              color: isUrgent
+                                ? "var(--orange)"
+                                : isSoon
+                                  ? "var(--blue)"
+                                  : "var(--text)",
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {formatCountdown(countdown)}
+                          </p>
+                          {isUrgent && countdown > 0 && (
+                            <p
+                              className="text-xs mt-1 animate-pulse"
+                              style={{ color: "var(--orange)" }}
+                            >
+                              Segera dimulai!
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Details */}
+                        <div
+                          className="mt-3 pt-3 flex items-center gap-4 text-xs"
+                          style={{
+                            borderTop: "1px solid var(--border-light)",
+                            color: "var(--text-muted)",
+                          }}
+                        >
                           <span className="flex items-center gap-1.5">
-                            <Icons.Questions />
-                            {session.questionCount} soal
+                            <Icons.Clock />
+                            {formatDuration(session.durationMinutes)}
                           </span>
+                          {session.questionCount != null && (
+                            <span className="flex items-center gap-1.5">
+                              <Icons.Questions />
+                              {session.questionCount} soal
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Full date */}
+                        {session.scheduledAt && (
+                          <p
+                            className="mt-2 text-xs"
+                            style={{ color: "var(--text-light)" }}
+                          >
+                            {formatFullDate(session.scheduledAt)}
+                          </p>
                         )}
                       </div>
-
-                      {/* Full date on hover/focus for desktop */}
-                      {session.scheduledAt && (
-                        <p
-                          className="mt-2 text-xs"
-                          style={{ color: "var(--text-light)" }}
-                        >
-                          {formatFullDate(session.scheduledAt)}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}

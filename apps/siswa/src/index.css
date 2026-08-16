@@ -58,6 +58,11 @@
   --red-border: #fecaca;
   --red-text: #b91c1c;
 
+  --orange: #f97316;
+  --orange-bg: #fff7ed;
+  --orange-border: #fed7aa;
+  --orange-text: #c2410c;
+
   /* Radius */
   --radius-xs: 8px;
   --radius-sm: 12px;
