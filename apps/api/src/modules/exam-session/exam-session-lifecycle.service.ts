@@ -6,7 +6,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { DRIZZLE } from "../../drizzle/drizzle.module";
 import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
@@ -14,7 +14,7 @@ import { cbtExamSessionQuestion } from "../../drizzle/schema/cbt-exam-session-qu
 import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtQuestion } from "../../drizzle/schema/cbt-question";
 import { cbtSiswaAccount } from "../../drizzle/schema/cbt-siswa-account";
-import { siswa, kelas } from "../../drizzle/schema/lms-tables";
+import { siswa } from "../../drizzle/schema/lms-tables";
 import { ExamSessionService } from "./exam-session.service";
 
 @Injectable()
@@ -28,8 +28,8 @@ export class ExamSessionLifecycleService {
 
   /**
    * Package a draft session:
-   * 1. Resolve Question_Bank_Set (kelas-specific > tingkat-level)
-   * 2. Validate ≥1 question, ≥1 active siswa, scheduled time set
+   * 1. Get questions from the linked bank soal
+   * 2. Validate ≥1 question, ≥1 active siswa
    * 3. Snapshot questions into cbt_exam_session_question
    * 4. Auto-assign all active siswa in kelas → cbt_exam_participant
    * 5. Transition Draft → Packaged
@@ -44,7 +44,7 @@ export class ExamSessionLifecycleService {
       sessionId,
     );
     this.logger.log(
-      `Session found: status=${session.status}, kelasId=${session.kelasId}, pelaksanaanUjianId=${session.pelaksanaanUjianId}, mataPelajaranId=${session.mataPelajaranId}`,
+      `Session found: status=${session.status}, kelasId=${session.kelasId}, bankSoalId=${session.bankSoalId}`,
     );
 
     // Validate state: must be draft
@@ -54,57 +54,25 @@ export class ExamSessionLifecycleService {
       );
     }
 
-    // 1. Resolve questions from bank
-    // Get kelas tingkat for fallback
-    const [kelasRecord] = await this.db
-      .select({ tingkat: kelas.tingkat })
-      .from(kelas)
-      .where(eq(kelas.id, session.kelasId))
-      .limit(1);
-
-    if (!kelasRecord) {
-      throw new BadRequestException("Kelas tidak ditemukan");
+    // Validate: bankSoalId is required
+    if (!session.bankSoalId) {
+      throw new BadRequestException(
+        "Sesi ujian tidak memiliki bank soal. Pilih bank soal terlebih dahulu.",
+      );
     }
-    this.logger.log(`Kelas tingkat: ${kelasRecord.tingkat}`);
 
-    // Get kelas-specific questions
-    const kelasQuestions = await this.db
+    // 1. Get questions from the linked bank soal
+    const questions = await this.db
       .select()
       .from(cbtQuestion)
-      .where(
-        and(
-          eq(cbtQuestion.pelaksanaanUjianId, session.pelaksanaanUjianId),
-          eq(cbtQuestion.mataPelajaranId, session.mataPelajaranId),
-          eq(cbtQuestion.kelasId, session.kelasId),
-        ),
-      )
+      .where(eq(cbtQuestion.bankSoalId, session.bankSoalId))
       .orderBy(cbtQuestion.nomorUrut, cbtQuestion.createdAt);
-    this.logger.log(`Kelas-specific questions: ${kelasQuestions.length}`);
-
-    // Get tingkat-level questions (fallback: kelas_id IS NULL AND tingkat matches)
-    const tingkatQuestions = await this.db
-      .select()
-      .from(cbtQuestion)
-      .where(
-        and(
-          eq(cbtQuestion.pelaksanaanUjianId, session.pelaksanaanUjianId),
-          eq(cbtQuestion.mataPelajaranId, session.mataPelajaranId),
-          isNull(cbtQuestion.kelasId),
-          eq(cbtQuestion.tingkat, kelasRecord.tingkat),
-        ),
-      )
-      .orderBy(cbtQuestion.nomorUrut, cbtQuestion.createdAt);
-    this.logger.log(`Tingkat-level questions: ${tingkatQuestions.length}`);
-
-    // Priority: kelas-specific overrides tingkat-level
-    // Use kelas-specific if available, otherwise use tingkat-level
-    const questions =
-      kelasQuestions.length > 0 ? kelasQuestions : tingkatQuestions;
+    this.logger.log(`Bank soal questions: ${questions.length}`);
 
     // 2. Validate: at least 1 question
     if (questions.length === 0) {
       throw new BadRequestException(
-        "Tidak ada soal yang tersedia untuk kelas/tingkat dan mata pelajaran ini. Tambahkan soal terlebih dahulu.",
+        "Bank soal tidak memiliki soal. Tambahkan soal terlebih dahulu.",
       );
     }
 
@@ -132,7 +100,7 @@ export class ExamSessionLifecycleService {
       );
     }
 
-    // 4-6. Execute inserts and status update in a transaction to ensure atomicity
+    // 4-6. Execute inserts and status update
     const questionValues = questions.map((q, idx) => ({
       examSessionId: sessionId,
       questionId: q.id,
@@ -149,8 +117,6 @@ export class ExamSessionLifecycleService {
       `Starting transaction: ${questionValues.length} questions, ${participantValues.length} participants`,
     );
 
-    // Use raw SQL transaction since drizzle doesn't have built-in transaction support
-    // in the current setup. We'll use batch insert with ON CONFLICT DO NOTHING for safety.
     try {
       // Insert questions (ignore duplicates if any)
       await this.db
