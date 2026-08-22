@@ -16,6 +16,7 @@ import { cbtQuestion } from "../../drizzle/schema/cbt-question";
 import { cbtSiswaAccount } from "../../drizzle/schema/cbt-siswa-account";
 import { siswa } from "../../drizzle/schema/lms-tables";
 import { ExamSessionService } from "./exam-session.service";
+import { SchedulerService } from "../scheduler/scheduler.service";
 
 @Injectable()
 export class ExamSessionLifecycleService {
@@ -24,6 +25,7 @@ export class ExamSessionLifecycleService {
   constructor(
     @Inject(DRIZZLE) private readonly db: NodePgDatabase,
     private readonly examSessionService: ExamSessionService,
+    private readonly schedulerService: SchedulerService,
   ) {}
 
   /**
@@ -33,6 +35,7 @@ export class ExamSessionLifecycleService {
    * 3. Snapshot questions into cbt_exam_session_question
    * 4. Auto-assign all active siswa in kelas → cbt_exam_participant
    * 5. Transition Draft → Packaged
+   * 6. Schedule activation job at scheduled_at time
    */
   async package(tenantId: string, sessionId: string) {
     this.logger.log(
@@ -141,6 +144,12 @@ export class ExamSessionLifecycleService {
         `Session ${sessionId} packaged: ${questions.length} questions, ${activeAccounts.length} participants`,
       );
 
+      // 6. Schedule activation job at scheduled_at time
+      await this.schedulerService.scheduleActivation(
+        sessionId,
+        session.scheduledAt,
+      );
+
       return {
         ...updated,
         questionCount: questions.length,
@@ -159,6 +168,7 @@ export class ExamSessionLifecycleService {
    * Unpackage a session: Packaged → Draft.
    * Only allowed if scheduled_at > now.
    * Removes exam_session_question and exam_participant entries.
+   * Cancels the scheduled activation job.
    */
   async unpackage(tenantId: string, sessionId: string) {
     const session = await this.examSessionService.getSessionOrFail(
@@ -179,6 +189,9 @@ export class ExamSessionLifecycleService {
         "Tidak dapat unpackage sesi ujian yang waktu jadwalnya sudah lewat",
       );
     }
+
+    // Cancel the scheduled activation job
+    await this.schedulerService.cancelActivation(sessionId);
 
     // Remove exam_session_question entries
     await this.db
@@ -204,6 +217,7 @@ export class ExamSessionLifecycleService {
 
   /**
    * Cancel a packaged session: Packaged → Cancelled.
+   * Also cancels the scheduled activation job.
    */
   async cancel(tenantId: string, sessionId: string, reason: string) {
     const session = await this.examSessionService.getSessionOrFail(
@@ -217,6 +231,9 @@ export class ExamSessionLifecycleService {
         "Hanya sesi ujian berstatus packaged yang dapat dibatalkan",
       );
     }
+
+    // Cancel the scheduled activation job
+    await this.schedulerService.cancelActivation(sessionId);
 
     // Transition to cancelled
     const [updated] = await this.db
