@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import {
+  downloadTemplate as downloadTemplateApi,
+  importSoalPreview,
+  importSoal,
+  getErrorMessage,
+} from "@/api/bank-soal";
 
 // Types
 export interface ParsedSoal {
@@ -115,7 +121,7 @@ function validateAndSetFile(file: File) {
   parseExcelFile(file);
 }
 
-// Parse Excel file (client-side preview)
+// Parse Excel file via backend API (server-side parsing)
 async function parseExcelFile(file: File) {
   parsing.value = true;
   parseError.value = "";
@@ -123,41 +129,25 @@ async function parseExcelFile(file: File) {
   errors.value = [];
 
   try {
-    // TODO: Replace with actual API call for server-side parsing
-    // The API will return parsed data with validation results
-    // For now, simulate parsing with FormData upload
-    // const formData = new FormData();
-    // formData.append('file', file);
-    // const res = await previewImport(props.bankSoalId, formData);
-    // validRows.value = res.data.validRows;
-    // errors.value = res.data.errors;
-
-    // Simulated delay for demo
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // Demo: simulate empty result - actual parsing will be done by backend
-    validRows.value = [];
-    errors.value = [];
+    const response = await importSoalPreview(props.bankSoalId, file);
+    validRows.value = response.data.validRows;
+    errors.value = response.data.errors;
     currentStep.value = 2;
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { message?: string } } };
-    parseError.value =
-      err.response?.data?.message || "Gagal memparse file Excel";
+    parseError.value = getErrorMessage(e);
   } finally {
     parsing.value = false;
   }
 }
 
 // Download Excel template
-function downloadTemplate() {
-  // TODO: Replace with actual API endpoint
-  // window.open(`/api/bank-soal/template`, '_blank');
-  // For now, use static template file from public folder if available
-  const templateUrl = "/Template_Import_Soal.xlsx";
-  const link = document.createElement("a");
-  link.href = templateUrl;
-  link.download = "Template_Import_Soal.xlsx";
-  link.click();
+async function downloadTemplate() {
+  parseError.value = "";
+  try {
+    await downloadTemplateApi();
+  } catch (e) {
+    parseError.value = getErrorMessage(e);
+  }
 }
 
 // Confirm import
@@ -166,17 +156,11 @@ async function confirmImport() {
 
   importing.value = true;
   try {
-    // TODO: Replace with actual API call
-    // const formData = new FormData();
-    // formData.append('file', selectedFile.value);
-    // await importSoal(props.bankSoalId, formData);
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    emit("imported", validRows.value.length);
+    const response = await importSoal(props.bankSoalId, selectedFile.value);
+    emit("imported", response.data.imported);
     handleClose();
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { message?: string } } };
-    parseError.value = err.response?.data?.message || "Gagal mengimpor soal";
+    parseError.value = getErrorMessage(e);
   } finally {
     importing.value = false;
   }

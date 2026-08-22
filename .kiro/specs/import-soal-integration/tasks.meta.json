@@ -1,0 +1,159 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Add API imports and replace downloadTemplate function": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405031246
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405040674
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405249070
+      }
+    ],
+    "2.1 Replace parseExcelFile with actual API call": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405031307
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405271324
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405376687
+      }
+    ],
+    "3.1 Replace confirmImport with actual API call": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405031420
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405381112
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405448055
+      }
+    ],
+    "4.1 Verify modal state reset behavior": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405031486
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405452950
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405564068
+      }
+    ],
+    "4.2 Verify error banner displays correctly for all scenarios": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405031566
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405453750
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405564734
+      }
+    ],
+    "5.1 Test complete happy path flow": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405031649
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405570700
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405701681
+      }
+    ],
+    "5.2 Test error scenarios": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405031700
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405569947
+      },
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405702386
+      }
+    ],
+    "1. Integrate Download Template Function": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405249145
+      }
+    ],
+    "2. Integrate Preview API Call": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405376750
+      }
+    ],
+    "3. Integrate Import Commit API Call": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405448152
+      }
+    ],
+    "4. Verify State Reset and Error Display": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405564785
+      }
+    ],
+    "5. End-to-End Manual Testing": [
+      {
+        "executionId": "d45fbc23-c50f-43cd-8826-9eea1a9ca79c",
+        "chatSessionId": "sess_0b7a3bb6-d2e0-4123-ab4f-10ed78d54418",
+        "timestamp": 1787405702464
+      }
+    ]
+  }
+}
