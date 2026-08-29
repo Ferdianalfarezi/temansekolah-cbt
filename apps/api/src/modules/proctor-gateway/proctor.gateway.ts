@@ -66,7 +66,8 @@ export class ProctorGateway
     const { sessionId, token } = payload;
 
     // Validate staff JWT
-    let decoded: { userId: string; tenantId: string; role: string };
+    // Note: LMS JWT uses 'sub' for userId and 'tenant_id' (snake_case) for tenantId
+    let decoded: { sub: string; tenant_id: string | null; role: string };
     try {
       decoded = this.jwtService.verify(token);
     } catch {
@@ -75,7 +76,9 @@ export class ProctorGateway
       return;
     }
 
-    const { userId, tenantId, role } = decoded;
+    const userId = decoded.sub;
+    const tenantId = decoded.tenant_id;
+    const { role } = decoded;
 
     // Only allow staff roles that can proctor
     const allowedRoles = ["super_admin", "admin", "kepala_sekolah", "guru"];

@@ -123,7 +123,8 @@ export class ExamGateway
     }
 
     // Validate JWT
-    let decoded: { siswaAccountId: string; tenantId: string };
+    // Note: Siswa JWT uses 'sub' for siswaAccountId and 'tenantId' (camelCase)
+    let decoded: { sub: string; tenantId: string };
     try {
       decoded = this.jwtService.verify(token);
     } catch {
@@ -132,7 +133,8 @@ export class ExamGateway
       return;
     }
 
-    const { siswaAccountId, tenantId } = decoded;
+    const siswaAccountId = decoded.sub;
+    const { tenantId } = decoded;
 
     // Find participant record
     const [participant] = await this.db
