@@ -306,6 +306,7 @@ export class ExamTakingService {
       remainingSeconds: session.durationMinutes * 60,
       totalQuestions: orderedQuestions.length,
       questions: orderedQuestions,
+      violationCount: 0, // Fresh start has 0 violations
     };
   }
 
@@ -690,6 +691,7 @@ export class ExamTakingService {
         totalQuestions: 0,
         questions: [],
         savedAnswers: {},
+        violationCount: participant.violationCount ?? 0, // Sync from DB on resume
       };
     }
 
@@ -769,6 +771,7 @@ export class ExamTakingService {
       totalQuestions: orderedQuestions.length,
       questions: orderedQuestions,
       savedAnswers,
+      violationCount: participant.violationCount ?? 0, // Sync from DB on resume
     };
   }
 

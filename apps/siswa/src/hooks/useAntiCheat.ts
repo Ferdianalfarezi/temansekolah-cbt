@@ -1,18 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { ViolationType } from "@/common/enums";
+import { isMobileDevice } from "@/lib/device";
 
 export interface UseAntiCheatOptions {
   enabled: boolean;
   level: "standard" | "relaxed";
+  initialViolationCount?: number;
   onViolation: (type: ViolationType, durationMs?: number) => void;
-}
-
-/**
- * Detects if the device is mobile (touch-primary).
- * Used to skip keyboard shortcut blocking on mobile devices.
- */
-function isMobileDevice(): boolean {
-  return navigator.maxTouchPoints > 0 || "ontouchstart" in window;
 }
 
 /**
@@ -28,9 +22,9 @@ function isMobileDevice(): boolean {
  * - Mobile: keyboard shortcut blocking skipped (not applicable)
  */
 export function useAntiCheat(options: UseAntiCheatOptions) {
-  const { enabled, level, onViolation } = options;
+  const { enabled, level, initialViolationCount = 0, onViolation } = options;
 
-  const [violationCount, setViolationCount] = useState(0);
+  const [violationCount, setViolationCount] = useState(initialViolationCount);
   const [isFullscreen, setIsFullscreen] = useState(
     () => !!document.fullscreenElement,
   );
@@ -70,8 +64,11 @@ export function useAntiCheat(options: UseAntiCheatOptions) {
   useEffect(() => {
     if (!enabled) return;
 
-    // Request fullscreen for standard mode only
-    if (level === "standard") {
+    // Request fullscreen for standard mode only, skip on mobile devices
+    // Mobile devices (iOS Safari, Android) often don't support Fullscreen API
+    // and narrow viewports indicate mobile-like usage patterns
+    const isMobile = isMobileDevice() || window.innerWidth < 768;
+    if (level === "standard" && !isMobile) {
       requestFullscreen();
     }
 

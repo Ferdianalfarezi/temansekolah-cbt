@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAntiCheat, useExamSocket } from "@/hooks";
 import { ViolationType } from "@/common/enums";
@@ -11,6 +11,7 @@ import {
   cacheQuestions,
   clearSessionCache,
 } from "@/services/examCache";
+import { isMobileDevice } from "@/lib/device";
 
 interface QuestionOption {
   key: string;
@@ -35,11 +36,18 @@ interface ExamData {
   questions: Question[];
   savedAnswers?: Record<string, string>;
   namaUjian?: string;
+  violationCount?: number;
 }
 
 export default function ExamPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+
+  // Detect mobile device for fullscreen bypass (Task 4.1)
+  const isMobile = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return isMobileDevice();
+  }, []);
 
   const [examData, setExamData] = useState<ExamData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +78,7 @@ export default function ExamPage() {
   const { violationCount } = useAntiCheat({
     enabled: !!examData,
     level: "standard",
+    initialViolationCount: examData?.violationCount ?? 0,
     onViolation: (type: ViolationType, durationMs?: number) => {
       api
         .post(`/siswa/exam-sessions/${sessionId}/violations`, {
@@ -460,10 +469,14 @@ export default function ExamPage() {
   return (
     <div
       className="flex min-h-screen flex-col"
-      style={{ background: "#fafaf9" }}
+      style={{
+        background: "#fafaf9",
+        maxWidth: "100vw",
+        overflowX: "hidden",
+      }}
     >
-      {/* ── FULLSCREEN OVERLAY (blocking) ───────────────────────────────── */}
-      {!isFullscreen && (
+      {/* ── FULLSCREEN OVERLAY (blocking) - bypassed for mobile devices ───────────────────────────────── */}
+      {!isFullscreen && !isMobile && (
         <div
           style={{
             position: "fixed",
@@ -593,6 +606,46 @@ export default function ExamPage() {
 
       {/* ── VIOLATION WARNING BAR (shown when fullscreen but has violations) ─ */}
       {isFullscreen && violationCount > 0 && (
+        <div
+          style={{
+            background: "#fef3c7",
+            borderBottom: "2px solid #fde68a",
+            padding: "10px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "#92400e",
+          }}
+        >
+          ⚠️ Pelanggaran terdeteksi ({violationCount}x). Aktivitas Anda
+          dipantau.
+        </div>
+      )}
+
+      {/* ── MOBILE LANDSCAPE ORIENTATION BANNER (non-blocking info) ─ */}
+      {isMobile && (
+        <div
+          style={{
+            background: "#eff6ff",
+            borderBottom: "1px solid #bfdbfe",
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            fontSize: "12px",
+            color: "#1d4ed8",
+          }}
+        >
+          📱 Rotate device for better experience
+        </div>
+      )}
+
+      {/* ── MOBILE VIOLATION WARNING (shown when mobile and has violations) ─ */}
+      {isMobile && violationCount > 0 && (
         <div
           style={{
             background: "#fef3c7",
@@ -1085,7 +1138,7 @@ export default function ExamPage() {
           </div>
         </aside>
 
-        {/* ── MOBILE NAV PANEL ──────────────────────────────────────────── */}
+        {/* ── MOBILE NAV PANEL (Bottom Sheet) ──────────────────────────────────────────── */}
         {showNavPanel && (
           <>
             {/* Backdrop */}
@@ -1100,22 +1153,36 @@ export default function ExamPage() {
               onClick={() => setShowNavPanel(false)}
             />
 
-            {/* Panel */}
+            {/* Bottom Sheet Panel */}
             <aside
               className="lg:hidden"
               style={{
                 position: "fixed",
+                left: 0,
                 right: 0,
-                top: 0,
                 bottom: 0,
-                width: "280px",
+                maxHeight: "70vh",
                 background: "white",
-                borderLeft: "2px solid #e7e5e4",
+                borderTopLeftRadius: "20px",
+                borderTopRightRadius: "20px",
                 padding: "20px",
-                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
                 zIndex: 50,
+                boxShadow: "0 -4px 20px rgba(0,0,0,0.15)",
               }}
             >
+              {/* Handle bar indicator */}
+              <div
+                style={{
+                  width: "40px",
+                  height: "4px",
+                  background: "#d4d4d4",
+                  borderRadius: "2px",
+                  margin: "0 auto 16px",
+                }}
+              />
+
               <div
                 style={{
                   display: "flex",
@@ -1162,74 +1229,111 @@ export default function ExamPage() {
                 </button>
               </div>
 
-              {/* Question grid */}
+              {/* Scrollable Question grid container */}
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(5, 1fr)",
-                  gap: "8px",
+                  flex: 1,
+                  overflowY: "auto",
+                  minHeight: 0,
                 }}
               >
-                {examData.questions.map((q, idx) => {
-                  const isAnswered = answers.has(q.id);
-                  const isCurrent = idx === currentIndex;
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: "8px",
+                  }}
+                >
+                  {examData.questions.map((q, idx) => {
+                    const isAnswered = answers.has(q.id);
+                    const isCurrent = idx === currentIndex;
 
-                  let btnStyle: React.CSSProperties = {
-                    width: "40px",
-                    height: "40px",
+                    let btnStyle: React.CSSProperties = {
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "2px solid #e7e5e4",
+                      background: "white",
+                      color: "#1c1917",
+                    };
+
+                    if (isCurrent) {
+                      btnStyle = {
+                        ...btnStyle,
+                        borderColor: "#2563eb",
+                        background: "#2563eb",
+                        color: "white",
+                      };
+                    } else if (isAnswered) {
+                      btnStyle = {
+                        ...btnStyle,
+                        borderColor: "#22c55e",
+                        background: "#dcfce7",
+                        color: "#15803d",
+                      };
+                    }
+
+                    return (
+                      <button
+                        key={q.id}
+                        onClick={() => {
+                          setCurrentIndex(idx);
+                          setShowNavPanel(false);
+                        }}
+                        style={btnStyle}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Stats - always visible at bottom */}
+              <div
+                style={{
+                  marginTop: "16px",
+                  paddingTop: "16px",
+                  borderTop: "1px solid #e7e5e4",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "#57534e",
+                  }}
+                >
+                  Dijawab: {answeredCount} | Belum: {unansweredCount}
+                </p>
+                <button
+                  onClick={() => {
+                    setShowNavPanel(false);
+                    handleSubmit(false);
+                  }}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#2563eb",
+                    color: "white",
+                    border: "none",
                     borderRadius: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
                     fontSize: "13px",
                     fontWeight: 700,
                     cursor: "pointer",
-                    border: "2px solid #e7e5e4",
-                    background: "white",
-                    color: "#1c1917",
-                  };
-
-                  if (isCurrent) {
-                    btnStyle = {
-                      ...btnStyle,
-                      borderColor: "#2563eb",
-                      background: "#2563eb",
-                      color: "white",
-                    };
-                  } else if (isAnswered) {
-                    btnStyle = {
-                      ...btnStyle,
-                      borderColor: "#22c55e",
-                      background: "#dcfce7",
-                      color: "#15803d",
-                    };
-                  }
-
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => {
-                        setCurrentIndex(idx);
-                        setShowNavPanel(false);
-                      }}
-                      style={btnStyle}
-                    >
-                      {idx + 1}
-                    </button>
-                  );
-                })}
+                    boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+                  }}
+                >
+                  Kumpulkan
+                </button>
               </div>
-
-              {/* Stats */}
-              <p
-                style={{
-                  marginTop: "16px",
-                  fontSize: "13px",
-                  color: "#57534e",
-                }}
-              >
-                Dijawab: {answeredCount} | Belum: {unansweredCount}
-              </p>
             </aside>
           </>
         )}
@@ -1239,9 +1343,11 @@ export default function ExamPage() {
       <footer
         style={{
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "14px 24px",
+          gap: "8px",
+          padding: isMobile ? "12px 16px" : "14px 24px",
           background: "white",
           borderTop: "2px solid #e7e5e4",
         }}
@@ -1254,10 +1360,10 @@ export default function ExamPage() {
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            padding: "10px 20px",
+            padding: isMobile ? "8px 12px" : "10px 20px",
             border: "2px solid #e7e5e4",
             borderRadius: "8px",
-            fontSize: "14px",
+            fontSize: isMobile ? "13px" : "14px",
             fontWeight: 600,
             color: "#57534e",
             background: "white",
@@ -1265,7 +1371,7 @@ export default function ExamPage() {
             opacity: currentIndex === 0 ? 0.4 : 1,
           }}
         >
-          ← Sebelumnya
+          {isMobile ? "←" : "← Sebelumnya"}
         </button>
 
         {/* Mobile nav toggle */}
@@ -1308,10 +1414,10 @@ export default function ExamPage() {
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              padding: "10px 20px",
+              padding: isMobile ? "8px 12px" : "10px 20px",
               border: "2px solid #e7e5e4",
               borderRadius: "8px",
-              fontSize: "14px",
+              fontSize: isMobile ? "13px" : "14px",
               fontWeight: 600,
               color: "#57534e",
               background: "white",
@@ -1320,25 +1426,25 @@ export default function ExamPage() {
               opacity: currentIndex === totalQuestions - 1 ? 0.4 : 1,
             }}
           >
-            Selanjutnya →
+            {isMobile ? "→" : "Selanjutnya →"}
           </button>
           <button
             onClick={() => handleSubmit(false)}
             disabled={submitting}
             style={{
-              padding: "10px 24px",
+              padding: isMobile ? "8px 16px" : "10px 24px",
               background: "#2563eb",
               color: "white",
               border: "none",
               borderRadius: "8px",
-              fontSize: "14px",
+              fontSize: isMobile ? "13px" : "14px",
               fontWeight: 700,
               cursor: submitting ? "not-allowed" : "pointer",
               boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
               opacity: submitting ? 0.5 : 1,
             }}
           >
-            {submitting ? "Mengirim..." : "Kumpulkan"}
+            {submitting ? "..." : "Kumpulkan"}
           </button>
         </div>
       </footer>
