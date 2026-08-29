@@ -205,8 +205,12 @@ onUnmounted(() => {
       class="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between"
     >
       <div>
-        <h1 class="text-lg font-semibold text-gray-900">Proctor Dashboard</h1>
-        <p class="text-sm text-gray-500 mt-0.5">Sesi: {{ sessionId }}</p>
+        <h1 class="text-lg font-semibold text-gray-900">
+          {{ dashboard?.session?.mataPelajaranNama || 'Proctor Dashboard' }}
+        </h1>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {{ dashboard?.session?.kelasNama || 'Memuat...' }}
+        </p>
       </div>
       <button
         class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
