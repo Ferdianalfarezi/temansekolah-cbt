@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 import { io, type Socket } from "socket.io-client";
 import {
   getProctorDashboard,
@@ -13,6 +14,7 @@ import {
 import ParticipantCard from "@/components/cbt/ParticipantCard.vue";
 
 const route = useRoute();
+const authStore = useAuthStore();
 const sessionId = route.params.id as string;
 
 const dashboard = ref<ProctorDashboardData | null>(null);
@@ -45,7 +47,7 @@ function connectSocket() {
   let baseUrl = import.meta.env.VITE_API_URL || "";
   // Remove /api/v1 suffix if present (Socket.IO namespaces are at root level)
   baseUrl = baseUrl.replace(/\/api\/v\d+$/, "");
-  const token = localStorage.getItem("token");
+  const token = authStore.token;
 
   socket.value = io(`${baseUrl}/proctor`, {
     auth: { token },
