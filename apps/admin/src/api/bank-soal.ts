@@ -64,15 +64,18 @@ export interface BankSoal {
   createdBy: string;
 }
 
+export type TipeSoal = "pilihan_ganda" | "essay";
+
 export interface Soal {
   id: string;
   nomorUrut: number;
+  tipeSoal: TipeSoal;
   teksSoal: string;
-  jawabanBenar: "A" | "B" | "C" | "D" | "E";
-  opsiA: string;
-  opsiB: string;
-  opsiC: string;
-  opsiD: string;
+  jawabanBenar: "A" | "B" | "C" | "D" | "E" | null;
+  opsiA: string | null;
+  opsiB: string | null;
+  opsiC: string | null;
+  opsiD: string | null;
   opsiE: string | null;
   gambarSoalUrl: string | null;
   gambarAUrl: string | null;
@@ -135,13 +138,14 @@ export interface ScheduleExamDto {
 }
 
 export interface CreateSoalDto {
+  tipeSoal?: TipeSoal;
   teksSoal: string;
-  opsiA: string;
-  opsiB: string;
-  opsiC: string;
-  opsiD: string;
+  opsiA?: string;
+  opsiB?: string;
+  opsiC?: string;
+  opsiD?: string;
   opsiE?: string;
-  jawabanBenar: "A" | "B" | "C" | "D" | "E";
+  jawabanBenar?: "A" | "B" | "C" | "D" | "E";
   gambarSoalUrl?: string;
   gambarAUrl?: string;
   gambarBUrl?: string;
@@ -151,13 +155,14 @@ export interface CreateSoalDto {
 }
 
 export interface UpdateSoalDto {
+  tipeSoal?: TipeSoal;
   teksSoal?: string;
-  opsiA?: string;
-  opsiB?: string;
-  opsiC?: string;
-  opsiD?: string;
+  opsiA?: string | null;
+  opsiB?: string | null;
+  opsiC?: string | null;
+  opsiD?: string | null;
   opsiE?: string | null;
-  jawabanBenar?: "A" | "B" | "C" | "D" | "E";
+  jawabanBenar?: "A" | "B" | "C" | "D" | "E" | null;
   gambarSoalUrl?: string | null;
   gambarAUrl?: string | null;
   gambarBUrl?: string | null;
@@ -170,12 +175,13 @@ export interface UpdateSoalDto {
 
 export interface ParsedSoal {
   nomorSoal: number;
+  tipeSoal: TipeSoal;
   teksSoal: string;
-  jawabanBenar: string;
-  opsiA: string;
-  opsiB: string;
-  opsiC: string;
-  opsiD: string;
+  jawabanBenar: string | null;
+  opsiA: string | null;
+  opsiB: string | null;
+  opsiC: string | null;
+  opsiD: string | null;
   opsiE: string | null;
 }
 

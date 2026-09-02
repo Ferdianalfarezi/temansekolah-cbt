@@ -19,9 +19,12 @@ interface QuestionOption {
   imageUrl: string | null;
 }
 
+type TipeSoal = "pilihan_ganda" | "essay";
+
 interface Question {
   id: string;
   nomor: number;
+  tipeSoal: TipeSoal;
   teksSoal: string;
   gambarSoalUrl: string | null;
   options: QuestionOption[];
@@ -261,11 +264,15 @@ export default function ExamPage() {
       // Save locally first (for offline support)
       await saveAnswerLocally(sessionId!, questionId, answer);
 
+      // Determine if this is an essay question
+      const question = examData?.questions.find((q) => q.id === questionId);
+      const isEssay = question?.tipeSoal === "essay";
+
       // Save via HTTP API (more reliable than WebSocket)
       try {
         await api.post(`/siswa/exam-sessions/${sessionId}/answer`, {
           questionId,
-          option: answer,
+          ...(isEssay ? { essayAnswer: answer } : { option: answer }),
         });
         await markAnswerSynced(sessionId!, questionId);
         setSaveStatus("saved");
@@ -279,7 +286,7 @@ export default function ExamPage() {
         setSaveStatus("offline");
       }
     },
-    [sessionId, isConnected, socketSaveAnswer],
+    [sessionId, isConnected, socketSaveAnswer, examData],
   );
 
   // ── Submit exam ───────────────────────────────────────────────────────────
@@ -684,7 +691,7 @@ export default function ExamPage() {
             {examData.namaUjian || "Ujian"}
           </div>
           <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
-            {totalQuestions} Soal • Pilihan Ganda
+            {totalQuestions} Soal
           </div>
         </div>
 
@@ -801,7 +808,7 @@ export default function ExamPage() {
               Soal {currentIndex + 1} dari {totalQuestions}
             </div>
 
-            {/* Question text */}
+            {/* Question text - render HTML for rich text support */}
             <div
               style={{
                 fontSize: "16px",
@@ -811,7 +818,10 @@ export default function ExamPage() {
                 marginBottom: "24px",
               }}
             >
-              <p>{currentQuestion.teksSoal}</p>
+              <div
+                dangerouslySetInnerHTML={{ __html: currentQuestion.teksSoal }}
+                style={{ lineHeight: 1.7 }}
+              />
               {currentQuestion.gambarSoalUrl && (
                 <img
                   src={currentQuestion.gambarSoalUrl}
@@ -826,107 +836,191 @@ export default function ExamPage() {
               )}
             </div>
 
-            {/* Options */}
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-            >
-              {currentQuestion.options
-                // Filter out empty options (no text and no image)
-                .filter((option) => option.text || option.imageUrl)
-                .map((option, displayIndex) => {
-                  const isSelected =
-                    answers.get(currentQuestion.id) === option.key;
-                  // Display sequential letters A, B, C, D, E based on position
-                  const displayLetter = String.fromCharCode(65 + displayIndex); // A=65, B=66, etc.
+            {/* Options - only show for pilihan_ganda */}
+            {currentQuestion.tipeSoal === "pilihan_ganda" && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                {currentQuestion.options
+                  // Filter out empty options (no text and no image)
+                  .filter((option) => option.text || option.imageUrl)
+                  .map((option, displayIndex) => {
+                    const isSelected =
+                      answers.get(currentQuestion.id) === option.key;
+                    // Display sequential letters A, B, C, D, E based on position
+                    const displayLetter = String.fromCharCode(
+                      65 + displayIndex,
+                    ); // A=65, B=66, etc.
 
-                  return (
-                    <button
-                      key={option.key}
-                      onClick={() =>
-                        selectAnswer(currentQuestion.id, option.key)
-                      }
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: "14px",
-                        padding: "16px 18px",
-                        border: isSelected
-                          ? "2px solid #3b82f6"
-                          : "2px solid #e7e5e4",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                        background: isSelected ? "#eff6ff" : "white",
-                        boxShadow: isSelected
-                          ? "0 0 0 3px rgba(59, 130, 246, 0.1)"
-                          : "none",
-                        textAlign: "left",
-                        width: "100%",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          (
-                            e.currentTarget as HTMLButtonElement
-                          ).style.borderColor = "#93c5fd";
-                          (
-                            e.currentTarget as HTMLButtonElement
-                          ).style.background = "#eff6ff";
+                    return (
+                      <button
+                        key={option.key}
+                        onClick={() =>
+                          selectAnswer(currentQuestion.id, option.key)
                         }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          (
-                            e.currentTarget as HTMLButtonElement
-                          ).style.borderColor = "#e7e5e4";
-                          (
-                            e.currentTarget as HTMLButtonElement
-                          ).style.background = "white";
-                        }
-                      }}
-                    >
-                      {/* Letter badge - shows A, B, C, D, E in order regardless of shuffled key */}
-                      <span
                         style={{
-                          width: "32px",
-                          height: "32px",
-                          borderRadius: "50%",
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "14px",
-                          fontWeight: 700,
-                          border: isSelected ? "none" : "2px solid #e7e5e4",
-                          flexShrink: 0,
-                          background: isSelected ? "#2563eb" : "white",
-                          color: isSelected ? "white" : "#1c1917",
+                          alignItems: "flex-start",
+                          gap: "14px",
+                          padding: "16px 18px",
+                          border: isSelected
+                            ? "2px solid #3b82f6"
+                            : "2px solid #e7e5e4",
+                          borderRadius: "8px",
+                          cursor: "pointer",
                           transition: "all 0.15s",
+                          background: isSelected ? "#eff6ff" : "white",
+                          boxShadow: isSelected
+                            ? "0 0 0 3px rgba(59, 130, 246, 0.1)"
+                            : "none",
+                          textAlign: "left",
+                          width: "100%",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.borderColor = "#93c5fd";
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.background = "#eff6ff";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.borderColor = "#e7e5e4";
+                            (
+                              e.currentTarget as HTMLButtonElement
+                            ).style.background = "white";
+                          }
                         }}
                       >
-                        {displayLetter}
-                      </span>
-                      <div style={{ flex: 1, paddingTop: "4px" }}>
-                        {option.text && (
-                          <span style={{ fontSize: "15px", color: "#1c1917" }}>
-                            {option.text}
-                          </span>
-                        )}
-                        {option.imageUrl && (
-                          <img
-                            src={option.imageUrl}
-                            alt={`Opsi ${displayLetter}`}
-                            style={{
-                              marginTop: "8px",
-                              maxWidth: "100%",
-                              borderRadius: "8px",
-                              maxHeight: "150px",
-                            }}
-                          />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-            </div>
+                        {/* Letter badge - shows A, B, C, D, E in order regardless of shuffled key */}
+                        <span
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "14px",
+                            fontWeight: 700,
+                            border: isSelected ? "none" : "2px solid #e7e5e4",
+                            flexShrink: 0,
+                            background: isSelected ? "#2563eb" : "white",
+                            color: isSelected ? "white" : "#1c1917",
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          {displayLetter}
+                        </span>
+                        <div style={{ flex: 1, paddingTop: "4px" }}>
+                          {option.text && (
+                            <span
+                              style={{ fontSize: "15px", color: "#1c1917" }}
+                            >
+                              {option.text}
+                            </span>
+                          )}
+                          {option.imageUrl && (
+                            <img
+                              src={option.imageUrl}
+                              alt={`Opsi ${displayLetter}`}
+                              style={{
+                                marginTop: "8px",
+                                maxWidth: "100%",
+                                borderRadius: "8px",
+                                maxHeight: "150px",
+                              }}
+                            />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* Essay answer textarea - only show for essay questions */}
+            {currentQuestion.tipeSoal === "essay" && (
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "#57534e",
+                    }}
+                  >
+                    Jawaban Anda
+                  </label>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color:
+                        (answers.get(currentQuestion.id)?.length || 0) > 4500
+                          ? "#dc2626"
+                          : "#a8a29e",
+                    }}
+                  >
+                    {answers.get(currentQuestion.id)?.length || 0} / 5000
+                  </span>
+                </div>
+                <textarea
+                  value={answers.get(currentQuestion.id) || ""}
+                  onChange={(e) => {
+                    const value = e.target.value.slice(0, 5000);
+                    selectAnswer(currentQuestion.id, value);
+                  }}
+                  placeholder="Tulis jawaban essay Anda di sini..."
+                  style={{
+                    width: "100%",
+                    minHeight: "200px",
+                    padding: "16px",
+                    border: "2px solid #e7e5e4",
+                    borderRadius: "8px",
+                    fontSize: "15px",
+                    lineHeight: 1.6,
+                    color: "#1c1917",
+                    resize: "vertical",
+                    outline: "none",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#3b82f6";
+                    e.currentTarget.style.boxShadow =
+                      "0 0 0 3px rgba(59, 130, 246, 0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#e7e5e4";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+                <p
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "12px",
+                    color: "#a8a29e",
+                  }}
+                >
+                  Soal essay tidak dinilai otomatis dan harus diperiksa oleh
+                  guru.
+                </p>
+              </div>
+            )}
           </div>
         </main>
 

@@ -1,5 +1,10 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
+export const cbtTipeSoalEnum = pgEnum("cbt_tipe_soal", [
+  "pilihan_ganda",
+  "essay",
+]);
+
 export const cbtExamSessionStatusEnum = pgEnum("cbt_exam_session_status", [
   "draft",
   "packaged",

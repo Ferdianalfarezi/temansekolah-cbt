@@ -10,6 +10,7 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { and, asc, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 import { CbtRole } from "@/common/enums";
+import { sanitizeHtml } from "@/common/helpers/html-sanitizer";
 import { DRIZZLE } from "../../drizzle/drizzle.module";
 import {
   jadwalPelajaran,
@@ -33,6 +34,7 @@ import {
   UpdateBankSoalDto,
   UpdateSoalDto,
 } from "./dto";
+import type { TipeSoal } from "./dto";
 
 /**
  * Represents the scope of mata pelajaran and kelas that a Guru can access
@@ -84,19 +86,20 @@ export interface BankSoalDetail extends BankSoalListItem {
   isLocked: boolean;
   soal: Array<{
     id: string;
+    tipeSoal: TipeSoal;
     teksSoal: string;
     gambarSoalUrl: string | null;
-    opsiA: string;
+    opsiA: string | null;
     gambarAUrl: string | null;
-    opsiB: string;
+    opsiB: string | null;
     gambarBUrl: string | null;
-    opsiC: string;
+    opsiC: string | null;
     gambarCUrl: string | null;
-    opsiD: string;
+    opsiD: string | null;
     gambarDUrl: string | null;
     opsiE: string | null;
     gambarEUrl: string | null;
-    jawabanBenar: string;
+    jawabanBenar: string | null;
     nomorUrut: number;
     createdAt: Date;
     updatedAt: Date;
@@ -113,12 +116,13 @@ const LOCKED_STATUSES = ["packaged", "active", "completed"] as const;
  */
 export interface ParsedSoalRow {
   nomorSoal: number;
+  tipeSoal: TipeSoal;
   teksSoal: string;
-  jawabanBenar: string;
-  opsiA: string;
-  opsiB: string;
-  opsiC: string;
-  opsiD: string;
+  jawabanBenar: string | null;
+  opsiA: string | null;
+  opsiB: string | null;
+  opsiC: string | null;
+  opsiD: string | null;
   opsiE: string | null;
 }
 
@@ -830,6 +834,7 @@ export class BankSoalService {
     const soalList = await this.db
       .select({
         id: cbtQuestion.id,
+        tipeSoal: cbtQuestion.tipeSoal,
         teksSoal: cbtQuestion.teksSoal,
         gambarSoalUrl: cbtQuestion.gambarSoalUrl,
         opsiA: cbtQuestion.opsiA,
@@ -1493,7 +1498,11 @@ export class BankSoalService {
 
     const nextNomorUrut = dto.nomorUrut ?? (maxNomorResult?.maxNomor ?? 0) + 1;
 
-    // 5. Insert soal
+    // 5. Insert soal - sanitize HTML for teksSoal
+    const tipeSoal = dto.tipeSoal ?? "pilihan_ganda";
+    const sanitizedTeksSoal = sanitizeHtml(dto.teksSoal);
+    const isEssay = tipeSoal === "essay";
+
     const [soal] = await this.db
       .insert(cbtQuestion)
       .values({
@@ -1501,19 +1510,21 @@ export class BankSoalService {
         pelaksanaanUjianId: bankSoal.pelaksanaanUjianId,
         bankSoalId,
         createdBy: userId,
-        teksSoal: dto.teksSoal,
+        tipeSoal,
+        teksSoal: sanitizedTeksSoal,
         gambarSoalUrl: dto.gambarSoalUrl,
-        opsiA: dto.opsiA,
-        gambarAUrl: dto.gambarAUrl,
-        opsiB: dto.opsiB,
-        gambarBUrl: dto.gambarBUrl,
-        opsiC: dto.opsiC,
-        gambarCUrl: dto.gambarCUrl,
-        opsiD: dto.opsiD,
-        gambarDUrl: dto.gambarDUrl,
-        opsiE: dto.opsiE,
-        gambarEUrl: dto.gambarEUrl,
-        jawabanBenar: dto.jawabanBenar,
+        // For essay type, PG-specific fields should be null
+        opsiA: isEssay ? null : dto.opsiA,
+        gambarAUrl: isEssay ? null : dto.gambarAUrl,
+        opsiB: isEssay ? null : dto.opsiB,
+        gambarBUrl: isEssay ? null : dto.gambarBUrl,
+        opsiC: isEssay ? null : dto.opsiC,
+        gambarCUrl: isEssay ? null : dto.gambarCUrl,
+        opsiD: isEssay ? null : dto.opsiD,
+        gambarDUrl: isEssay ? null : dto.gambarDUrl,
+        opsiE: isEssay ? null : dto.opsiE,
+        gambarEUrl: isEssay ? null : dto.gambarEUrl,
+        jawabanBenar: isEssay ? null : dto.jawabanBenar,
         nomorUrut: nextNomorUrut,
       })
       .returning();
@@ -1599,21 +1610,56 @@ export class BankSoalService {
       updatedAt: new Date(),
     };
 
-    if (dto.teksSoal !== undefined) updateValues.teksSoal = dto.teksSoal;
+    // Sanitize teksSoal if provided
+    if (dto.teksSoal !== undefined)
+      updateValues.teksSoal = sanitizeHtml(dto.teksSoal);
     if (dto.gambarSoalUrl !== undefined)
       updateValues.gambarSoalUrl = dto.gambarSoalUrl;
-    if (dto.opsiA !== undefined) updateValues.opsiA = dto.opsiA;
-    if (dto.gambarAUrl !== undefined) updateValues.gambarAUrl = dto.gambarAUrl;
-    if (dto.opsiB !== undefined) updateValues.opsiB = dto.opsiB;
-    if (dto.gambarBUrl !== undefined) updateValues.gambarBUrl = dto.gambarBUrl;
-    if (dto.opsiC !== undefined) updateValues.opsiC = dto.opsiC;
-    if (dto.gambarCUrl !== undefined) updateValues.gambarCUrl = dto.gambarCUrl;
-    if (dto.opsiD !== undefined) updateValues.opsiD = dto.opsiD;
-    if (dto.gambarDUrl !== undefined) updateValues.gambarDUrl = dto.gambarDUrl;
-    if (dto.opsiE !== undefined) updateValues.opsiE = dto.opsiE;
-    if (dto.gambarEUrl !== undefined) updateValues.gambarEUrl = dto.gambarEUrl;
-    if (dto.jawabanBenar !== undefined)
-      updateValues.jawabanBenar = dto.jawabanBenar;
+
+    // Determine effective tipeSoal - use dto value if provided, otherwise use existing value
+    const effectiveTipeSoal = dto.tipeSoal ?? existingSoal.tipeSoal;
+
+    // Handle tipeSoal change
+    if (dto.tipeSoal !== undefined) {
+      updateValues.tipeSoal = dto.tipeSoal;
+
+      // If changing to essay, clear PG-specific fields
+      if (dto.tipeSoal === "essay") {
+        updateValues.opsiA = null;
+        updateValues.opsiB = null;
+        updateValues.opsiC = null;
+        updateValues.opsiD = null;
+        updateValues.opsiE = null;
+        updateValues.gambarAUrl = null;
+        updateValues.gambarBUrl = null;
+        updateValues.gambarCUrl = null;
+        updateValues.gambarDUrl = null;
+        updateValues.gambarEUrl = null;
+        updateValues.jawabanBenar = null;
+      }
+    }
+
+    // Only update PG fields if question type is PG
+    if (effectiveTipeSoal === "pilihan_ganda") {
+      if (dto.opsiA !== undefined) updateValues.opsiA = dto.opsiA;
+      if (dto.gambarAUrl !== undefined)
+        updateValues.gambarAUrl = dto.gambarAUrl;
+      if (dto.opsiB !== undefined) updateValues.opsiB = dto.opsiB;
+      if (dto.gambarBUrl !== undefined)
+        updateValues.gambarBUrl = dto.gambarBUrl;
+      if (dto.opsiC !== undefined) updateValues.opsiC = dto.opsiC;
+      if (dto.gambarCUrl !== undefined)
+        updateValues.gambarCUrl = dto.gambarCUrl;
+      if (dto.opsiD !== undefined) updateValues.opsiD = dto.opsiD;
+      if (dto.gambarDUrl !== undefined)
+        updateValues.gambarDUrl = dto.gambarDUrl;
+      if (dto.opsiE !== undefined) updateValues.opsiE = dto.opsiE;
+      if (dto.gambarEUrl !== undefined)
+        updateValues.gambarEUrl = dto.gambarEUrl;
+      if (dto.jawabanBenar !== undefined)
+        updateValues.jawabanBenar = dto.jawabanBenar;
+    }
+
     if (dto.nomorUrut !== undefined) updateValues.nomorUrut = dto.nomorUrut;
 
     // 6. Update soal - bank_soal_id is preserved (not in updateValues)
@@ -1793,6 +1839,7 @@ export class BankSoalService {
           pelaksanaanUjianId: bankSoal.pelaksanaanUjianId,
           bankSoalId,
           createdBy: userId,
+          tipeSoal: row.tipeSoal,
           teksSoal: row.teksSoal,
           opsiA: row.opsiA,
           opsiB: row.opsiB,
@@ -1842,15 +1889,8 @@ export class BankSoalService {
       }
     });
 
-    const requiredColumns = [
-      "nomor_soal",
-      "teks_soal",
-      "jawaban_benar",
-      "opsi_a",
-      "opsi_b",
-      "opsi_c",
-      "opsi_d",
-    ];
+    // Required columns for all question types
+    const requiredColumns = ["nomor_soal", "teks_soal"];
 
     const missingColumns = requiredColumns.filter((col) => !headers[col]);
     if (missingColumns.length > 0) {
@@ -1889,55 +1929,71 @@ export class BankSoalService {
       const nomorSoal =
         parseInt(getCellValue("nomor_soal"), 10) || rowNumber - 1;
       const teksSoal = getCellValue("teks_soal");
-      const jawabanBenar = getCellValue("jawaban_benar").toUpperCase();
-      const opsiA = getCellValue("opsi_a");
-      const opsiB = getCellValue("opsi_b");
-      const opsiC = getCellValue("opsi_c");
-      const opsiD = getCellValue("opsi_d");
-      const opsiE = getCellValue("opsi_e") || null;
 
-      // 3. Validate row
+      // Determine question type: PG (default) or ESSAY
+      const tipeSoalRaw = getCellValue("tipe_soal").toUpperCase();
+      const isEssay = tipeSoalRaw === "ESSAY";
+      const tipeSoal: TipeSoal = isEssay ? "essay" : "pilihan_ganda";
+
+      // 3. Validate common fields
       if (!teksSoal) {
         rowErrors.push("Teks soal tidak boleh kosong");
       } else if (teksSoal.length > 2000) {
         rowErrors.push("Teks soal maksimal 2000 karakter");
       }
 
-      if (!["A", "B", "C", "D", "E"].includes(jawabanBenar)) {
-        rowErrors.push("Jawaban benar harus A, B, C, D, atau E");
-      }
+      // 4. Validate PG-specific fields only if not essay
+      let jawabanBenar: string | null = null;
+      let opsiA: string | null = null;
+      let opsiB: string | null = null;
+      let opsiC: string | null = null;
+      let opsiD: string | null = null;
+      let opsiE: string | null = null;
 
-      if (!opsiA) {
-        rowErrors.push("Opsi A tidak boleh kosong");
-      } else if (opsiA.length > 500) {
-        rowErrors.push("Opsi A maksimal 500 karakter");
-      }
+      if (!isEssay) {
+        jawabanBenar = getCellValue("jawaban_benar").toUpperCase();
+        opsiA = getCellValue("opsi_a");
+        opsiB = getCellValue("opsi_b");
+        opsiC = getCellValue("opsi_c");
+        opsiD = getCellValue("opsi_d");
+        opsiE = getCellValue("opsi_e") || null;
 
-      if (!opsiB) {
-        rowErrors.push("Opsi B tidak boleh kosong");
-      } else if (opsiB.length > 500) {
-        rowErrors.push("Opsi B maksimal 500 karakter");
-      }
+        if (!["A", "B", "C", "D", "E"].includes(jawabanBenar)) {
+          rowErrors.push("Jawaban benar harus A, B, C, D, atau E");
+        }
 
-      if (!opsiC) {
-        rowErrors.push("Opsi C tidak boleh kosong");
-      } else if (opsiC.length > 500) {
-        rowErrors.push("Opsi C maksimal 500 karakter");
-      }
+        if (!opsiA) {
+          rowErrors.push("Opsi A tidak boleh kosong");
+        } else if (opsiA.length > 500) {
+          rowErrors.push("Opsi A maksimal 500 karakter");
+        }
 
-      if (!opsiD) {
-        rowErrors.push("Opsi D tidak boleh kosong");
-      } else if (opsiD.length > 500) {
-        rowErrors.push("Opsi D maksimal 500 karakter");
-      }
+        if (!opsiB) {
+          rowErrors.push("Opsi B tidak boleh kosong");
+        } else if (opsiB.length > 500) {
+          rowErrors.push("Opsi B maksimal 500 karakter");
+        }
 
-      // opsiE required if jawabanBenar is E
-      if (jawabanBenar === "E" && !opsiE) {
-        rowErrors.push("Opsi E wajib diisi jika jawaban benar adalah E");
-      }
+        if (!opsiC) {
+          rowErrors.push("Opsi C tidak boleh kosong");
+        } else if (opsiC.length > 500) {
+          rowErrors.push("Opsi C maksimal 500 karakter");
+        }
 
-      if (opsiE && opsiE.length > 500) {
-        rowErrors.push("Opsi E maksimal 500 karakter");
+        if (!opsiD) {
+          rowErrors.push("Opsi D tidak boleh kosong");
+        } else if (opsiD.length > 500) {
+          rowErrors.push("Opsi D maksimal 500 karakter");
+        }
+
+        // opsiE required if jawabanBenar is E
+        if (jawabanBenar === "E" && !opsiE) {
+          rowErrors.push("Opsi E wajib diisi jika jawaban benar adalah E");
+        }
+
+        if (opsiE && opsiE.length > 500) {
+          rowErrors.push("Opsi E maksimal 500 karakter");
+        }
       }
 
       if (rowErrors.length > 0) {
@@ -1945,6 +2001,7 @@ export class BankSoalService {
       } else {
         validRows.push({
           nomorSoal,
+          tipeSoal,
           teksSoal,
           jawabanBenar,
           opsiA,
@@ -1963,9 +2020,9 @@ export class BankSoalService {
    * Generate Excel template for bulk import
    *
    * Creates an Excel workbook with:
-   * - Header row with column names
-   * - Example rows with valid data
-   * - Data validation for jawaban_benar column (A-E)
+   * - Header row with column names including tipe_soal
+   * - Example rows with valid PG and essay data
+   * - Data validation for tipe_soal (PG/ESSAY) and jawaban_benar (A-E)
    *
    * @returns Buffer containing the Excel file
    *
@@ -1976,9 +2033,10 @@ export class BankSoalService {
     const workbook = new ExcelJS.default.Workbook();
     const sheet = workbook.addWorksheet("Template Soal");
 
-    // Define columns
+    // Define columns - tipe_soal is the second column after nomor_soal
     sheet.columns = [
       { header: "nomor_soal", key: "nomor_soal", width: 12 },
+      { header: "tipe_soal", key: "tipe_soal", width: 12 },
       { header: "teks_soal", key: "teks_soal", width: 50 },
       { header: "jawaban_benar", key: "jawaban_benar", width: 15 },
       { header: "opsi_a", key: "opsi_a", width: 30 },
@@ -1997,9 +2055,10 @@ export class BankSoalService {
       fgColor: { argb: "FFE0E0E0" },
     };
 
-    // Add example rows with valid data
+    // Add example rows with valid data - PG examples
     sheet.addRow({
       nomor_soal: 1,
+      tipe_soal: "PG",
       teks_soal: "Berapakah hasil dari 5 + 3?",
       jawaban_benar: "C",
       opsi_a: "6",
@@ -2011,6 +2070,7 @@ export class BankSoalService {
 
     sheet.addRow({
       nomor_soal: 2,
+      tipe_soal: "PG",
       teks_soal: "Siapakah proklamator Indonesia?",
       jawaban_benar: "A",
       opsi_a: "Soekarno dan Hatta",
@@ -2022,6 +2082,7 @@ export class BankSoalService {
 
     sheet.addRow({
       nomor_soal: 3,
+      tipe_soal: "PG",
       teks_soal: "Planet terbesar di tata surya adalah...",
       jawaban_benar: "B",
       opsi_a: "Saturnus",
@@ -2031,17 +2092,58 @@ export class BankSoalService {
       opsi_e: "",
     });
 
-    // Add data validation for jawaban_benar column (A-E)
-    // Apply to rows 2 onwards (skip header)
+    // Add essay examples - note: jawaban_benar and opsi columns are empty
+    sheet.addRow({
+      nomor_soal: 4,
+      tipe_soal: "ESSAY",
+      teks_soal:
+        "Jelaskan proses terjadinya hujan dengan menggunakan kata-kata sendiri!",
+      jawaban_benar: "",
+      opsi_a: "",
+      opsi_b: "",
+      opsi_c: "",
+      opsi_d: "",
+      opsi_e: "",
+    });
+
+    sheet.addRow({
+      nomor_soal: 5,
+      tipe_soal: "ESSAY",
+      teks_soal:
+        "Berikan 3 contoh penerapan Pancasila dalam kehidupan sehari-hari!",
+      jawaban_benar: "",
+      opsi_a: "",
+      opsi_b: "",
+      opsi_c: "",
+      opsi_d: "",
+      opsi_e: "",
+    });
+
+    // Add data validation for tipe_soal column (PG/ESSAY)
+    // Column B (tipe_soal)
     for (let rowNum = 2; rowNum <= 100; rowNum++) {
-      const cell = sheet.getCell(`C${rowNum}`);
-      cell.dataValidation = {
+      const tipeSoalCell = sheet.getCell(`B${rowNum}`);
+      tipeSoalCell.dataValidation = {
         type: "list",
         allowBlank: false,
+        formulae: ['"PG,ESSAY"'],
+        showErrorMessage: true,
+        errorTitle: "Tipe Soal Tidak Valid",
+        error: "Pilih tipe soal: PG atau ESSAY",
+      };
+    }
+
+    // Add data validation for jawaban_benar column (A-E)
+    // Column D (jawaban_benar) - only required for PG
+    for (let rowNum = 2; rowNum <= 100; rowNum++) {
+      const jawabanCell = sheet.getCell(`D${rowNum}`);
+      jawabanCell.dataValidation = {
+        type: "list",
+        allowBlank: true, // Allow blank for essay questions
         formulae: ['"A,B,C,D,E"'],
         showErrorMessage: true,
         errorTitle: "Jawaban Tidak Valid",
-        error: "Pilih jawaban A, B, C, D, atau E",
+        error: "Pilih jawaban A, B, C, D, atau E (kosongkan untuk soal essay)",
       };
     }
 

@@ -69,9 +69,8 @@ export class GradingService {
       );
 
     const questionIds = sessionQuestions.map((sq) => sq.questionId);
-    const scoreTotal = questionIds.length;
 
-    if (scoreTotal === 0) {
+    if (questionIds.length === 0) {
       // Edge case: no questions in session
       const result: GradingResult = {
         participantId,
@@ -84,18 +83,39 @@ export class GradingService {
       return result;
     }
 
-    // 3. Load correct answers for each question
+    // 3. Load correct answers for each question (only PG questions have jawabanBenar)
     const questions = await this.db
       .select({
         id: cbtQuestion.id,
+        tipeSoal: cbtQuestion.tipeSoal,
         jawabanBenar: cbtQuestion.jawabanBenar,
       })
       .from(cbtQuestion)
       .where(inArray(cbtQuestion.id, questionIds));
 
+    // Only count PG questions for scoring - essay questions are excluded
+    const pgQuestions = questions.filter((q) => q.tipeSoal === "pilihan_ganda");
+    const pgScoreTotal = pgQuestions.length;
+
+    if (pgScoreTotal === 0) {
+      // All questions are essay type - no auto-grading needed
+      const result: GradingResult = {
+        participantId,
+        scoreCorrect: 0,
+        scoreTotal: 0,
+        scorePercentage: 0,
+      };
+      await this.updateParticipantScore(participantId, result);
+      this.checkSla(startTime, participantId);
+      return result;
+    }
+
     const correctAnswerMap = new Map<string, string>();
-    for (const q of questions) {
-      correctAnswerMap.set(q.id, q.jawabanBenar);
+    for (const q of pgQuestions) {
+      // For PG questions, jawabanBenar should not be null
+      if (q.jawabanBenar) {
+        correctAnswerMap.set(q.id, q.jawabanBenar);
+      }
     }
 
     // 4. Load participant's answers
@@ -112,14 +132,20 @@ export class GradingService {
     // The selected_option already stores the ORIGINAL key (A-E) because
     // the exam-taking service returns options with key=originalKey.
     // No randomization reversal is needed.
+    // Only PG answers are graded - essay answers are excluded from scoring.
     let scoreCorrect = 0;
     const answerUpdates: { id: string; isCorrect: boolean }[] = [];
 
     for (const answer of answers) {
+      // Skip essay answers - they are not auto-graded
       const correctAnswer = correctAnswerMap.get(answer.questionId);
+      if (correctAnswer === undefined) {
+        // This is an essay question answer, skip grading
+        continue;
+      }
+
       const isCorrect =
         answer.selectedOption != null &&
-        correctAnswer != null &&
         answer.selectedOption === correctAnswer;
 
       answerUpdates.push({ id: answer.id, isCorrect });
@@ -139,15 +165,16 @@ export class GradingService {
     }
 
     // 7. Calculate percentage and store on participant
+    // Score is based only on PG questions
     const scorePercentage =
-      scoreTotal > 0
-        ? Math.round((scoreCorrect / scoreTotal) * 10000) / 100
+      pgScoreTotal > 0
+        ? Math.round((scoreCorrect / pgScoreTotal) * 10000) / 100
         : 0;
 
     const result: GradingResult = {
       participantId,
       scoreCorrect,
-      scoreTotal,
+      scoreTotal: pgScoreTotal,
       scorePercentage,
     };
 
@@ -156,7 +183,7 @@ export class GradingService {
     this.checkSla(startTime, participantId);
 
     this.logger.log(
-      `Graded participant ${participantId}: ${scoreCorrect}/${scoreTotal} (${scorePercentage}%)`,
+      `Graded participant ${participantId}: ${scoreCorrect}/${pgScoreTotal} (${scorePercentage}%)`,
     );
 
     return result;

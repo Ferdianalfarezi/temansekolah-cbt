@@ -10,10 +10,15 @@ import {
 } from "class-validator";
 
 export class UpdateSoalDto {
+  // tipeSoal can be changed, but will require revalidation of other fields
+  @IsOptional()
+  @IsIn(["pilihan_ganda", "essay"])
+  tipeSoal?: "pilihan_ganda" | "essay";
+
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @MaxLength(2000)
+  @MaxLength(10000) // Increased for HTML content
   teksSoal?: string;
 
   @IsOptional()
@@ -21,6 +26,9 @@ export class UpdateSoalDto {
   @MaxLength(500)
   gambarSoalUrl?: string;
 
+  // PG fields - validation depends on tipeSoal
+  // When updating, we allow partial updates, so these are all optional
+  // The service layer will validate consistency
   @IsOptional()
   @IsString()
   @MinLength(1)

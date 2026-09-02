@@ -44,15 +44,18 @@ export interface BankSoalDetail {
   createdBy: string;
 }
 
+export type TipeSoal = "pilihan_ganda" | "essay";
+
 export interface Soal {
   id: string;
   nomorUrut: number;
+  tipeSoal: TipeSoal;
   teksSoal: string;
-  jawabanBenar: "A" | "B" | "C" | "D" | "E";
-  opsiA: string;
-  opsiB: string;
-  opsiC: string;
-  opsiD: string;
+  jawabanBenar: "A" | "B" | "C" | "D" | "E" | null;
+  opsiA: string | null;
+  opsiB: string | null;
+  opsiC: string | null;
+  opsiD: string | null;
   opsiE: string | null;
   gambarSoalUrl: string | null;
   gambarAUrl: string | null;
@@ -161,13 +164,14 @@ async function fetchBankSoalDetail() {
     soalList.value = (data.soal || []).map((s: ApiSoal) => ({
       id: s.id,
       nomorUrut: s.nomorUrut,
+      tipeSoal: (s.tipeSoal as TipeSoal) || "pilihan_ganda",
       teksSoal: s.teksSoal,
-      jawabanBenar: s.jawabanBenar as "A" | "B" | "C" | "D" | "E",
-      opsiA: s.opsiA,
-      opsiB: s.opsiB,
-      opsiC: s.opsiC,
-      opsiD: s.opsiD,
-      opsiE: s.opsiE,
+      jawabanBenar: s.jawabanBenar as "A" | "B" | "C" | "D" | "E" | null,
+      opsiA: s.opsiA ?? null,
+      opsiB: s.opsiB ?? null,
+      opsiC: s.opsiC ?? null,
+      opsiD: s.opsiD ?? null,
+      opsiE: s.opsiE ?? null,
       gambarSoalUrl: s.gambarSoalUrl,
       gambarAUrl: s.gambarAUrl,
       gambarBUrl: s.gambarBUrl,
@@ -333,6 +337,7 @@ const editingSoalWithGambar = computed((): SoalFormSoal | null => {
   if (!editingSoal.value) return null;
   return {
     id: editingSoal.value.id,
+    tipeSoal: editingSoal.value.tipeSoal,
     teksSoal: editingSoal.value.teksSoal,
     opsiA: editingSoal.value.opsiA,
     opsiB: editingSoal.value.opsiB,
@@ -714,6 +719,11 @@ onMounted(() => {
                   No
                 </th>
                 <th
+                  class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 w-20"
+                >
+                  Tipe
+                </th>
+                <th
                   class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                 >
                   Teks Soal
@@ -742,6 +752,18 @@ onMounted(() => {
                     >{{ soal.nomorUrut }}</span
                   >
                 </td>
+                <td class="px-4 py-3 text-center">
+                  <span
+                    :class="[
+                      'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                      soal.tipeSoal === 'essay'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'bg-blue-100 text-blue-700',
+                    ]"
+                  >
+                    {{ soal.tipeSoal === "essay" ? "Essay" : "PG" }}
+                  </span>
+                </td>
                 <td class="px-4 py-3">
                   <span class="text-sm text-gray-700">{{
                     truncateSoalText(soal.teksSoal)
@@ -749,9 +771,13 @@ onMounted(() => {
                 </td>
                 <td class="px-4 py-3 text-center">
                   <span
+                    v-if="
+                      soal.tipeSoal === 'pilihan_ganda' && soal.jawabanBenar
+                    "
                     class="inline-flex items-center justify-center rounded bg-indigo-100 h-7 w-7 text-xs font-bold text-indigo-700"
                     >{{ soal.jawabanBenar }}</span
                   >
+                  <span v-else class="text-xs text-gray-400">—</span>
                 </td>
 
                 <td class="px-4 py-3 text-right">
@@ -776,7 +802,7 @@ onMounted(() => {
                 </td>
               </tr>
               <tr v-if="soalList.length === 0">
-                <td colspan="4" class="py-12 text-center">
+                <td colspan="5" class="py-12 text-center">
                   <svg
                     class="mx-auto h-12 w-12 text-gray-300"
                     fill="none"

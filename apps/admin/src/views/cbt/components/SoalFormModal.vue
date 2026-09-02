@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import ImageUpload from "./ImageUpload.vue";
+import RichTextEditor from "@/components/ui/RichTextEditor.vue";
+
+export type TipeSoal = "pilihan_ganda" | "essay";
 
 export interface Soal {
   id: string;
+  tipeSoal: TipeSoal;
   teksSoal: string;
-  opsiA: string;
-  opsiB: string;
-  opsiC: string;
-  opsiD: string;
+  opsiA: string | null;
+  opsiB: string | null;
+  opsiC: string | null;
+  opsiD: string | null;
   opsiE: string | null;
-  jawabanBenar: "A" | "B" | "C" | "D" | "E";
+  jawabanBenar: "A" | "B" | "C" | "D" | "E" | null;
   gambarSoalUrl: string | null;
   gambarAUrl: string | null;
   gambarBUrl: string | null;
@@ -36,6 +40,7 @@ const emit = defineEmits<{
 }>();
 
 export interface SoalFormData {
+  tipeSoal: TipeSoal;
   teksSoal: string;
   opsiA: string;
   opsiB: string;
@@ -62,6 +67,7 @@ const jawabanOptions: Array<"A" | "B" | "C" | "D" | "E"> = [
 
 // Form state
 const form = ref<SoalFormData>({
+  tipeSoal: "pilihan_ganda",
   teksSoal: "",
   opsiA: "",
   opsiB: "",
@@ -83,20 +89,35 @@ const errors = ref<Partial<Record<keyof SoalFormData, string>>>({});
 // Show advanced options (gambar URLs)
 const showGambarOptions = ref(false);
 
+// Computed: is essay type
+const isEssay = computed(() => form.value.tipeSoal === "essay");
+
 // Computed: is opsi E empty (for disabling jawaban=E)
 const isOpsiEEmpty = computed(() => form.value.opsiE.trim() === "");
 
+// Strip HTML for character counting
+function stripHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+}
+
 // Computed: form valid
 const isFormValid = computed(() => {
-  const teksSoalLen = form.value.teksSoal.trim().length;
+  const teksSoalLen = stripHtml(form.value.teksSoal).length;
+
+  // Basic required field validation - teksSoal always required
+  if (teksSoalLen < 1 || teksSoalLen > 10000) return false;
+
+  // For essay, only teksSoal is required
+  if (isEssay.value) return true;
+
+  // For PG, validate options
   const opsiALen = form.value.opsiA.trim().length;
   const opsiBLen = form.value.opsiB.trim().length;
   const opsiCLen = form.value.opsiC.trim().length;
   const opsiDLen = form.value.opsiD.trim().length;
   const opsiELen = form.value.opsiE.trim().length;
 
-  // Basic required field validation
-  if (teksSoalLen < 1 || teksSoalLen > 2000) return false;
   if (opsiALen < 1 || opsiALen > 500) return false;
   if (opsiBLen < 1 || opsiBLen > 500) return false;
   if (opsiCLen < 1 || opsiCLen > 500) return false;
@@ -115,19 +136,26 @@ const isFormValid = computed(() => {
 function validate(): boolean {
   errors.value = {};
 
-  const teksSoalLen = form.value.teksSoal.trim().length;
+  const teksSoalLen = stripHtml(form.value.teksSoal).length;
+
+  // Teks soal validation (1-10000 chars for rich text)
+  if (teksSoalLen < 1) {
+    errors.value.teksSoal = "Teks soal wajib diisi";
+  } else if (teksSoalLen > 10000) {
+    errors.value.teksSoal = "Teks soal maksimal 10000 karakter";
+  }
+
+  // For essay, only teksSoal is required
+  if (isEssay.value) {
+    return Object.keys(errors.value).length === 0;
+  }
+
+  // For PG, validate options
   const opsiALen = form.value.opsiA.trim().length;
   const opsiBLen = form.value.opsiB.trim().length;
   const opsiCLen = form.value.opsiC.trim().length;
   const opsiDLen = form.value.opsiD.trim().length;
   const opsiELen = form.value.opsiE.trim().length;
-
-  // Teks soal validation (1-2000 chars)
-  if (teksSoalLen < 1) {
-    errors.value.teksSoal = "Teks soal wajib diisi";
-  } else if (teksSoalLen > 2000) {
-    errors.value.teksSoal = "Teks soal maksimal 2000 karakter";
-  }
 
   // Opsi A validation (1-500 chars, required)
   if (opsiALen < 1) {
@@ -199,9 +227,21 @@ watch(
   },
 );
 
+// Watch tipeSoal changes - reset PG fields when switching to essay
+watch(
+  () => form.value.tipeSoal,
+  (newVal) => {
+    if (newVal === "essay") {
+      // Reset jawaban to A (default) when switching to essay
+      form.value.jawabanBenar = "A";
+    }
+  },
+);
+
 // Reset form
 function resetForm() {
   form.value = {
+    tipeSoal: "pilihan_ganda",
     teksSoal: "",
     opsiA: "",
     opsiB: "",
@@ -226,13 +266,14 @@ watch(
   (newVal) => {
     if (newVal && props.isEdit) {
       form.value = {
+        tipeSoal: newVal.tipeSoal || "pilihan_ganda",
         teksSoal: newVal.teksSoal,
-        opsiA: newVal.opsiA,
-        opsiB: newVal.opsiB,
-        opsiC: newVal.opsiC,
-        opsiD: newVal.opsiD,
+        opsiA: newVal.opsiA || "",
+        opsiB: newVal.opsiB || "",
+        opsiC: newVal.opsiC || "",
+        opsiD: newVal.opsiD || "",
         opsiE: newVal.opsiE || "",
-        jawabanBenar: newVal.jawabanBenar,
+        jawabanBenar: newVal.jawabanBenar || "A",
         gambarSoalUrl: newVal.gambarSoalUrl || "",
         gambarAUrl: newVal.gambarAUrl || "",
         gambarBUrl: newVal.gambarBUrl || "",
@@ -362,7 +403,96 @@ onUnmounted(() => {
           <!-- Body - Scrollable -->
           <div class="px-6 py-5 overflow-y-auto flex-1">
             <form class="space-y-5" @submit.prevent="handleSubmit">
-              <!-- Teks Soal -->
+              <!-- Tipe Soal Selector -->
+              <div>
+                <label
+                  class="block text-[14px] font-medium mb-2"
+                  style="color: var(--color-text-secondary)"
+                >
+                  Tipe Soal
+                  <span style="color: var(--color-danger-500)">*</span>
+                </label>
+                <div class="flex gap-3">
+                  <button
+                    type="button"
+                    class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] text-[14px] font-medium transition-all"
+                    :style="{
+                      border:
+                        form.tipeSoal === 'pilihan_ganda'
+                          ? '2px solid var(--color-primary-500)'
+                          : '2px solid var(--color-border)',
+                      background:
+                        form.tipeSoal === 'pilihan_ganda'
+                          ? 'var(--color-primary-50)'
+                          : 'white',
+                      color:
+                        form.tipeSoal === 'pilihan_ganda'
+                          ? 'var(--color-primary-700)'
+                          : 'var(--color-text-secondary)',
+                    }"
+                    @click="form.tipeSoal = 'pilihan_ganda'"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Pilihan Ganda
+                  </button>
+                  <button
+                    type="button"
+                    class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] text-[14px] font-medium transition-all"
+                    :style="{
+                      border:
+                        form.tipeSoal === 'essay'
+                          ? '2px solid var(--color-primary-500)'
+                          : '2px solid var(--color-border)',
+                      background:
+                        form.tipeSoal === 'essay'
+                          ? 'var(--color-primary-50)'
+                          : 'white',
+                      color:
+                        form.tipeSoal === 'essay'
+                          ? 'var(--color-primary-700)'
+                          : 'var(--color-text-secondary)',
+                    }"
+                    @click="form.tipeSoal = 'essay'"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M4 6h16M4 12h16M4 18h7"
+                      />
+                    </svg>
+                    Essay
+                  </button>
+                </div>
+                <p
+                  v-if="isEssay"
+                  class="mt-2 text-[13px]"
+                  style="color: var(--color-text-tertiary)"
+                >
+                  Soal essay tidak memiliki opsi jawaban. Siswa akan mengisi
+                  jawaban dalam bentuk teks bebas.
+                </p>
+              </div>
+
+              <!-- Teks Soal with Rich Text Editor -->
               <div>
                 <label
                   class="block text-[14px] font-medium mb-1.5"
@@ -371,41 +501,18 @@ onUnmounted(() => {
                   Teks Soal
                   <span style="color: var(--color-danger-500)">*</span>
                 </label>
-                <textarea
+                <RichTextEditor
                   v-model="form.teksSoal"
-                  rows="4"
-                  placeholder="Masukkan teks soal..."
-                  class="block w-full px-3 py-2.5 text-[14px] rounded-[8px] outline-none transition-colors resize-none"
-                  :style="{
-                    border: errors.teksSoal
-                      ? '2px solid var(--color-danger-500)'
-                      : '2px solid var(--color-border)',
-                    color: 'var(--color-text-primary)',
-                  }"
-                  @input="errors.teksSoal = undefined"
+                  placeholder="Masukkan teks soal... (Gunakan toolbar untuk format teks)"
+                  :max-length="10000"
+                  :error="errors.teksSoal"
+                  @update:model-value="errors.teksSoal = undefined"
                 />
-                <div class="flex items-center justify-between mt-1">
-                  <p
-                    v-if="errors.teksSoal"
-                    class="text-[13px]"
-                    style="color: var(--color-danger-500)"
-                  >
-                    {{ errors.teksSoal }}
-                  </p>
-                  <span v-else />
-                  <span
-                    class="text-[12px]"
-                    :style="{
-                      color: charCountClass(form.teksSoal, 2000).color,
-                    }"
-                  >
-                    {{ charCountClass(form.teksSoal, 2000).text }}
-                  </span>
-                </div>
               </div>
 
-              <!-- Opsi Jawaban -->
+              <!-- Opsi Jawaban (only for PG) -->
               <div
+                v-if="!isEssay"
                 class="p-4 rounded-[12px]"
                 style="
                   background: var(--color-surface-50);
@@ -671,8 +778,8 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Jawaban Benar -->
-              <div>
+              <!-- Jawaban Benar (only for PG) -->
+              <div v-if="!isEssay">
                 <label
                   class="block text-[14px] font-medium mb-2"
                   style="color: var(--color-text-secondary)"
@@ -792,7 +899,8 @@ onUnmounted(() => {
                       class="text-[13px] pt-3"
                       style="color: var(--color-text-tertiary)"
                     >
-                      Upload gambar untuk soal atau opsi jawaban (max 5MB per
+                      Upload gambar untuk soal
+                      {{ isEssay ? "" : "atau opsi jawaban" }} (max 5MB per
                       gambar)
                     </p>
 
@@ -802,8 +910,8 @@ onUnmounted(() => {
                       label="Gambar Soal"
                     />
 
-                    <!-- Gambar Opsi -->
-                    <div class="grid grid-cols-2 gap-4">
+                    <!-- Gambar Opsi (only for PG) -->
+                    <div v-if="!isEssay" class="grid grid-cols-2 gap-4">
                       <ImageUpload
                         v-model="form.gambarAUrl"
                         label="Gambar Opsi A"

@@ -726,7 +726,13 @@ export class QuestionService {
     }
   }
 
-  private validateAnswer(jawabanBenar: string, opsiE?: string | null) {
+  private validateAnswer(
+    jawabanBenar: string | null | undefined,
+    opsiE?: string | null,
+  ) {
+    // Skip validation for essay questions (jawabanBenar is null)
+    if (!jawabanBenar) return;
+
     if (jawabanBenar === "E" && !opsiE) {
       throw new BadRequestException(
         "Jawaban benar tidak bisa E jika opsi E tidak diisi",

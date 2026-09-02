@@ -1,0 +1,476 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Write iOS/Mobile Fullscreen Blocking exploration test": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542626
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979555110
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979830112
+      }
+    ],
+    "1.2 Write Violation Count Reset exploration test": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542660
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979839744
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979997662
+      }
+    ],
+    "1.3 Write Mobile UI Overflow exploration test": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542779
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980002433
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980311643
+      }
+    ],
+    "2.1 Write Desktop Fullscreen Enforcement preservation test": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542817
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980321385
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980537000
+      }
+    ],
+    "2.2 Write Desktop Sidebar Layout preservation test": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542850
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980322046
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980537943
+      }
+    ],
+    "2.3 Write Violation POST Tracking preservation test": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542884
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980322805
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980538479
+      }
+    ],
+    "3.1 Add `initialViolationCount` parameter to UseAntiCheatOptions interface": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542916
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980549035
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980621966
+      }
+    ],
+    "3.2 Add `isMobileDevice()` helper function": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542949
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980633386
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980734888
+      }
+    ],
+    "3.3 Skip fullscreen request for mobile devices": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979542983
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980739861
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980817923
+      }
+    ],
+    "4.1 Add mobile detection using useMemo": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543019
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980827537
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980942335
+      }
+    ],
+    "4.2 Modify fullscreen overlay condition": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543051
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980828621
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980943013
+      }
+    ],
+    "4.3 Pass initialViolationCount to useAntiCheat": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543114
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980829216
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980943760
+      }
+    ],
+    "4.4 Add mobile landscape orientation banner (non-blocking)": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543147
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980830473
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980944497
+      }
+    ],
+    "4.5 Update ExamData interface to include violationCount": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543175
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980831134
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980945268
+      }
+    ],
+    "4.6 Fix mobile responsive layout - viewport containment": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543205
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980956016
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981115722
+      }
+    ],
+    "4.7 Fix mobile responsive layout - footer buttons": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543238
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980954772
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981116384
+      }
+    ],
+    "4.8 Fix mobile navigation panel": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543272
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980955208
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981117143
+      }
+    ],
+    "5.1 Add violationCount to startExam response": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543308
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981135102
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981211944
+      }
+    ],
+    "5.2 Add violationCount to getExamState (resume) response": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543348
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981134251
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981212799
+      }
+    ],
+    "6.1 Verify Mobile Fullscreen test passes": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543416
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981230763
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981253891
+      }
+    ],
+    "6.2 Verify Violation Count Sync test passes": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543448
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981229973
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981252364
+      }
+    ],
+    "6.3 Verify Mobile UI Overflow test passes": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543481
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981228740
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981253124
+      }
+    ],
+    "7.1 Verify Desktop Fullscreen Enforcement still works": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543511
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981255412
+      }
+    ],
+    "7.2 Verify Desktop Sidebar Layout preserved": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543543
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981256813
+      }
+    ],
+    "7.3 Verify Violation POST Tracking unchanged": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543581
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981254722
+      }
+    ],
+    "8. Checkpoint - Final Validation": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787979543609
+      },
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981257382
+      }
+    ],
+    "1. Write bug condition exploration tests": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980311701
+      }
+    ],
+    "2. Write preservation property tests": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980538535
+      }
+    ],
+    "3. Modify useAntiCheat hook": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787980817978
+      }
+    ],
+    "4. Update ExamPage.tsx": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981117194
+      }
+    ],
+    "5. Update exam-taking.service.ts": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981212859
+      }
+    ],
+    "6. Verify bug condition exploration tests now pass": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981253936
+      }
+    ],
+    "7. Verify preservation tests still pass": [
+      {
+        "executionId": "5d4d0974-59bc-43e6-bf6c-559ff0cb28b0",
+        "chatSessionId": "sess_dd89931e-fd92-4f30-ba39-1b0ac67aa251",
+        "timestamp": 1787981256877
+      }
+    ]
+  }
+}

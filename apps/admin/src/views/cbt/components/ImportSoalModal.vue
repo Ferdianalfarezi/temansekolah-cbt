@@ -8,14 +8,17 @@ import {
 } from "@/api/bank-soal";
 
 // Types
+export type TipeSoal = "pilihan_ganda" | "essay";
+
 export interface ParsedSoal {
   nomorSoal: number;
+  tipeSoal: TipeSoal;
   teksSoal: string;
-  jawabanBenar: string;
-  opsiA: string;
-  opsiB: string;
-  opsiC: string;
-  opsiD: string;
+  jawabanBenar: string | null;
+  opsiA: string | null;
+  opsiB: string | null;
+  opsiC: string | null;
+  opsiD: string | null;
   opsiE: string | null;
 }
 

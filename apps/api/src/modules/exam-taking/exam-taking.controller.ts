@@ -57,7 +57,8 @@ export class ExamTakingController {
       siswaAccountId,
       sessionId,
       dto.questionId,
-      dto.option,
+      dto.option ?? null,
+      dto.essayAnswer ?? null,
     );
   }
 

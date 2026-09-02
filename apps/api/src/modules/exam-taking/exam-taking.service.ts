@@ -253,6 +253,7 @@ export class ExamTakingService {
     const questions = await this.db
       .select({
         id: cbtQuestion.id,
+        tipeSoal: cbtQuestion.tipeSoal,
         teksSoal: cbtQuestion.teksSoal,
         gambarSoalUrl: cbtQuestion.gambarSoalUrl,
         opsiA: cbtQuestion.opsiA,
@@ -277,9 +278,21 @@ export class ExamTakingService {
 
       if (optionMapping) {
         // Reorder options according to the randomized mapping
+        // Only reorder for pilihan_ganda, essay has no options
+        if (q.tipeSoal === "essay") {
+          return {
+            id: q.id,
+            nomor: index + 1,
+            tipeSoal: q.tipeSoal,
+            teksSoal: q.teksSoal,
+            gambarSoalUrl: q.gambarSoalUrl,
+            options: [],
+          };
+        }
         return {
           id: q.id,
           nomor: index + 1,
+          tipeSoal: q.tipeSoal,
           teksSoal: q.teksSoal,
           gambarSoalUrl: q.gambarSoalUrl,
           options: optionMapping.map((originalKey) => ({
@@ -290,9 +303,21 @@ export class ExamTakingService {
         };
       }
 
+      // No randomization
+      if (q.tipeSoal === "essay") {
+        return {
+          id: q.id,
+          nomor: index + 1,
+          tipeSoal: q.tipeSoal,
+          teksSoal: q.teksSoal,
+          gambarSoalUrl: q.gambarSoalUrl,
+          options: [],
+        };
+      }
       return {
         id: q.id,
         nomor: index + 1,
+        tipeSoal: q.tipeSoal,
         teksSoal: q.teksSoal,
         gambarSoalUrl: q.gambarSoalUrl,
         options: this.getDefaultOptions(q),
@@ -317,7 +342,8 @@ export class ExamTakingService {
     siswaAccountId: string,
     sessionId: string,
     questionId: string,
-    option: string,
+    option: string | null,
+    essayAnswer?: string | null,
   ) {
     // Validate participant is in_progress
     const participant = await this.getActiveParticipant(
@@ -351,17 +377,19 @@ export class ExamTakingService {
         participantId: participant.id,
         questionId,
         selectedOption: option,
+        essayAnswer: essayAnswer ?? null,
         answeredAt: now,
       })
       .onConflictDoUpdate({
         target: [cbtAnswer.participantId, cbtAnswer.questionId],
         set: {
           selectedOption: option,
+          essayAnswer: essayAnswer ?? null,
           answeredAt: now,
         },
       });
 
-    return { questionId, option, savedAt: now };
+    return { questionId, option, essayAnswer, savedAt: now };
   }
 
   /**
@@ -699,6 +727,7 @@ export class ExamTakingService {
     const questions = await this.db
       .select({
         id: cbtQuestion.id,
+        tipeSoal: cbtQuestion.tipeSoal,
         teksSoal: cbtQuestion.teksSoal,
         gambarSoalUrl: cbtQuestion.gambarSoalUrl,
         opsiA: cbtQuestion.opsiA,
@@ -723,10 +752,24 @@ export class ExamTakingService {
         if (!q) return null;
 
         const optionMapping = mapping?.optionMappings?.[qId];
+
+        // Essay questions have no options
+        if (q.tipeSoal === "essay") {
+          return {
+            id: q.id,
+            nomor: index + 1,
+            tipeSoal: q.tipeSoal,
+            teksSoal: q.teksSoal,
+            gambarSoalUrl: q.gambarSoalUrl,
+            options: [],
+          };
+        }
+
         if (optionMapping) {
           return {
             id: q.id,
             nomor: index + 1,
+            tipeSoal: q.tipeSoal,
             teksSoal: q.teksSoal,
             gambarSoalUrl: q.gambarSoalUrl,
             options: optionMapping.map((originalKey) => ({
@@ -740,6 +783,7 @@ export class ExamTakingService {
         return {
           id: q.id,
           nomor: index + 1,
+          tipeSoal: q.tipeSoal,
           teksSoal: q.teksSoal,
           gambarSoalUrl: q.gambarSoalUrl,
           options: this.getDefaultOptions(q),
@@ -752,14 +796,18 @@ export class ExamTakingService {
       .select({
         questionId: cbtAnswer.questionId,
         selectedOption: cbtAnswer.selectedOption,
+        essayAnswer: cbtAnswer.essayAnswer,
       })
       .from(cbtAnswer)
       .where(eq(cbtAnswer.participantId, participant.id));
 
+    // Build saved answers map - include both PG options and essay text
     const savedAnswers: Record<string, string> = {};
     for (const a of answers) {
       if (a.selectedOption) {
         savedAnswers[a.questionId] = a.selectedOption;
+      } else if (a.essayAnswer) {
+        savedAnswers[a.questionId] = a.essayAnswer;
       }
     }
 

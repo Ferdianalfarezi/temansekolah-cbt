@@ -62,7 +62,8 @@ export interface RandomizationMapping {
 export interface AnswerKeyRow {
   nomorSoal: number;
   teksSoal: string; // truncated to 100 chars with "..." suffix
-  jawabanBenar: string; // A/B/C/D/E
+  tipeSoal: string; // pilihan_ganda or essay
+  jawabanBenar: string | null; // A/B/C/D/E for PG, null for essay
 }
 
 /**
@@ -74,7 +75,8 @@ export interface QuestionMasterData {
   questionId: string;
   nomorUrut: number;
   teksSoal: string;
-  jawabanBenar: string;
+  tipeSoal: string;
+  jawabanBenar: string | null;
 }
 
 /**
@@ -83,6 +85,7 @@ export interface QuestionMasterData {
 export interface ParticipantAnswerData {
   questionId: string;
   selectedOption: string | null;
+  essayAnswer: string | null;
 }
 
 /**
@@ -337,11 +340,18 @@ export class ResultExportService {
     // Write metadata header rows (1-6)
     await this.writeMetadataHeader(sheet, metadata);
 
+    // Count PG and essay questions
+    const pgQuestions = questions.filter((q) => q.tipeSoal === "pilihan_ganda");
+    const essayQuestions = questions.filter((q) => q.tipeSoal === "essay");
+    const pgCount = pgQuestions.length;
+    const essayCount = essayQuestions.length;
+
     // Write column headers row (row 8)
     await this.writeColumnHeaders(
       sheet,
       options.includeDetailedAnswers,
-      questions.length,
+      pgCount,
+      essayCount,
     );
 
     // Write participant data rows (row 9+)
@@ -368,6 +378,7 @@ export class ResultExportService {
           participant,
           options.includeDetailedAnswers,
           detailedAnswers,
+          pgCount,
         );
       }
     }
@@ -475,6 +486,14 @@ export class ResultExportService {
         questions = await this.getQuestionMasterList(sessionInfo.id);
       }
 
+      // Count PG and essay questions
+      const pgQuestions = questions.filter(
+        (q) => q.tipeSoal === "pilihan_ganda",
+      );
+      const essayQuestions = questions.filter((q) => q.tipeSoal === "essay");
+      const pgCount = pgQuestions.length;
+      const essayCount = essayQuestions.length;
+
       // Create sheet for this session
       const sheet = workbook.addWorksheet(sheetName);
 
@@ -485,7 +504,8 @@ export class ResultExportService {
       await this.writeColumnHeaders(
         sheet,
         options.includeDetailedAnswers,
-        questions.length,
+        pgCount,
+        essayCount,
       );
 
       // Write participant data rows (row 9+)
@@ -511,6 +531,7 @@ export class ResultExportService {
             participant,
             options.includeDetailedAnswers,
             detailedAnswers,
+            pgCount,
           );
         }
       }
@@ -688,7 +709,7 @@ export class ResultExportService {
 
     // Write column headers (row 1)
     const headerRow = sheet.getRow(1);
-    const headers = ["Nomor Soal", "Teks Soal", "Jawaban Benar"];
+    const headers = ["Nomor Soal", "Tipe Soal", "Teks Soal", "Jawaban Benar"];
 
     headers.forEach((header, index) => {
       const cell = headerRow.getCell(index + 1);
@@ -698,8 +719,9 @@ export class ResultExportService {
 
     // Set column widths
     sheet.getColumn(1).width = 12; // Nomor Soal
-    sheet.getColumn(2).width = 80; // Teks Soal (truncated to 100 chars)
-    sheet.getColumn(3).width = 15; // Jawaban Benar
+    sheet.getColumn(2).width = 15; // Tipe Soal
+    sheet.getColumn(3).width = 80; // Teks Soal (truncated to 100 chars)
+    sheet.getColumn(4).width = 15; // Jawaban Benar
 
     headerRow.commit();
 
@@ -710,8 +732,10 @@ export class ResultExportService {
     answerKeyRows.forEach((answerKey, index) => {
       const row = sheet.getRow(2 + index);
       row.getCell(1).value = answerKey.nomorSoal;
-      row.getCell(2).value = answerKey.teksSoal;
-      row.getCell(3).value = answerKey.jawabanBenar;
+      row.getCell(2).value =
+        answerKey.tipeSoal === "essay" ? "Essay" : "Pilihan Ganda";
+      row.getCell(3).value = answerKey.teksSoal;
+      row.getCell(4).value = answerKey.jawabanBenar ?? "-";
       row.commit();
     });
 
@@ -1019,6 +1043,7 @@ export class ResultExportService {
         questionId: cbtExamSessionQuestion.questionId,
         nomorUrut: cbtExamSessionQuestion.nomorUrut,
         teksSoal: cbtQuestion.teksSoal,
+        tipeSoal: cbtQuestion.tipeSoal,
         jawabanBenar: cbtQuestion.jawabanBenar,
       })
       .from(cbtExamSessionQuestion)
@@ -1049,6 +1074,7 @@ export class ResultExportService {
       .select({
         questionId: cbtAnswer.questionId,
         selectedOption: cbtAnswer.selectedOption,
+        essayAnswer: cbtAnswer.essayAnswer,
       })
       .from(cbtAnswer)
       .where(eq(cbtAnswer.participantId, participantId));
@@ -1071,6 +1097,7 @@ export class ResultExportService {
     return questions.map((q) => ({
       nomorSoal: q.nomorUrut,
       teksSoal: this.truncateText(q.teksSoal, 100),
+      tipeSoal: q.tipeSoal,
       jawabanBenar: q.jawabanBenar,
     }));
   }
@@ -1080,11 +1107,14 @@ export class ResultExportService {
    *
    * Maps the participant's raw answers to the question master order,
    * applying randomization reversal to show the original option letters.
+   * For essay questions, includes E1, E2, etc. columns with full essay text.
    *
    * @param answers - Raw answers from getParticipantAnswers
    * @param questions - Question master list from getQuestionMasterList
    * @param randomizationMapping - Participant's randomization mapping (or null)
-   * @returns Record mapping Q column names (Q1, Q2, etc.) to original answers (A/B/C/D/E/-)
+   * @returns Record mapping column names to values:
+   *          - Q1, Q2, etc. for PG answers (A/B/C/D/E/-)
+   *          - E1, E2, etc. for essay answers (full text or -)
    *
    * _Requirements: 4.2, 4.5, 4.6_
    */
@@ -1093,27 +1123,48 @@ export class ResultExportService {
     questions: QuestionMasterData[],
     randomizationMapping: RandomizationMapping | null,
   ): Record<string, string> {
-    // Create a map of questionId -> selectedOption for quick lookup
-    const answerMap = new Map<string, string | null>();
+    // Create maps for quick lookup
+    const answerMap = new Map<
+      string,
+      { selectedOption: string | null; essayAnswer: string | null }
+    >();
     for (const answer of answers) {
-      answerMap.set(answer.questionId, answer.selectedOption);
+      answerMap.set(answer.questionId, {
+        selectedOption: answer.selectedOption,
+        essayAnswer: answer.essayAnswer,
+      });
     }
 
-    // Build the Q1, Q2, etc. columns based on question master order
+    // Build the Q1, Q2, etc. and E1, E2, etc. columns based on question master order
     const result: Record<string, string> = {};
 
+    // Separate counters for PG (Q) and Essay (E) columns
+    let pgIndex = 1;
+    let essayIndex = 1;
+
     for (const question of questions) {
-      const columnName = `Q${question.nomorUrut}`;
-      const rawAnswer = answerMap.get(question.questionId) ?? null;
+      const answerData = answerMap.get(question.questionId);
 
-      // Apply randomization reversal to get original answer
-      const originalAnswer = this.reverseRandomizationMapping(
-        randomizationMapping,
-        rawAnswer,
-        question.questionId,
-      );
+      if (question.tipeSoal === "essay") {
+        // Essay question - add to E column
+        const columnName = `E${essayIndex}`;
+        result[columnName] = answerData?.essayAnswer ?? "-";
+        essayIndex++;
+      } else {
+        // PG question - add to Q column
+        const columnName = `Q${pgIndex}`;
+        const rawAnswer = answerData?.selectedOption ?? null;
 
-      result[columnName] = originalAnswer;
+        // Apply randomization reversal to get original answer
+        const originalAnswer = this.reverseRandomizationMapping(
+          randomizationMapping,
+          rawAnswer,
+          question.questionId,
+        );
+
+        result[columnName] = originalAnswer;
+        pgIndex++;
+      }
     }
 
     return result;
@@ -1244,7 +1295,8 @@ export class ResultExportService {
   private async writeColumnHeaders(
     sheet: ExcelJS.Worksheet,
     includeDetailedAnswers: boolean,
-    questionCount: number = 0,
+    pgCount: number = 0,
+    essayCount: number = 0,
   ): Promise<void> {
     const headerRow = sheet.getRow(8);
 
@@ -1263,10 +1315,17 @@ export class ResultExportService {
       "Keterangan",
     ];
 
-    // Add Q1, Q2, ..., Qn headers if detailed export
-    if (includeDetailedAnswers && questionCount > 0) {
-      for (let i = 1; i <= questionCount; i++) {
+    // Add Q1, Q2, ..., Qn headers for PG questions
+    if (includeDetailedAnswers && pgCount > 0) {
+      for (let i = 1; i <= pgCount; i++) {
         headers.push(`Q${i}`);
+      }
+    }
+
+    // Add E1, E2, ..., En headers for essay questions
+    if (includeDetailedAnswers && essayCount > 0) {
+      for (let i = 1; i <= essayCount; i++) {
+        headers.push(`E${i}`);
       }
     }
 
@@ -1290,9 +1349,17 @@ export class ResultExportService {
     sheet.getColumn(11).width = 15; // Keterangan
 
     // Set width for Q columns (narrow since they only contain A/B/C/D/E/-)
-    if (includeDetailedAnswers && questionCount > 0) {
-      for (let i = 0; i < questionCount; i++) {
+    if (includeDetailedAnswers && pgCount > 0) {
+      for (let i = 0; i < pgCount; i++) {
         sheet.getColumn(12 + i).width = 5;
+      }
+    }
+
+    // Set width for E columns (wider to accommodate essay text)
+    if (includeDetailedAnswers && essayCount > 0) {
+      const essayStartCol = 12 + pgCount;
+      for (let i = 0; i < essayCount; i++) {
+        sheet.getColumn(essayStartCol + i).width = 50;
       }
     }
 
@@ -1303,12 +1370,13 @@ export class ResultExportService {
    * Writes a single participant data row to the Excel sheet.
    *
    * When includeDetailedAnswers=true, also writes Q1, Q2, ..., Qn columns
-   * with the participant's answers (original option letters after randomization reversal).
+   * with the participant's PG answers, and E1, E2, ..., En columns for essay answers.
    *
    * @param sheet - ExcelJS worksheet to write to
    * @param participant - Participant row data
-   * @param includeDetailedAnswers - Whether to add Q columns
-   * @param detailedAnswers - Map of Q column names to answer values (e.g., { Q1: 'A', Q2: 'B', ... })
+   * @param includeDetailedAnswers - Whether to add Q and E columns
+   * @param detailedAnswers - Map of column names to values (Q1: 'A', E1: 'essay text', etc.)
+   * @param pgCount - Number of PG questions (for column positioning)
    *
    * _Requirements: 4.1, 4.2_
    */
@@ -1317,6 +1385,7 @@ export class ResultExportService {
     participant: ParticipantRow,
     includeDetailedAnswers: boolean,
     detailedAnswers?: Record<string, string>,
+    pgCount: number = 0,
   ): Promise<void> {
     // Participant rows start at row 9
     const rowNumber = 8 + participant.no;
@@ -1335,18 +1404,34 @@ export class ResultExportService {
     row.getCell(10).value = participant.jumlahPelanggaran;
     row.getCell(11).value = participant.keterangan;
 
-    // Add Q columns if detailed export
+    // Add Q and E columns if detailed export
     if (includeDetailedAnswers && detailedAnswers) {
       // Get Q column names sorted by number (Q1, Q2, Q3, ...)
-      const qColumnNames = Object.keys(detailedAnswers).sort((a, b) => {
-        const numA = parseInt(a.replace("Q", ""), 10);
-        const numB = parseInt(b.replace("Q", ""), 10);
-        return numA - numB;
-      });
+      const qColumnNames = Object.keys(detailedAnswers)
+        .filter((name) => name.startsWith("Q"))
+        .sort((a, b) => {
+          const numA = parseInt(a.replace("Q", ""), 10);
+          const numB = parseInt(b.replace("Q", ""), 10);
+          return numA - numB;
+        });
 
       qColumnNames.forEach((qName, index) => {
         // Q columns start at column 12 (after Keterangan at column 11)
         row.getCell(12 + index).value = detailedAnswers[qName];
+      });
+
+      // Get E column names sorted by number (E1, E2, E3, ...)
+      const eColumnNames = Object.keys(detailedAnswers)
+        .filter((name) => name.startsWith("E"))
+        .sort((a, b) => {
+          const numA = parseInt(a.replace("E", ""), 10);
+          const numB = parseInt(b.replace("E", ""), 10);
+          return numA - numB;
+        });
+
+      eColumnNames.forEach((eName, index) => {
+        // E columns start after Q columns
+        row.getCell(12 + pgCount + index).value = detailedAnswers[eName];
       });
     }
 
@@ -1357,10 +1442,11 @@ export class ResultExportService {
    * Writes the "Kunci Jawaban" sheet with answer key data.
    *
    * The sheet contains:
-   * - Row 1: Column headers (Nomor Soal, Teks Soal, Jawaban Benar)
+   * - Row 1: Column headers (Nomor Soal, Tipe Soal, Teks Soal, Jawaban Benar)
    * - Row 2+: Answer key data for each question
    *
    * Teks Soal is truncated to 100 characters with "..." suffix if longer.
+   * For essay questions, Jawaban Benar shows "-" (no correct answer).
    *
    * @param workbook - ExcelJS workbook writer
    * @param questions - Question master data
@@ -1375,7 +1461,7 @@ export class ResultExportService {
 
     // Write column headers (row 1)
     const headerRow = sheet.getRow(1);
-    const headers = ["Nomor Soal", "Teks Soal", "Jawaban Benar"];
+    const headers = ["Nomor Soal", "Tipe Soal", "Teks Soal", "Jawaban Benar"];
 
     headers.forEach((header, index) => {
       const cell = headerRow.getCell(index + 1);
@@ -1385,8 +1471,9 @@ export class ResultExportService {
 
     // Set column widths
     sheet.getColumn(1).width = 12; // Nomor Soal
-    sheet.getColumn(2).width = 80; // Teks Soal (truncated to 100 chars)
-    sheet.getColumn(3).width = 15; // Jawaban Benar
+    sheet.getColumn(2).width = 15; // Tipe Soal
+    sheet.getColumn(3).width = 80; // Teks Soal (truncated to 100 chars)
+    sheet.getColumn(4).width = 15; // Jawaban Benar
 
     headerRow.commit();
 
@@ -1397,8 +1484,10 @@ export class ResultExportService {
     answerKeyRows.forEach((answerKey, index) => {
       const row = sheet.getRow(2 + index);
       row.getCell(1).value = answerKey.nomorSoal;
-      row.getCell(2).value = answerKey.teksSoal;
-      row.getCell(3).value = answerKey.jawabanBenar;
+      row.getCell(2).value =
+        answerKey.tipeSoal === "essay" ? "Essay" : "Pilihan Ganda";
+      row.getCell(3).value = answerKey.teksSoal;
+      row.getCell(4).value = answerKey.jawabanBenar ?? "-";
       row.commit();
     });
 
