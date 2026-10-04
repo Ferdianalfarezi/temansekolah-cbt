@@ -21,6 +21,8 @@ RUN pnpm --filter @cbt/shared build || true
 # but with Dockerfile we need to declare the ARG explicitly.
 ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
+ARG VITE_LMS_API_URL
+ENV VITE_LMS_API_URL=${VITE_LMS_API_URL}
 
 RUN pnpm --filter @cbt/admin build
 
