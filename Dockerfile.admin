@@ -2,7 +2,8 @@
 # Railway service: set VITE_API_URL in service Variables tab
 
 FROM node:20-alpine AS build
-RUN npm install -g pnpm@8.15.9
+ENV NODE_OPTIONS=--max-old-space-size=3072
+RUN npm install -g pnpm@9
 WORKDIR /app
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.json ./

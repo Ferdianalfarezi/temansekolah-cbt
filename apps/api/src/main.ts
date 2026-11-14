@@ -1,4 +1,4 @@
-import { NestFactory } from "@nestjs/core";
+﻿import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Logger } from "nestjs-pino";
@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { join } from "path";
+import { existsSync } from "fs";
 import { AppModule } from "./app.module";
 
 async function runMigrations() {
@@ -21,7 +22,7 @@ async function runMigrations() {
   try {
     console.log("🔄 Running CBT database migrations...");
     await migrate(db, {
-      migrationsFolder: join(__dirname, "drizzle/migrations"),
+      migrationsFolder: existsSync(join(__dirname, "drizzle/migrations/meta/_journal.json")) ? join(__dirname, "drizzle/migrations") : join(__dirname, "../src/drizzle/migrations"),
     });
     console.log("✅ CBT migrations completed");
   } catch (error) {

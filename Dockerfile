@@ -4,8 +4,9 @@
 
 # ─── Stage 1: Build ──────────────────────────────────────────────
 FROM node:20-alpine AS builder
+ENV NODE_OPTIONS=--max-old-space-size=3072
 
-RUN npm install -g pnpm@8.15.9
+RUN npm install -g pnpm@9
 
 WORKDIR /app
 
@@ -29,7 +30,7 @@ RUN npx nest build
 # ─── Stage 2: Production image ───────────────────────────────────
 FROM node:20-alpine AS runner
 
-RUN npm install -g pnpm@8.15.9
+RUN npm install -g pnpm@9
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
