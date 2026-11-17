@@ -48,6 +48,7 @@ export default defineConfig({
   },
   server: {
     port: 5174,
+    strictPort: true, // port bentrok -> error, jangan pindah ke port aplikasi lain
   },
   test: {
     globals: true,

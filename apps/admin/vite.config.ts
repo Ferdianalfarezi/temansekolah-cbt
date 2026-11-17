@@ -12,5 +12,6 @@ export default defineConfig({
   },
   server: {
     port: 5005,
+    strictPort: true, // port bentrok -> error, jangan pindah ke port aplikasi lain
   },
 });
