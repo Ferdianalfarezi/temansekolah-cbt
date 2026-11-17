@@ -1,199 +1,81 @@
-name: Deploy
+# Push ke main -> build image di GitHub -> VPS pull image baru & restart layanan cbt.
+# Bisa juga dijalankan manual: tab Actions -> Deploy VPS -> Run workflow.
+# (Menggantikan workflow lama: edu = Railway, cbt = placeholder echo.)
+name: Deploy VPS
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Target environment"
-        required: true
-        default: "staging"
-        type: choice
-        options:
-          - staging
-          - production
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/cbt-api
+  REGISTRY: ghcr.io/ferdianalfarezi
 
 jobs:
-  build-api:
-    name: Build API Docker Image
+  build:
+    name: Build ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
-
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: cbt-api
+            file: Dockerfile
+            build-args: ""
+          - name: cbt-admin
+            file: Dockerfile.admin
+            build-args: |
+              VITE_API_URL=https://cbt-api.teman-sekolah.com/api/v1
+              VITE_LMS_API_URL=https://api.teman-sekolah.com/api/v1
+          - name: cbt-siswa
+            file: Dockerfile.siswa
+            build-args: |
+              VITE_API_URL=https://cbt-api.teman-sekolah.com/api/v1
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha,prefix=
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Build and push API image
-        uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ${{ matrix.file }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: ${{ matrix.build-args }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.name }}:latest
+            ${{ env.REGISTRY }}/${{ matrix.name }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
-  build-admin:
-    name: Build Admin Frontend
+  deploy:
+    name: Deploy ke VPS
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
+    permissions:
+      packages: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          run_install: false
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build admin panel
-        run: pnpm --filter @cbt/admin build
+      - name: Pull & restart di VPS
         env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-          VITE_WS_URL: ${{ vars.VITE_WS_URL }}
-          VITE_BUILD_VERSION: ${{ github.sha }}
-          VITE_BUILD_TIMESTAMP: ${{ github.event.head_commit.timestamp }}
-
-      - name: Upload admin build
-        uses: actions/upload-artifact@v4
-        with:
-          name: admin-dist
-          path: apps/admin/dist/
-          retention-days: 7
-
-  build-siswa:
-    name: Build Siswa PWA
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          run_install: false
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build siswa PWA
-        run: pnpm --filter @cbt/siswa build
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-          VITE_WS_URL: ${{ vars.VITE_WS_URL }}
-          VITE_BUILD_VERSION: ${{ github.sha }}
-          VITE_BUILD_TIMESTAMP: ${{ github.event.head_commit.timestamp }}
-
-      - name: Upload siswa build
-        uses: actions/upload-artifact@v4
-        with:
-          name: siswa-dist
-          path: apps/siswa/dist/
-          retention-days: 7
-
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [build-api, build-admin, build-siswa]
-    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
-    environment: staging
-    timeout-minutes: 10
-
-    steps:
-      - name: Download admin build
-        uses: actions/download-artifact@v4
-        with:
-          name: admin-dist
-          path: admin-dist/
-
-      - name: Download siswa build
-        uses: actions/download-artifact@v4
-        with:
-          name: siswa-dist
-          path: siswa-dist/
-
-      # Deploy steps depend on hosting provider
-      # Example: Deploy frontend to Cloudflare Pages / Vercel / S3
-      - name: Deploy frontends
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+          KNOWN_HOST: "202.155.136.27 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCww/bt+PGCjQ4l5Yo/QL++3C9R4POnLi2P0Z2zw341FtkCQIw4JSWr4piST9A1INsDw70GONzZkDcQNh1MYDX/VCaoov4hRfdR5Syk+dM71BLpyN2eFd3mzNVqp7YobV1Ajp5n9OQMQxnxZnL3bNexdNJ+VgR9dWMtkPlkNJtDTFXeKUzwVqtIgtD50+YJQkFjRG2CXJz4mYW1eKsMB8z/P1D1JbUorv3as3OtODGO11szHvU+9utZl9ZsqMzX1rZYG97afkgH0DihOxy1734IpZzK3XjT32SoP70fttWV8KCLveGtZotSvRU7vaP+nNoC1qvfSybApZGiCDaWf/WaXVpZXNVh9W3IhzW09Ksog/QGQOW8klJLIffN8K2NpF+h0vOBM/U3dE/fiJf0EdVjArcWEOnts6kxeDp5sUmKqzLcd1bVkBjylJJK8ElJiImryoZaXlWnJO0mDjypQ+MgkzmihgEiHwy0QmipSdD+7rKLvEVysJTFZWjcwYNQM1E="
         run: |
-          echo "Deploy admin-dist/ and siswa-dist/ to CDN"
-          echo "Pull and restart API container with new image tag"
-          echo "Actual deployment commands depend on your infrastructure"
-
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build-api, build-admin, build-siswa]
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production'
-    environment: production
-    timeout-minutes: 10
-
-    steps:
-      - name: Download admin build
-        uses: actions/download-artifact@v4
-        with:
-          name: admin-dist
-          path: admin-dist/
-
-      - name: Download siswa build
-        uses: actions/download-artifact@v4
-        with:
-          name: siswa-dist
-          path: siswa-dist/
-
-      - name: Deploy to production
-        run: |
-          echo "Deploy to production infrastructure"
-          echo "Run database migrations"
-          echo "Update API container"
-          echo "Deploy static frontends"
-          echo "Invalidate CDN cache"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOST" > ~/.ssh/known_hosts
+          printf '%s\n%s\n' "$ACTOR" "$TOKEN" | ssh root@202.155.136.27 cbt
