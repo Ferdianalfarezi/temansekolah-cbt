@@ -68,6 +68,10 @@ export function deactivatePelaksanaanUjian(id: string) {
   return api.patch(`/pelaksanaan-ujian/${id}/deactivate`);
 }
 
+export function activatePelaksanaanUjian(id: string) {
+  return api.patch(`/pelaksanaan-ujian/${id}/activate`);
+}
+
 export function getActivePelaksanaanUjian() {
   return api.get<PelaksanaanUjian | null>("/pelaksanaan-ujian/active");
 }

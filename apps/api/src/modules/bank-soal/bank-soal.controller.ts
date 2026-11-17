@@ -27,6 +27,7 @@ import { StorageService } from "../storage/storage.service";
 import {
   CreateBankSoalDto,
   UpdateBankSoalDto,
+  UpdateBankSoalStatusDto,
   ListBankSoalQueryDto,
   CreateSoalDto,
   UpdateSoalDto,
@@ -197,6 +198,29 @@ export class BankSoalController {
     @Body() dto: UpdateBankSoalDto,
   ) {
     return this.bankSoalService.update(tenantId, userId, cbtRole, id, dto);
+  }
+
+  /**
+   * PATCH /api/bank-soal/:id/status
+   * Mark Bank Soal as ready ("Siap") or back to draft.
+   * Only ready bank soal can be scheduled.
+   */
+  @Patch(":id/status")
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  async updateStatus(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @CurrentUser("cbtRole") cbtRole: CbtRole,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateBankSoalStatusDto,
+  ) {
+    return this.bankSoalService.updateStatus(
+      tenantId,
+      userId,
+      cbtRole,
+      id,
+      dto.status,
+    );
   }
 
   /**

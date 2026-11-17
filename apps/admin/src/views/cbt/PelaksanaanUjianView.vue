@@ -5,6 +5,7 @@ import {
   getPelaksanaanUjianList,
   createPelaksanaanUjian,
   deactivatePelaksanaanUjian,
+  activatePelaksanaanUjian,
   getExamSessions,
   exportPelaksanaanUjianResults,
   getTahunAjaranAktif,
@@ -189,6 +190,17 @@ async function handleDeactivate(id: string) {
     await fetchData();
   } catch (e: any) {
     error.value = e.response?.data?.message || "Gagal menonaktifkan";
+  }
+}
+
+async function handleActivate(item: PelaksanaanUjian) {
+  if (!confirm(`Aktifkan kembali "${item.nama}"?`)) return;
+  try {
+    error.value = "";
+    await activatePelaksanaanUjian(item.id);
+    await fetchData();
+  } catch (e: any) {
+    error.value = e.response?.data?.message || "Gagal mengaktifkan";
   }
 }
 
@@ -561,6 +573,16 @@ function getPeriodeLabel(value: string): string {
                       @click="handleDeactivate(item.id)"
                     >
                       Nonaktifkan
+                    </ActionButton>
+
+                    <!-- Activate button -->
+                    <ActionButton
+                      v-else
+                      variant="success"
+                      icon="check"
+                      @click="handleActivate(item)"
+                    >
+                      Aktifkan
                     </ActionButton>
                   </div>
                 </td>

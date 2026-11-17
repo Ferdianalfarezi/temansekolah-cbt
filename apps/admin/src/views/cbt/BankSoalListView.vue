@@ -15,6 +15,7 @@ import {
   createBankSoal,
   deleteBankSoal,
   duplicateBankSoal,
+  updateBankSoalStatus,
   getErrorMessage,
   type BankSoal as ApiBankSoal,
 } from "@/api/bank-soal";
@@ -224,7 +225,29 @@ async function handleDuplicate(bankSoal: BankSoal) {
   }
 }
 
+async function handleToggleStatus(bankSoal: BankSoal) {
+  const next = bankSoal.status === "ready" ? "draft" : "ready";
+  const msg =
+    next === "ready"
+      ? `Tandai "${bankSoal.nama}" sebagai Siap? Setelah Siap, bank soal bisa dijadwalkan.`
+      : `Kembalikan "${bankSoal.nama}" ke Draft? Bank soal tidak bisa dijadwalkan selama Draft.`;
+  if (!confirm(msg)) return;
+  actionLoading.value = true;
+  try {
+    await updateBankSoalStatus(bankSoal.id, next);
+    await fetchBankSoalList();
+  } catch (e: any) {
+    error.value = getErrorMessage(e);
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
 function handleScheduleExam(bankSoal: BankSoal) {
+  if (bankSoal.status !== "ready") {
+    alert('Bank soal masih Draft. Klik "Tandai Siap" dulu sebelum dijadwalkan.');
+    return;
+  }
   // Use the actual kelas IDs from the API response
   const targetKelasOptions: KelasOption[] = bankSoal.targetKelasIds.map(
     (id, idx) => ({
@@ -601,8 +624,38 @@ onMounted(() => {
                     Duplikasi
                   </ActionButton>
                   <ActionButton
+                    v-if="bankSoal.status === 'draft'"
+                    variant="primary"
+                    icon="check"
+                    :disabled="actionLoading || bankSoal.soalCount === 0"
+                    :title="
+                      bankSoal.soalCount === 0
+                        ? 'Tambahkan soal dulu'
+                        : 'Tandai bank soal sebagai Siap'
+                    "
+                    @click="handleToggleStatus(bankSoal)"
+                  >
+                    Tandai Siap
+                  </ActionButton>
+                  <ActionButton
+                    v-else-if="bankSoal.status === 'ready'"
+                    variant="neutral"
+                    icon="x"
+                    :disabled="actionLoading"
+                    title="Kembalikan ke Draft"
+                    @click="handleToggleStatus(bankSoal)"
+                  >
+                    Draft
+                  </ActionButton>
+                  <ActionButton
                     variant="success"
                     icon="calendar"
+                    :disabled="bankSoal.status !== 'ready'"
+                    :title="
+                      bankSoal.status !== 'ready'
+                        ? 'Tandai Siap dulu sebelum dijadwalkan'
+                        : 'Jadwalkan ujian'
+                    "
                     @click="handleScheduleExam(bankSoal)"
                   >
                     Jadwalkan

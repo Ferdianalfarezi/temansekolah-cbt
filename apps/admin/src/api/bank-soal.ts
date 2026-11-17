@@ -285,8 +285,19 @@ export function duplicateBankSoal(
 }
 
 /**
+ * Mark Bank Soal as ready ("Siap") or back to draft.
+ * Only ready bank soal can be scheduled.
+ */
+export function updateBankSoalStatus(
+  id: string,
+  status: "draft" | "ready",
+): Promise<AxiosResponse<unknown>> {
+  return api.patch(`/bank-soal/${id}/status`, { status });
+}
+
+/**
  * Schedule an exam session from Bank Soal
- * Fails if bank soal has 0 soal
+ * Fails if bank soal has 0 soal or is not ready
  * @param id Bank Soal ID
  * @param dto ScheduleExamDto
  * @returns Promise<AxiosResponse<ScheduleExamResponse>>
