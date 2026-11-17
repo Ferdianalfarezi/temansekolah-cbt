@@ -13,6 +13,7 @@ import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
 import { cbtExamSessionQuestion } from "../../drizzle/schema/cbt-exam-session-question";
 import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtQuestion } from "../../drizzle/schema/cbt-question";
+import { cbtBankSoal } from "../../drizzle/schema/cbt-bank-soal";
 import { cbtSiswaAccount } from "../../drizzle/schema/cbt-siswa-account";
 import { siswa } from "../../drizzle/schema/lms-tables";
 import { ExamSessionService } from "./exam-session.service";
@@ -61,6 +62,18 @@ export class ExamSessionLifecycleService {
     if (!session.bankSoalId) {
       throw new BadRequestException(
         "Sesi ujian tidak memiliki bank soal. Pilih bank soal terlebih dahulu.",
+      );
+    }
+
+    // Validate: bank soal must be marked "Siap" (ready)
+    const [bankSoal] = await this.db
+      .select({ status: cbtBankSoal.status })
+      .from(cbtBankSoal)
+      .where(eq(cbtBankSoal.id, session.bankSoalId))
+      .limit(1);
+    if (!bankSoal || bankSoal.status !== "ready") {
+      throw new BadRequestException(
+        "Bank soal masih Draft. Tandai Siap terlebih dahulu sebelum di-package.",
       );
     }
 

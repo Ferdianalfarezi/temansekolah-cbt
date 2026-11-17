@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kelasLabel, setJenjang } from "@/composables/useKelasLabel";
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import ImportSoalModal from "./components/ImportSoalModal.vue";
@@ -195,6 +196,7 @@ function handleBack() {
 async function fetchOptions() {
   try {
     const res = await cbtApi.get("/bank-soal/scope");
+    setJenjang(res.data.jenjang);
     mataPelajaranOptions.value = (res.data.mataPelajaran || []).map(
       (m: { id: string; nama: string }) => ({
         value: m.id,
@@ -641,7 +643,7 @@ onMounted(() => {
               >
             </div>
             <p v-else-if="bankSoal.tingkat" class="text-sm text-gray-900">
-              Tingkat {{ bankSoal.tingkat }}
+              {{ kelasLabel(bankSoal.tingkat) }}
             </p>
             <p v-else class="text-sm text-gray-400">-</p>
           </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kelasLabel } from "@/composables/useKelasLabel";
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { scheduleExam } from "@/api/bank-soal";
@@ -434,7 +435,7 @@ onUnmounted(() => {
                   <span
                     class="inline-flex rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700"
                   >
-                    Semua kelas Tingkat {{ bankSoal.tingkat }}
+                    Semua rombel {{ kelasLabel(bankSoal.tingkat) }}
                   </span>
                 </div>
                 <p class="mt-2 text-xs text-gray-500">
@@ -447,7 +448,7 @@ onUnmounted(() => {
                   <template v-else-if="usesTingkat">
                     Sesi ujian akan dibuat untuk
                     <span class="font-medium text-amber-600"
-                      >semua kelas tingkat {{ bankSoal.tingkat }}</span
+                      >semua rombel {{ kelasLabel(bankSoal.tingkat) }}</span
                     >
                     di sekolah ini
                   </template>
@@ -645,7 +646,7 @@ onUnmounted(() => {
                   : bankSoal?.targetKelas.length
                     ? `Jadwalkan ${bankSoal.targetKelas.length} Sesi`
                     : usesTingkat
-                      ? `Jadwalkan Sesi Tingkat ${bankSoal?.tingkat}`
+                      ? `Jadwalkan Sesi ${kelasLabel(bankSoal?.tingkat)}`
                       : "Jadwalkan"
               }}
             </button>

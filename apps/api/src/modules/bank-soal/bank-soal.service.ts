@@ -17,6 +17,7 @@ import {
   kelas,
   mataPelajaran,
   tahunAjaran,
+  tenant,
   user,
 } from "../../drizzle/schema/lms-tables";
 import { cbtExamSession } from "../../drizzle/schema/cbt-exam-session";
@@ -181,7 +182,16 @@ export class BankSoalService {
   ): Promise<{
     mataPelajaran: Array<{ id: string; nama: string }>;
     kelas: Array<{ id: string; nama: string; tingkat: number }>;
+    jenjang: string | null;
   }> {
+    // Jenjang sekolah (sd/smp/sma) for "Kelas 7" style labels in the UI
+    const [tenantRow] = await this.db
+      .select({ jenjang: tenant.jenjang })
+      .from(tenant)
+      .where(eq(tenant.id, tenantId))
+      .limit(1);
+    const jenjang = tenantRow?.jenjang ?? null;
+
     // Get active tahun ajaran for this tenant
     const [activeTahunAjaran] = await this.db
       .select({ id: tahunAjaran.id })
@@ -226,6 +236,7 @@ export class BankSoalService {
       return {
         mataPelajaran: allMataPelajaran,
         kelas: allKelas,
+        jenjang,
       };
     }
 
@@ -233,7 +244,7 @@ export class BankSoalService {
     const scope = await this.getGuruScope(userId, tenantId);
 
     if (scope.mataPelajaranIds.length === 0 && scope.kelasIds.length === 0) {
-      return { mataPelajaran: [], kelas: [] };
+      return { mataPelajaran: [], kelas: [], jenjang };
     }
 
     const [scopedMataPelajaran, scopedKelas] = await Promise.all([
@@ -274,6 +285,7 @@ export class BankSoalService {
     return {
       mataPelajaran: scopedMataPelajaran,
       kelas: scopedKelas,
+      jenjang,
     };
   }
 
@@ -1022,6 +1034,72 @@ export class BankSoalService {
   }
 
   /**
+   * Change Bank Soal status between draft and ready ("Siap").
+   * - ready requires at least 1 soal
+   * - cannot change status while locked (used in packaged/active/completed session)
+   * Only ready bank soal can be scheduled (see scheduleExam).
+   */
+  async updateStatus(
+    tenantId: string,
+    userId: string,
+    cbtRole: CbtRole,
+    id: string,
+    status: "draft" | "ready",
+  ): Promise<typeof cbtBankSoal.$inferSelect> {
+    const [existing] = await this.db
+      .select()
+      .from(cbtBankSoal)
+      .where(and(eq(cbtBankSoal.id, id), eq(cbtBankSoal.tenantId, tenantId)))
+      .limit(1);
+
+    if (!existing) {
+      throw new NotFoundException("Bank soal tidak ditemukan");
+    }
+
+    if (!this.isAdmin(cbtRole)) {
+      const scope = await this.getGuruScope(userId, tenantId);
+      const hasMapelAccess = scope.mataPelajaranIds.includes(
+        existing.mataPelajaranId,
+      );
+      if (!hasMapelAccess && existing.createdBy !== userId) {
+        throw new ForbiddenException(
+          "Anda tidak memiliki akses ke bank soal ini",
+        );
+      }
+    }
+
+    if (existing.status === status) {
+      return existing;
+    }
+
+    if (await this.checkBankSoalLocked(id)) {
+      throw new ConflictException(
+        "Status bank soal tidak dapat diubah karena sudah digunakan dalam sesi ujian yang terkunci",
+      );
+    }
+
+    if (status === "ready") {
+      const [soalCountResult] = await this.db
+        .select({ count: count() })
+        .from(cbtQuestion)
+        .where(eq(cbtQuestion.bankSoalId, id));
+      if ((soalCountResult?.count ?? 0) === 0) {
+        throw new BadRequestException(
+          "Bank soal belum memiliki soal. Tambahkan soal sebelum menandai Siap.",
+        );
+      }
+    }
+
+    const [updated] = await this.db
+      .update(cbtBankSoal)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(cbtBankSoal.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  /**
    * Delete Bank Soal (with cascade delete of soal)
    *
    * @param tenantId - The tenant ID
@@ -1286,6 +1364,13 @@ export class BankSoalService {
           "Anda tidak memiliki akses ke bank soal ini",
         );
       }
+    }
+
+    // 2b. Only bank soal marked "Siap" (ready) can be scheduled
+    if (bankSoal.status !== "ready") {
+      throw new BadRequestException(
+        "Bank soal masih Draft. Tandai Siap terlebih dahulu sebelum dijadwalkan.",
+      );
     }
 
     // 3. Check bank soal has at least 1 soal

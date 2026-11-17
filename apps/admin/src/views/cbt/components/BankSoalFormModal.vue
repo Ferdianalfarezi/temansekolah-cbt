@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kelasLabel } from "@/composables/useKelasLabel";
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 
 export interface MataPelajaranOption {
@@ -82,7 +83,7 @@ const tingkatOptions = computed(() => {
     .sort((a, b) => a - b)
     .map((t) => ({
       value: t,
-      label: `Tingkat ${t}`,
+      label: kelasLabel(t),
     }));
 });
 
@@ -96,8 +97,8 @@ const selectedMataPelajaranLabel = computed(() => {
 
 // Computed: selected tingkat label
 const selectedTingkatLabel = computed(() => {
-  if (form.value.tingkat === null) return "-- Pilih Tingkat --";
-  return `Tingkat ${form.value.tingkat}`;
+  if (form.value.tingkat === null) return "-- Pilih Kelas --";
+  return kelasLabel(form.value.tingkat);
 });
 
 // Computed: selected kelas labels
@@ -545,7 +546,7 @@ onUnmounted(() => {
                     <label
                       class="block text-[13px] font-medium mb-1.5"
                       style="color: var(--color-text-secondary)"
-                      >Tingkat</label
+                      >Kelas (semua rombel)</label
                     >
                     <button
                       type="button"

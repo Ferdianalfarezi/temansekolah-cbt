@@ -51,6 +51,18 @@ export class PelaksanaanUjianController {
   }
 
   /**
+   * PATCH /api/pelaksanaan-ujian/:id/activate
+   * Aktifkan kembali Pelaksanaan Ujian yang nonaktif (maks. satu aktif per tenant).
+   */
+  @Patch(":id/activate")
+  async activate(
+    @CurrentUser("tenantId") tenantId: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.puService.activate(tenantId, id);
+  }
+
+  /**
    * GET /api/pelaksanaan-ujian
    * List all Pelaksanaan Ujian with optional filters.
    */

@@ -53,6 +53,7 @@ export const tipeKomponenEnum = pgEnum("tipe_komponen", [
 export const tenant = pgTable("tenant", {
   id: uuid("id").primaryKey().defaultRandom(),
   nama: varchar("nama", { length: 255 }).notNull(),
+  jenjang: varchar("jenjang", { length: 10 }), // 'sd' | 'smp' | 'sma' (owned by edu migrations)
   isActive: boolean("is_active").default(true),
 });
 

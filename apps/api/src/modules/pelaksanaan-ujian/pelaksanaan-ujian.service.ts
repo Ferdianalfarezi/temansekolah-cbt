@@ -87,7 +87,26 @@ export class PelaksanaanUjianService {
       );
     }
 
-    // 4. Insert (komponenPenilaianId is nullable, set to null)
+    // 4. Tolak lebih awal kalau periode ini sudah pernah dibuat untuk tahun ajaran aktif
+    const [duplikat] = await this.db
+      .select({ id: cbtPelaksanaanUjian.id })
+      .from(cbtPelaksanaanUjian)
+      .where(
+        and(
+          eq(cbtPelaksanaanUjian.tenantId, tenantId),
+          eq(cbtPelaksanaanUjian.tahunAjaranId, activeTahunAjaran.id),
+          eq(cbtPelaksanaanUjian.periodeRapor, dto.periodeRapor),
+        ),
+      )
+      .limit(1);
+
+    if (duplikat) {
+      throw new ConflictException(
+        `Pelaksanaan ujian "${nama}" sudah ada. Pilih periode lain.`,
+      );
+    }
+
+    // 5. Insert (komponenPenilaianId is nullable, set to null)
     try {
       const [created] = await this.db
         .insert(cbtPelaksanaanUjian)
@@ -104,7 +123,8 @@ export class PelaksanaanUjianService {
       return created;
     } catch (error: any) {
       // Handle unique constraint violation gracefully
-      if (error.code === "23505") {
+      // drizzle-orm >= 0.44 membungkus error pg: kode aslinya ada di error.cause.code
+      if ((error.code ?? error.cause?.code) === "23505") {
         throw new ConflictException(
           "Pelaksanaan ujian dengan kombinasi tahun ajaran dan periode yang sama sudah ada.",
         );
@@ -183,6 +203,67 @@ export class PelaksanaanUjianService {
       .returning();
 
     return updated;
+  }
+
+  /**
+   * Aktifkan kembali Pelaksanaan Ujian yang nonaktif.
+   * - Hanya boleh satu yang aktif per tenant: tolak kalau masih ada yang aktif.
+   * - Sesi yang dulu dibatalkan saat dinonaktifkan TIDAK dipulihkan.
+   */
+  async activate(tenantId: string, puId: string) {
+    const [pu] = await this.db
+      .select()
+      .from(cbtPelaksanaanUjian)
+      .where(
+        and(
+          eq(cbtPelaksanaanUjian.id, puId),
+          eq(cbtPelaksanaanUjian.tenantId, tenantId),
+        ),
+      )
+      .limit(1);
+
+    if (!pu) {
+      throw new NotFoundException("Pelaksanaan ujian tidak ditemukan");
+    }
+
+    if (pu.isActive) {
+      throw new ConflictException("Pelaksanaan ujian sudah aktif");
+    }
+
+    const [lainAktif] = await this.db
+      .select({ nama: cbtPelaksanaanUjian.nama })
+      .from(cbtPelaksanaanUjian)
+      .where(
+        and(
+          eq(cbtPelaksanaanUjian.tenantId, tenantId),
+          eq(cbtPelaksanaanUjian.isActive, true),
+        ),
+      )
+      .limit(1);
+
+    if (lainAktif) {
+      throw new ConflictException(
+        `"${lainAktif.nama}" masih aktif. Nonaktifkan dulu sebelum mengaktifkan yang lain.`,
+      );
+    }
+
+    try {
+      const [updated] = await this.db
+        .update(cbtPelaksanaanUjian)
+        .set({ isActive: true, updatedAt: new Date() })
+        .where(eq(cbtPelaksanaanUjian.id, puId))
+        .returning();
+
+      return updated;
+    } catch (error: any) {
+      // Index unik "satu aktif per tenant" (kalau dua admin klik bersamaan)
+      if ((error.code ?? error.cause?.code) === "23505") {
+        throw new ConflictException(
+          "Sudah ada pelaksanaan ujian aktif. Muat ulang halaman lalu coba lagi.",
+        );
+      }
+      throw error;
+    }
   }
 
   /**

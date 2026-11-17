@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kelasLabel, setJenjang } from "@/composables/useKelasLabel";
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import ScheduleExamModal from "./components/ScheduleExamModal.vue";
@@ -15,6 +16,7 @@ import {
   createBankSoal,
   deleteBankSoal,
   duplicateBankSoal,
+  updateBankSoalStatus,
   getErrorMessage,
   type BankSoal as ApiBankSoal,
 } from "@/api/bank-soal";
@@ -163,6 +165,7 @@ async function fetchMataPelajaranOptions() {
     const res = await cbtApi.get("/bank-soal/scope");
     mataPelajaranOptions.value = res.data.mataPelajaran || [];
     kelasOptions.value = res.data.kelas || [];
+    setJenjang(res.data.jenjang);
   } catch (e: any) {
     console.error("Gagal memuat mata pelajaran:", e);
     mataPelajaranOptions.value = [];
@@ -224,7 +227,29 @@ async function handleDuplicate(bankSoal: BankSoal) {
   }
 }
 
+async function handleToggleStatus(bankSoal: BankSoal) {
+  const next = bankSoal.status === "ready" ? "draft" : "ready";
+  const msg =
+    next === "ready"
+      ? `Tandai "${bankSoal.nama}" sebagai Siap? Setelah Siap, bank soal bisa dijadwalkan.`
+      : `Kembalikan "${bankSoal.nama}" ke Draft? Bank soal tidak bisa dijadwalkan selama Draft.`;
+  if (!confirm(msg)) return;
+  actionLoading.value = true;
+  try {
+    await updateBankSoalStatus(bankSoal.id, next);
+    await fetchBankSoalList();
+  } catch (e: any) {
+    error.value = getErrorMessage(e);
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
 function handleScheduleExam(bankSoal: BankSoal) {
+  if (bankSoal.status !== "ready") {
+    alert('Bank soal masih Draft. Klik "Tandai Siap" dulu sebelum dijadwalkan.');
+    return;
+  }
   // Use the actual kelas IDs from the API response
   const targetKelasOptions: KelasOption[] = bankSoal.targetKelasIds.map(
     (id, idx) => ({
@@ -435,9 +460,9 @@ onMounted(() => {
           v-model="tingkatFilter"
           class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
         >
-          <option value="">Semua Tingkat</option>
+          <option value="">Semua Kelas</option>
           <option v-for="t in tingkatOptions" :key="t" :value="t">
-            Tingkat {{ t }}
+            {{ kelasLabel(t) }}
           </option>
         </select>
       </div>
@@ -564,7 +589,7 @@ onMounted(() => {
                   </span>
                 </div>
                 <span v-else-if="bankSoal.tingkat" class="text-gray-500"
-                  >Tingkat {{ bankSoal.tingkat }}</span
+                  >{{ kelasLabel(bankSoal.tingkat) }}</span
                 >
                 <span v-else class="text-gray-400">-</span>
               </td>
@@ -601,8 +626,38 @@ onMounted(() => {
                     Duplikasi
                   </ActionButton>
                   <ActionButton
+                    v-if="bankSoal.status === 'draft'"
+                    variant="primary"
+                    icon="check"
+                    :disabled="actionLoading || bankSoal.soalCount === 0"
+                    :title="
+                      bankSoal.soalCount === 0
+                        ? 'Tambahkan soal dulu'
+                        : 'Tandai bank soal sebagai Siap'
+                    "
+                    @click="handleToggleStatus(bankSoal)"
+                  >
+                    Tandai Siap
+                  </ActionButton>
+                  <ActionButton
+                    v-else-if="bankSoal.status === 'ready'"
+                    variant="neutral"
+                    icon="x"
+                    :disabled="actionLoading"
+                    title="Kembalikan ke Draft"
+                    @click="handleToggleStatus(bankSoal)"
+                  >
+                    Draft
+                  </ActionButton>
+                  <ActionButton
                     variant="success"
                     icon="calendar"
+                    :disabled="bankSoal.status !== 'ready'"
+                    :title="
+                      bankSoal.status !== 'ready'
+                        ? 'Tandai Siap dulu sebelum dijadwalkan'
+                        : 'Jadwalkan ujian'
+                    "
                     @click="handleScheduleExam(bankSoal)"
                   >
                     Jadwalkan
