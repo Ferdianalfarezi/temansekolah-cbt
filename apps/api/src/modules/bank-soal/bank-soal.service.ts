@@ -1354,12 +1354,8 @@ export class BankSoalService {
       }
     }
 
-    // 2b. Only bank soal marked "Siap" (ready) can be scheduled
-    if (bankSoal.status !== "ready") {
-      throw new BadRequestException(
-        "Bank soal masih Draft. Tandai Siap terlebih dahulu sebelum dijadwalkan.",
-      );
-    }
+    // (Status Draft/Siap tidak lagi menghalangi penjadwalan: bank soal tidak terlihat
+    // siswa sampai dijadwalkan. Syaratnya cukup punya minimal 1 soal, dicek di bawah.)
 
     // 3. Check bank soal has at least 1 soal
     const [soalCountResult] = await this.db

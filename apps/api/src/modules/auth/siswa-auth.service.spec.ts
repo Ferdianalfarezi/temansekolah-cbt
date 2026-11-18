@@ -130,7 +130,11 @@ describe("SiswaAuthService", () => {
     });
 
     it("should return account on successful login and reset attempts", async () => {
-      setupSelectMock([mockAccount]);
+      const chain = setupSelectMock([mockAccount]);
+      // query ke-2: status siswa di LMS
+      chain.limit
+        .mockResolvedValueOnce([mockAccount])
+        .mockResolvedValueOnce([{ status: "aktif" }]);
       const updateChain = setupUpdateMock();
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -150,12 +154,30 @@ describe("SiswaAuthService", () => {
         ...mockAccount,
         lockedUntil: new Date(Date.now() - 1000), // expired
       };
-      setupSelectMock([expiredLockAccount]);
+      const chain = setupSelectMock([expiredLockAccount]);
+      chain.limit
+        .mockResolvedValueOnce([expiredLockAccount])
+        .mockResolvedValueOnce([{ status: "aktif" }]);
       setupUpdateMock();
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       const result = await service.login("1234567890", "correct");
       expect(result).toEqual(expiredLockAccount);
+    });
+
+    it("should reject login when siswa is no longer aktif (lulus)", async () => {
+      const chain = setupSelectMock([mockAccount]);
+      chain.limit
+        .mockResolvedValueOnce([mockAccount])
+        .mockResolvedValueOnce([{ status: "lulus" }]);
+      const updateChain = setupUpdateMock();
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(service.login("1234567890", "correct")).rejects.toThrow(
+        "sudah lulus",
+      );
+      // login gagal: lastLoginAt tidak diperbarui
+      expect(updateChain.set).not.toHaveBeenCalled();
     });
   });
 

@@ -16,6 +16,7 @@ import {
   integer,
   boolean,
   date,
+  text,
 } from "drizzle-orm/pg-core";
 
 // ─── LMS Enums ──────────────────────────────────────────────────────────────
@@ -89,7 +90,10 @@ export const siswa = pgTable("siswa", {
   kelasId: uuid("kelas_id"),
   nama: varchar("nama", { length: 255 }).notNull(),
   nisn: varchar("nisn", { length: 20 }),
+  // enum jenis_kelamin di LMS; dibaca saja sebagai teks ('L' / 'P')
+  jenisKelamin: varchar("jenis_kelamin", { length: 1 }),
   tanggalLahir: date("tanggal_lahir"),
+  alamat: text("alamat"),
   status: siswaStatusEnum("status").default("aktif"),
 });
 

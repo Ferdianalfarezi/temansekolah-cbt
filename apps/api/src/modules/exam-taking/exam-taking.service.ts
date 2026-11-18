@@ -245,6 +245,13 @@ export class ExamTakingService {
       timeoutMs,
     );
 
+    // Kabari pengawas secara realtime: siswa mulai mengerjakan
+    this.proctorGateway.emitParticipantUpdate(sessionId, participant.id, {
+      status: "in_progress",
+      startedAt: now.toISOString(),
+      remainingSeconds,
+    });
+
     this.logger.log(
       `Siswa ${siswaAccountId} started exam session ${sessionId} with ${remainingSeconds}s remaining (late by ${session.durationMinutes * 60 - remainingSeconds}s)`,
     );

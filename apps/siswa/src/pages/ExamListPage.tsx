@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/services/api";
+import {
+  ProfilSiswaChip,
+  ProfilSiswaModal,
+  useProfilSiswa,
+} from "@/components/ProfilSiswa";
+import CountdownBoxes from "@/components/CountdownBoxes";
 
 interface ExamSession {
   sessionId: string;
@@ -169,7 +175,16 @@ export default function ExamListPage() {
   );
   const redirectedRef = useRef<Set<string>>(new Set());
 
-  const user = JSON.parse(localStorage.getItem("cbt_user") || "{}");
+  const profil = useProfilSiswa();
+  const [profilOpen, setProfilOpen] = useState(false);
+  const tutupProfil = useCallback(() => setProfilOpen(false), []);
+  const namaDepan = profil?.nama?.trim().split(/\s+/)[0] ?? "Siswa";
+  const hariIni = new Date().toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -351,26 +366,6 @@ export default function ExamListPage() {
     });
   }
 
-  function formatCountdown(seconds: number): string {
-    if (seconds <= 0) return "Memulai...";
-
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (days > 0) {
-      return `${days}h ${hours}j ${minutes}m`;
-    }
-    if (hours > 0) {
-      return `${hours}j ${minutes}m ${secs}d`;
-    }
-    if (minutes > 0) {
-      return `${minutes}m ${secs}d`;
-    }
-    return `${secs} detik`;
-  }
-
   function isCountdownUrgent(seconds: number): boolean {
     // Urgent if less than 5 minutes
     return seconds > 0 && seconds <= 300;
@@ -383,62 +378,142 @@ export default function ExamListPage() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
-      {/* Header */}
-      <header
-        className="sticky top-0 z-20"
+      {/* Header biru + sapaan */}
+      <div
         style={{
-          background: "var(--surface)",
-          borderBottom: "1px solid var(--border)",
-          boxShadow: "var(--shadow-sm)",
+          background:
+            "linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%)",
         }}
       >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo & User Info */}
-            <div className="flex items-center gap-3">
-              <div
-                className="flex items-center justify-center w-10 h-10 rounded-xl"
-                style={{ background: "var(--primary-bg)" }}
-              >
-                <Icons.Book />
-              </div>
-              <div className="hidden sm:block">
-                <p
-                  className="font-semibold text-sm"
-                  style={{ color: "var(--text)" }}
+        <header
+          className="sticky top-0 z-20"
+          style={{
+            background:
+              "linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%)",
+            borderBottom: "1px solid rgba(255,255,255,0.12)",
+          }}
+        >
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between gap-3 h-16">
+              {/* Logo */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="flex items-center justify-center w-10 h-10 rounded-xl shrink-0"
+                  style={{ background: "#fff", color: "var(--primary-600)" }}
                 >
-                  {user.name || "Siswa"}
-                </p>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  CBT Teman Sekolah
-                </p>
+                  <Icons.Book />
+                </div>
+                <div className="hidden sm:block min-w-0">
+                  <p className="font-bold text-sm text-white">
+                    CBT Teman Sekolah
+                  </p>
+                  <p
+                    className="text-xs truncate"
+                    style={{ color: "rgba(255,255,255,0.75)" }}
+                  >
+                    {profil?.sekolah ?? "Ujian online"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Kartu nama siswa + Keluar */}
+              <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                <ProfilSiswaChip
+                  profil={profil}
+                  gelap
+                  onClick={() => setProfilOpen(true)}
+                />
+                <span
+                  className="hidden sm:block w-px h-8"
+                  style={{ background: "rgba(255,255,255,0.2)" }}
+                />
+                <button
+                  onClick={handleLogout}
+                  title="Keluar"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <Icons.Logout />
+                  <span className="hidden sm:inline text-sm font-medium">
+                    Keluar
+                  </span>
+                </button>
               </div>
             </div>
+          </div>
+        </header>
 
-            {/* Mobile: Just name */}
-            <div className="sm:hidden flex-1 text-center">
+        {/* Sapaan */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-14">
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
+            {hariIni}
+          </p>
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-white">
+            Halo, {namaDepan}! 👋
+          </h1>
+          <p
+            className="mt-1 text-sm"
+            style={{ color: "rgba(255,255,255,0.85)" }}
+          >
+            {activeSessions.some(
+              (x) =>
+                !["submitted", "auto_submitted"].includes(
+                  x.participantStatus || "",
+                ),
+            )
+              ? "Ada ujian yang bisa kamu kerjakan sekarang. Semangat!"
+              : upcomingSessions.length > 0
+                ? "Ujianmu sudah dijadwalkan. Siapkan dirimu dari sekarang."
+                : "Belum ada ujian terjadwal. Tetap rajin belajar ya!"}
+          </p>
+        </div>
+      </div>
+
+      {/* Kartu ringkasan (menumpuk di atas pita biru) */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-9 relative z-10">
+        <div
+          className="grid grid-cols-3 rounded-2xl overflow-hidden"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            boxShadow: "var(--shadow-lg)",
+          }}
+        >
+          {(
+            [
+              ["Berlangsung", activeSessions.length, "var(--emerald)"],
+              ["Akan datang", upcomingSessions.length, "var(--blue)"],
+              ["Selesai", completedSessions.length, "var(--text-muted)"],
+            ] as Array<[string, number, string]>
+          ).map(([label, jumlah, warna], i) => (
+            <div
+              key={label}
+              className="px-3 py-3 sm:py-4 text-center"
+              style={{
+                borderLeft: i > 0 ? "1px solid var(--border-light)" : undefined,
+              }}
+            >
               <p
-                className="font-semibold text-sm"
-                style={{ color: "var(--text)" }}
+                className="text-2xl font-bold"
+                style={{ color: warna, fontVariantNumeric: "tabular-nums" }}
               >
-                {user.name || "Siswa"}
+                {loading ? "–" : jumlah}
+              </p>
+              <p
+                className="text-xs font-medium"
+                style={{ color: "var(--text-muted)" }}
+              >
+                {label}
               </p>
             </div>
-
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
-              style={{ color: "var(--text-muted)" }}
-            >
-              <Icons.Logout />
-              <span className="hidden sm:inline text-sm font-medium">
-                Keluar
-              </span>
-            </button>
-          </div>
+          ))}
         </div>
-      </header>
+      </div>
+
+      <ProfilSiswaModal
+        profil={profil}
+        open={profilOpen}
+        onClose={tutupProfil}
+      />
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -494,29 +569,94 @@ export default function ExamListPage() {
 
         {/* Empty State */}
         {!loading && !error && sessions.length === 0 && (
-          <div className="text-center py-16">
+          <div
+            className="rounded-2xl p-6 sm:p-8 text-center"
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
             <div
-              className="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6"
+              className="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4"
               style={{
-                background: "var(--bg-secondary)",
-                color: "var(--text-light)",
+                background: "var(--primary-bg)",
+                color: "var(--primary-600)",
               }}
             >
               <Icons.Empty />
             </div>
             <h3
-              className="text-lg font-semibold mb-2"
+              className="text-lg font-semibold"
               style={{ color: "var(--text)" }}
             >
-              Belum Ada Ujian
+              Belum Ada Ujian Terjadwal
             </h3>
             <p
-              className="text-sm max-w-sm mx-auto"
+              className="mt-1 text-sm max-w-md mx-auto"
               style={{ color: "var(--text-muted)" }}
             >
-              Ujian yang dijadwalkan untukmu akan muncul di sini. Pastikan kamu
-              sudah terdaftar di kelas yang benar.
+              Begitu guru menjadwalkan ujian untuk kelasmu, ujiannya muncul di
+              sini lengkap dengan hitung mundur sampai waktu mulai.
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                fetchSessions();
+              }}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+              style={{
+                background: "var(--primary-bg)",
+                color: "var(--primary-700)",
+                border: "1px solid var(--primary-border)",
+              }}
+            >
+              Cek lagi
+            </button>
+
+            <div
+              className="mt-6 pt-5 grid gap-3 sm:grid-cols-3 text-left"
+              style={{ borderTop: "1px solid var(--border-light)" }}
+            >
+              {[
+                [
+                  "🔋",
+                  "Baterai & koneksi",
+                  "Pastikan HP/laptop terisi dan internet stabil saat ujian.",
+                ],
+                [
+                  "⏰",
+                  "Datang lebih awal",
+                  "Buka halaman ini beberapa menit sebelum ujian dimulai.",
+                ],
+                [
+                  "🙅",
+                  "Jangan pindah aplikasi",
+                  "Keluar dari layar ujian akan tercatat sebagai pelanggaran.",
+                ],
+              ].map(([ikon, judul, isi]) => (
+                <div
+                  key={judul}
+                  className="rounded-xl p-3"
+                  style={{ background: "var(--bg-secondary)" }}
+                >
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--text)" }}
+                  >
+                    <span className="mr-1.5">{ikon}</span>
+                    {judul}
+                  </p>
+                  <p
+                    className="mt-1 text-xs"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {isi}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -803,19 +943,26 @@ export default function ExamListPage() {
                               ? "Menunggu ujian aktif..."
                               : "Dimulai dalam"}
                           </p>
-                          <p
-                            className={`font-bold ${isUrgent ? "text-2xl" : isSoon ? "text-xl" : "text-lg"}`}
-                            style={{
-                              color: isUrgent
-                                ? "var(--orange)"
-                                : isSoon
-                                  ? "var(--blue)"
-                                  : "var(--text)",
-                              fontVariantNumeric: "tabular-nums",
-                            }}
-                          >
-                            {formatCountdown(countdown)}
-                          </p>
+                          {countdown > 0 ? (
+                            <CountdownBoxes
+                              seconds={countdown}
+                              color={
+                                isUrgent
+                                  ? "var(--orange)"
+                                  : isSoon
+                                    ? "var(--blue)"
+                                    : "var(--text)"
+                              }
+                              background="var(--surface)"
+                            />
+                          ) : (
+                            <p
+                              className="text-lg font-bold animate-pulse"
+                              style={{ color: "var(--emerald)" }}
+                            >
+                              Memulai...
+                            </p>
+                          )}
                           {isUrgent && countdown > 0 && (
                             <p
                               className="text-xs mt-1 animate-pulse"

@@ -15,7 +15,6 @@ import {
   createBankSoal,
   deleteBankSoal,
   duplicateBankSoal,
-  updateBankSoalStatus,
   getErrorMessage,
   type BankSoal as ApiBankSoal,
 } from "@/api/bank-soal";
@@ -225,27 +224,11 @@ async function handleDuplicate(bankSoal: BankSoal) {
   }
 }
 
-async function handleToggleStatus(bankSoal: BankSoal) {
-  const next = bankSoal.status === "ready" ? "draft" : "ready";
-  const msg =
-    next === "ready"
-      ? `Tandai "${bankSoal.nama}" sebagai Siap? Setelah Siap, bank soal bisa dijadwalkan.`
-      : `Kembalikan "${bankSoal.nama}" ke Draft? Bank soal tidak bisa dijadwalkan selama Draft.`;
-  if (!confirm(msg)) return;
-  actionLoading.value = true;
-  try {
-    await updateBankSoalStatus(bankSoal.id, next);
-    await fetchBankSoalList();
-  } catch (e: any) {
-    error.value = getErrorMessage(e);
-  } finally {
-    actionLoading.value = false;
-  }
-}
-
 function handleScheduleExam(bankSoal: BankSoal) {
-  if (bankSoal.status !== "ready") {
-    alert('Bank soal masih Draft. Klik "Tandai Siap" dulu sebelum dijadwalkan.');
+  if (bankSoal.soalCount === 0) {
+    alert(
+      "Bank soal belum punya soal. Tambahkan soal dulu sebelum dijadwalkan.",
+    );
     return;
   }
   // Use the actual kelas IDs from the API response
@@ -326,25 +309,6 @@ function goToPage(page: number) {
   if (page < 1 || page > pagination.value.totalPages) return;
   pagination.value.page = page;
   fetchBankSoalList();
-}
-
-// Status badge class helper
-function statusBadgeClass(status: BankSoalStatus) {
-  const map: Record<BankSoalStatus, string> = {
-    draft: "bg-gray-100 text-gray-600",
-    ready: "bg-emerald-100 text-emerald-700",
-    archived: "bg-amber-100 text-amber-700",
-  };
-  return map[status] || "bg-gray-100 text-gray-600";
-}
-
-function statusLabel(status: BankSoalStatus) {
-  const map: Record<BankSoalStatus, string> = {
-    draft: "Draft",
-    ready: "Siap",
-    archived: "Diarsipkan",
-  };
-  return map[status] || status;
 }
 
 // Format date
@@ -529,11 +493,6 @@ onMounted(() => {
                 Durasi
               </th>
               <th
-                class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500"
-              >
-                Status
-              </th>
-              <th
                 class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
               >
                 Dibuat
@@ -594,16 +553,6 @@ onMounted(() => {
               <td class="px-4 py-3 text-center text-sm text-gray-600">
                 {{ bankSoal.durasiMenit }} menit
               </td>
-              <td class="px-4 py-3 text-center">
-                <span
-                  :class="[
-                    'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
-                    statusBadgeClass(bankSoal.status),
-                  ]"
-                >
-                  {{ statusLabel(bankSoal.status) }}
-                </span>
-              </td>
               <td class="px-4 py-3 text-sm text-gray-600">
                 {{ formatDate(bankSoal.createdAt) }}
               </td>
@@ -624,36 +573,12 @@ onMounted(() => {
                     Duplikasi
                   </ActionButton>
                   <ActionButton
-                    v-if="bankSoal.status === 'draft'"
-                    variant="primary"
-                    icon="check"
-                    :disabled="actionLoading || bankSoal.soalCount === 0"
-                    :title="
-                      bankSoal.soalCount === 0
-                        ? 'Tambahkan soal dulu'
-                        : 'Tandai bank soal sebagai Siap'
-                    "
-                    @click="handleToggleStatus(bankSoal)"
-                  >
-                    Tandai Siap
-                  </ActionButton>
-                  <ActionButton
-                    v-else-if="bankSoal.status === 'ready'"
-                    variant="neutral"
-                    icon="x"
-                    :disabled="actionLoading"
-                    title="Kembalikan ke Draft"
-                    @click="handleToggleStatus(bankSoal)"
-                  >
-                    Draft
-                  </ActionButton>
-                  <ActionButton
                     variant="success"
                     icon="calendar"
-                    :disabled="bankSoal.status !== 'ready'"
+                    :disabled="bankSoal.soalCount === 0"
                     :title="
-                      bankSoal.status !== 'ready'
-                        ? 'Tandai Siap dulu sebelum dijadwalkan'
+                      bankSoal.soalCount === 0
+                        ? 'Tambahkan soal dulu sebelum dijadwalkan'
                         : 'Jadwalkan ujian'
                     "
                     @click="handleScheduleExam(bankSoal)"
@@ -673,7 +598,7 @@ onMounted(() => {
 
             <!-- Empty state -->
             <tr v-if="bankSoalList.length === 0">
-              <td colspan="8" class="py-12 text-center">
+              <td colspan="7" class="py-12 text-center">
                 <svg
                   class="mx-auto h-12 w-12 text-gray-300"
                   fill="none"

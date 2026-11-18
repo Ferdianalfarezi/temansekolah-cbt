@@ -1,4 +1,10 @@
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { and, eq } from "drizzle-orm";
@@ -6,7 +12,13 @@ import * as bcrypt from "bcrypt";
 
 import { DRIZZLE } from "../../drizzle/drizzle.module";
 import { cbtSiswaAccount } from "../../drizzle/schema/cbt-siswa-account";
-import { siswa } from "../../drizzle/schema/lms-tables";
+import {
+  siswa,
+  kelas,
+  tahunAjaran,
+  tenant,
+  user,
+} from "../../drizzle/schema/lms-tables";
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MINUTES = 15;
@@ -75,6 +87,10 @@ export class SiswaAuthService {
       throw new UnauthorizedException("NISN atau password salah");
     }
 
+    // Hanya siswa berstatus aktif yang boleh masuk CBT (lulus / pindah / keluar ditolak).
+    // Dicek setelah password benar supaya status siswa tidak bocor ke orang lain.
+    await this.pastikanSiswaAktif(account.siswaId);
+
     // Success: reset failed attempts, update last login
     await this.db
       .update(cbtSiswaAccount)
@@ -87,6 +103,30 @@ export class SiswaAuthService {
       .where(eq(cbtSiswaAccount.id, account.id));
 
     return account;
+  }
+
+  /**
+   * Tolak akun CBT milik siswa yang statusnya tidak aktif lagi di LMS.
+   */
+  private async pastikanSiswaAktif(siswaId: string) {
+    const [data] = await this.db
+      .select({ status: siswa.status })
+      .from(siswa)
+      .where(eq(siswa.id, siswaId))
+      .limit(1);
+
+    if (data && data.status !== "aktif") {
+      const label: Record<string, string> = {
+        lulus: "sudah lulus",
+        pindah_sekolah: "sudah pindah sekolah",
+        keluar: "sudah keluar",
+      };
+      throw new ForbiddenException(
+        `Akun tidak bisa dipakai karena siswa ${
+          label[data.status ?? ""] ?? "tidak aktif"
+        }. Hubungi admin sekolah jika ini keliru.`,
+      );
+    }
   }
 
   /**
@@ -192,6 +232,38 @@ export class SiswaAuthService {
    * Payload: { sub: siswaAccountId, tenantId, role: 'siswa' }
    * Validity: 12 hours
    */
+  /**
+   * Data diri siswa yang sedang login (hanya dibaca; diubah oleh admin sekolah di LMS).
+   */
+  async getProfil(siswaAccountId: string) {
+    const [hasil] = await this.db
+      .select({
+        nama: siswa.nama,
+        nisn: siswa.nisn,
+        jenisKelamin: siswa.jenisKelamin,
+        tanggalLahir: siswa.tanggalLahir,
+        alamat: siswa.alamat,
+        status: siswa.status,
+        kelas: kelas.nama,
+        waliKelas: user.nama,
+        tahunAjaran: tahunAjaran.nama,
+        sekolah: tenant.nama,
+      })
+      .from(cbtSiswaAccount)
+      .innerJoin(siswa, eq(cbtSiswaAccount.siswaId, siswa.id))
+      .innerJoin(tenant, eq(cbtSiswaAccount.tenantId, tenant.id))
+      .leftJoin(kelas, eq(siswa.kelasId, kelas.id))
+      .leftJoin(tahunAjaran, eq(kelas.tahunAjaranId, tahunAjaran.id))
+      .leftJoin(user, eq(kelas.waliKelasId, user.id))
+      .where(eq(cbtSiswaAccount.id, siswaAccountId))
+      .limit(1);
+
+    if (!hasil) {
+      throw new NotFoundException("Data siswa tidak ditemukan");
+    }
+    return hasil;
+  }
+
   issueToken(account: {
     id: string;
     tenantId: string;

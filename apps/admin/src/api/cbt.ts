@@ -104,6 +104,7 @@ export interface ExamSession {
   kelasNama?: string;
   mataPelajaranNama?: string;
   proctorNama?: string;
+  bankSoalNama?: string | null;
 }
 
 export interface ExamSessionListResponse {

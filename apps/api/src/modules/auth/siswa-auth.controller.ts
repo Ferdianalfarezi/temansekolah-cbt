@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -30,6 +31,17 @@ export class SiswaAuthController {
   async login(@Body() dto: SiswaLoginDto) {
     const account = await this.siswaAuthService.login(dto.nisn, dto.password);
     return this.siswaAuthService.issueToken(account);
+  }
+
+  /**
+   * GET /api/auth/siswa/me
+   * Protected — data diri siswa yang login (nama, kelas, dll.), hanya untuk dilihat.
+   */
+  @Get("me")
+  @UseGuards(SiswaAuthGuard)
+  async me(@Req() req: any) {
+    const user = req.user as SiswaJwtUser;
+    return this.siswaAuthService.getProfil(user.siswaAccountId);
   }
 
   /**

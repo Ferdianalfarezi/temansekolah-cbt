@@ -102,25 +102,6 @@ function truncateSoalText(text: string, maxLength = 80): string {
   return cleanText.substring(0, maxLength) + "...";
 }
 
-// Status badge class helper
-function statusBadgeClass(status: BankSoalStatus) {
-  const map: Record<BankSoalStatus, string> = {
-    draft: "bg-gray-100 text-gray-600",
-    ready: "bg-emerald-100 text-emerald-700",
-    archived: "bg-amber-100 text-amber-700",
-  };
-  return map[status] || "bg-gray-100 text-gray-600";
-}
-
-function statusLabel(status: BankSoalStatus) {
-  const map: Record<BankSoalStatus, string> = {
-    draft: "Draft",
-    ready: "Siap",
-    archived: "Diarsipkan",
-  };
-  return map[status] || status;
-}
-
 // Format date
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("id-ID", {
@@ -444,14 +425,6 @@ onMounted(() => {
             <h1 class="text-lg font-semibold text-gray-900">
               {{ bankSoal.nama }}
             </h1>
-            <span
-              :class="[
-                'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
-                statusBadgeClass(bankSoal.status),
-              ]"
-            >
-              {{ statusLabel(bankSoal.status) }}
-            </span>
             <span
               v-if="bankSoal.isLocked"
               class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { io, type Socket } from "socket.io-client";
@@ -29,17 +29,64 @@ const modalParticipantId = ref("");
 const modalReason = ref("");
 const modalMinutes = ref(5);
 
-async function fetchDashboard() {
-  loading.value = true;
-  error.value = "";
+// Baris keterangan di bawah judul: mapel · kelas · jadwal · durasi
+const infoSesi = computed(() => {
+  const s = dashboard.value?.session;
+  if (!s) return "";
+  const jadwal = new Date(s.scheduledAt).toLocaleString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return [
+    s.mataPelajaranNama,
+    s.kelasNama ? `Kelas ${s.kelasNama}` : null,
+    jadwal,
+    `${s.durationMinutes} menit`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+});
+
+/**
+ * Ambil data dashboard. `diam` = penyegaran otomatis di latar belakang:
+ * tanpa spinner dan tanpa menimpa pesan error koneksi.
+ */
+async function fetchDashboard(diam = false) {
+  if (!diam) {
+    loading.value = true;
+    error.value = "";
+  }
   try {
     const res = await getProctorDashboard(sessionId);
     dashboard.value = res.data;
   } catch (e: any) {
-    error.value = e.response?.data?.message || "Gagal memuat dashboard";
+    if (!diam) {
+      error.value = e.response?.data?.message || "Gagal memuat dashboard";
+    }
   } finally {
-    loading.value = false;
+    if (!diam) loading.value = false;
   }
+}
+
+// Sisa waktu berjalan tiap detik di layar (server tetap acuan saat data dimuat ulang)
+let timerDetik: ReturnType<typeof setInterval> | null = null;
+// Penyegaran otomatis cadangan, kalau ada update realtime yang terlewat
+let timerSegarkan: ReturnType<typeof setInterval> | null = null;
+const SEGARKAN_MS = 30_000;
+
+function tickSisaWaktu() {
+  dashboard.value?.participants.forEach((p) => {
+    if (
+      ["in_progress", "disconnected"].includes(p.status) &&
+      p.remainingSeconds != null &&
+      p.remainingSeconds > 0
+    ) {
+      p.remainingSeconds -= 1;
+    }
+  });
 }
 
 function connectSocket() {
@@ -55,8 +102,12 @@ function connectSocket() {
   });
 
   // Join session room after connection
+  let pernahTersambung = false;
   socket.value.on("connect", () => {
     socket.value?.emit("join_session", { sessionId, token });
+    // Tersambung lagi setelah putus: ambil ulang data supaya update yang terlewat ikut masuk
+    if (pernahTersambung) fetchDashboard(true);
+    pernahTersambung = true;
   });
 
   // Handle join confirmation
@@ -191,10 +242,16 @@ async function handleModalSubmit() {
 onMounted(() => {
   fetchDashboard();
   connectSocket();
+  timerDetik = setInterval(tickSisaWaktu, 1000);
+  timerSegarkan = setInterval(() => {
+    if (!document.hidden) fetchDashboard(true);
+  }, SEGARKAN_MS);
 });
 
 onUnmounted(() => {
   socket.value?.disconnect();
+  if (timerDetik) clearInterval(timerDetik);
+  if (timerSegarkan) clearInterval(timerSegarkan);
 });
 </script>
 
@@ -205,16 +262,25 @@ onUnmounted(() => {
       class="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between"
     >
       <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">
+          Pengawasan Ujian
+        </p>
         <h1 class="text-lg font-semibold text-gray-900">
-          {{ dashboard?.session?.mataPelajaranNama || 'Proctor Dashboard' }}
+          {{
+            dashboard?.session?.bankSoalNama ||
+            dashboard?.session?.mataPelajaranNama ||
+            "Sesi Ujian"
+          }}
         </h1>
         <p class="text-sm text-gray-500 mt-0.5">
-          {{ dashboard?.session?.kelasNama || 'Memuat...' }}
+          <template v-if="dashboard">{{ infoSesi }}</template>
+          <template v-else-if="loading">Memuat data sesi...</template>
+          <template v-else>Data sesi tidak tersedia</template>
         </p>
       </div>
       <button
         class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-        @click="fetchDashboard"
+        @click="fetchDashboard()"
       >
         <svg
           class="h-4 w-4"

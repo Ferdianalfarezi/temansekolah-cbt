@@ -14,7 +14,8 @@ import { cbtExamParticipant } from "../../drizzle/schema/cbt-exam-participant";
 import { cbtSiswaAccount } from "../../drizzle/schema/cbt-siswa-account";
 import { cbtViolationEvent } from "../../drizzle/schema/cbt-violation-event";
 import { cbtProctorAction } from "../../drizzle/schema/cbt-proctor-action";
-import { siswa } from "../../drizzle/schema/lms-tables";
+import { siswa, kelas, mataPelajaran } from "../../drizzle/schema/lms-tables";
+import { cbtBankSoal } from "../../drizzle/schema/cbt-bank-soal";
 import { ExamGateway } from "../proctor-gateway/exam.gateway";
 import { HeartbeatService } from "../proctor-gateway/heartbeat.service";
 import { AuditLogService } from "../audit-log/audit-log.service";
@@ -132,6 +133,22 @@ export class ProctorService {
       connectedParticipantIds.add(entry.participantId);
     }
 
+    // Sisa waktu dihitung saat ini: remaining_seconds disimpan sekali saat siswa mulai
+    // (waktu sampai jadwal selesai), ditambah perpanjangan dari pengawas.
+    const sisaWaktu = (p: (typeof participants)[number]) => {
+      if (
+        !p.startedAt ||
+        p.remainingSeconds == null ||
+        !["in_progress", "paused", "disconnected"].includes(p.status)
+      ) {
+        return p.remainingSeconds;
+      }
+      const berakhir =
+        p.startedAt.getTime() +
+        (p.remainingSeconds + (p.extensionSeconds ?? 0)) * 1000;
+      return Math.max(0, Math.floor((berakhir - Date.now()) / 1000));
+    };
+
     // Map participants with connection status
     const participantData = participants.map((p) => ({
       id: p.id,
@@ -141,7 +158,7 @@ export class ProctorService {
       status: p.status,
       startedAt: p.startedAt?.toISOString() ?? null,
       submittedAt: p.submittedAt?.toISOString() ?? null,
-      remainingSeconds: p.remainingSeconds,
+      remainingSeconds: sisaWaktu(p),
       extensionSeconds: p.extensionSeconds,
       violationCount: p.violationCount,
       isFlaggedCheating: p.isFlaggedCheating,
@@ -163,6 +180,23 @@ export class ProctorService {
       flagged: participantData.filter((p) => p.isFlaggedCheating).length,
     };
 
+    // Nama-nama untuk judul halaman pengawas
+    const [nama] = await this.db
+      .select({
+        kelasNama: kelas.nama,
+        mataPelajaranNama: mataPelajaran.nama,
+        bankSoalNama: cbtBankSoal.nama,
+      })
+      .from(cbtExamSession)
+      .leftJoin(kelas, eq(cbtExamSession.kelasId, kelas.id))
+      .leftJoin(
+        mataPelajaran,
+        eq(cbtExamSession.mataPelajaranId, mataPelajaran.id),
+      )
+      .leftJoin(cbtBankSoal, eq(cbtExamSession.bankSoalId, cbtBankSoal.id))
+      .where(eq(cbtExamSession.id, session.id))
+      .limit(1);
+
     return {
       session: {
         id: session.id,
@@ -172,6 +206,9 @@ export class ProctorService {
         mataPelajaranId: session.mataPelajaranId,
         kelasId: session.kelasId,
         bankSoalId: session.bankSoalId,
+        kelasNama: nama?.kelasNama ?? null,
+        mataPelajaranNama: nama?.mataPelajaranNama ?? null,
+        bankSoalNama: nama?.bankSoalNama ?? null,
       },
       participants: participantData,
       stats,

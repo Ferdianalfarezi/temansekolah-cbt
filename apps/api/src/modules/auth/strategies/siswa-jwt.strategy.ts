@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 
 import { DRIZZLE } from "../../../drizzle/drizzle.module";
 import { cbtSiswaAccount } from "../../../drizzle/schema/cbt-siswa-account";
+import { siswa } from "../../../drizzle/schema/lms-tables";
 
 /**
  * JWT payload structure issued by the CBT system for siswa.
@@ -56,16 +57,23 @@ export class SiswaJwtStrategy extends PassportStrategy(Strategy, "jwt-siswa") {
       throw new UnauthorizedException("Invalid siswa token");
     }
 
-    // Check if the siswa account is still active
+    // Check if the siswa account is still active, and the siswa is still aktif in LMS
     const accounts = await this.db
-      .select({ isActive: cbtSiswaAccount.isActive })
+      .select({
+        isActive: cbtSiswaAccount.isActive,
+        siswaStatus: siswa.status,
+      })
       .from(cbtSiswaAccount)
+      .leftJoin(siswa, eq(cbtSiswaAccount.siswaId, siswa.id))
       .where(eq(cbtSiswaAccount.id, payload.sub))
       .limit(1);
 
     const account = accounts[0];
     if (!account || account.isActive === false) {
       throw new UnauthorizedException("Account has been deactivated");
+    }
+    if (account.siswaStatus && account.siswaStatus !== "aktif") {
+      throw new UnauthorizedException("Siswa tidak aktif");
     }
 
     return {
